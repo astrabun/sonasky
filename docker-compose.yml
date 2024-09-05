@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:latest
+    container_name: sonabotdb
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_DB: ${POSTGRES_DB:-sonabot}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
+  
+  sonasky:
+    depends_on:
+      - db
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    build: .
+    env_file:
+      - .env
+    restart: unless-stopped
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    volumes:
+      - ./.docker/labels:/tmp/labels:rw  # optional; lets us access a json file with all labels. GENERATE_JSON_FILE_OF_SPECIES must be "true"
+
+volumes:
+  pgdata:

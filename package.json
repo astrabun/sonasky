@@ -1,0 +1,23 @@
+{
+  "name": "sonabot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx tsx ./src/index.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.1.0",
+    "@types/pg": "^8.11.6",
+    "nodemon": "^3.1.4",
+    "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "@atproto/api": "^0.12.29",
+    "@skyware/firehose": "^0.3.1",
+    "atproto-firehose": "^0.2.2",
+    "axios": "^1.7.3",
+    "dayjs": "^1.11.13",
+    "pg": "^8.12.0",
+    "ts-node": "^10.9.2"
+  }
+}
