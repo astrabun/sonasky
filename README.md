@@ -2,6 +2,8 @@
 
 > A Bluesky labeler allowing self-assignment of fursona species labels
 
+[Read more about SonaSky](https://astrabun.com/projects/sonasky/)
+
 ---
 
 ## About
