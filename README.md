@@ -1,3 +1,9 @@
+# DEPRECATED
+
+This repository contains the first version of the SonaSky labeler bot. While it works well for small labelers, it didn't perform the greatest. Because Bluesky has a limit on labeler data payload size, I needed to create multiple labelers to support more label options for users. This bot wasn't going to work for me, so I wrote a new bot that handles assigning labels across multiple labelers. I may publish that code after I've given it some time to run and discover any bugs/problems with it, but no promises.
+
+This repo will be marked as "archived" as I will not be maintaining it anymore.
+
 # SonaSky
 
 > A Bluesky labeler allowing self-assignment of fursona species labels
