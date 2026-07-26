@@ -40,8 +40,31 @@ jobs:
 
       - run: pnpm -F @sonasky/app-label-browser build
 
-      - uses: cloudflare/wrangler-action@v3
+      - id: deploy
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy apps/label-browser/dist --project-name=${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}
+
+      - id: timestamp
+        if: github.event_name == 'pull_request'
+        run: echo "time=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
+      - name: Update sticky preview status comment
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: label-browser-preview
+          message: |
+            ### Label browser preview
+            ✅ Last successful build: `${{ github.event.pull_request.head.sha }}` at ${{ steps.timestamp.outputs.time }}
+            Preview: ${{ steps.deploy.outputs.deployment-url }}
+
+      - name: Comment on commit build
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            🚀 Preview build for `${{ github.event.pull_request.head.sha }}` succeeded: ${{ steps.deploy.outputs.deployment-url }}
