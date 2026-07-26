@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
+import { BotStatus } from "./components/BotStatus";
 import { generateSonaskyPostLink } from "./utils/generateSonaskyPostLink";
 import { getAllLabels } from "@sonasky/labels-def";
 import { useDebounce } from "./hooks/useDebounce";
@@ -183,6 +184,7 @@ function App() {
           <h1>SonaSky Label Browser</h1>
           <p>Find your species!</p>
         </div>
+        <BotStatus />
         <div style={{ display: "flex", flexDirection: "row", gap: "1rem" }}>
           <select value={preferredLocale} onChange={(e) => setPreferredLocale(e.target.value)}>
             {localeOptions.map((lang) => (

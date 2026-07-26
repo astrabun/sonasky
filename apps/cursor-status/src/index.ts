@@ -8,6 +8,13 @@ const port = Number(process.env.PORT ?? 8080);
 const jetstreamCursorKey = "jetstream:cursor";
 
 const server = createServer(async (req, res) => {
+  res.setHeader("access-control-allow-origin", "*");
+
+  if (req.method === "OPTIONS") {
+    res.writeHead(204).end();
+    return;
+  }
+
   if (req.method !== "GET") {
     res.writeHead(405).end();
     return;
