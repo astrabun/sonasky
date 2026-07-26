@@ -12,6 +12,26 @@ services:
     env_file:
       - .env
 
+  cursor-status:
+    build:
+      context: ../..
+      dockerfile: apps/cursor-status/Dockerfile
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - cursor-status
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     volumes:

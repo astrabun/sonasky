@@ -12,9 +12,11 @@ const savedCursor = await redis.get(jetstreamCursorKey);
 
 const jetstream = new Jetstream({
   wantedCollections: ["app.bsky.feed.like"],
-  wantedDids: ["did:plc:nkleu4mgtlxpsfwkdm6otsqu"], // TEMP
   ws: WebSocket,
-  cursor: savedCursor ? Number(savedCursor) : undefined,
+  // Seed with "now" when there's no saved cursor, so the cursor is always
+  // reportable (e.g. via cursor-status) instead of null until the first
+  // event arrives.
+  cursor: savedCursor ? Number(savedCursor) : Date.now() * 1000,
 });
 
 const saveJetstreamCursor = async () => {
