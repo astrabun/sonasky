@@ -1,0 +1,33 @@
+name: Sync label data to Ozone
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "packages/labels-def/**"
+      - "packages/labels-sync/**"
+      - ".github/workflows/sync2ozone.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      PRIME_OZONE_SERVICE_USER_DID: ${{ secrets.PRIME_OZONE_SERVICE_USER_DID }}
+      PRIME_BSKY_USER: ${{ secrets.PRIME_BSKY_USER }}
+      PRIME_BSKY_PASS: ${{ secrets.PRIME_BSKY_PASS }}
+      POKEMON_OZONE_SERVICE_USER_DID: ${{ secrets.POKEMON_OZONE_SERVICE_USER_DID }}
+      POKEMON_BSKY_USER: ${{ secrets.POKEMON_BSKY_USER }}
+      POKEMON_BSKY_PASS: ${{ secrets.POKEMON_BSKY_PASS }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm labels-sync:sync
