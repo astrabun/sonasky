@@ -1,0 +1,26 @@
+{
+  "name": "@sonasky/app-label-bot",
+  "version": "1.0.0",
+  "description": "Listen for Bluesky post likes/unlikes and update labels as needed.",
+  "author": "Astra Bun",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -b",
+    "start": "dotenvx run -- tsx src/index.ts"
+  },
+  "dependencies": {
+    "@atproto/api": "^0.20.34",
+    "@skyware/jetstream": "^0.2.5",
+    "ioredis": "^5.4.2",
+    "ws": "^8.21.1"
+  },
+  "devDependencies": {
+    "@dotenvx/dotenvx": "^1.75.1",
+    "@sonasky/labels-def": "workspace:*",
+    "@sonasky/tsconfig": "workspace:*",
+    "@types/node": "^24.13.2",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.19.2",
+    "typescript": "~6.0.2"
+  }
+}

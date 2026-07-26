@@ -1,0 +1,21 @@
+{
+  "name": "@sonasky/app-cursor-status",
+  "version": "1.0.0",
+  "description": "Reports the label-bot Jetstream cursor position and how far behind it is from now.",
+  "author": "Astra Bun",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -b",
+    "start": "dotenvx run -- tsx src/index.ts"
+  },
+  "dependencies": {
+    "ioredis": "^5.4.2"
+  },
+  "devDependencies": {
+    "@dotenvx/dotenvx": "^1.75.1",
+    "@sonasky/tsconfig": "workspace:*",
+    "@types/node": "^24.13.2",
+    "tsx": "^4.19.2",
+    "typescript": "~6.0.2"
+  }
+}

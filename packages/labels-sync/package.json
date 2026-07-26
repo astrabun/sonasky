@@ -12,7 +12,7 @@
     "@sonasky/labels-def": "workspace:*"
   },
   "devDependencies": {
-    "@dotenvx/dotenvx": "^1.34.0",
+    "@dotenvx/dotenvx": "^1.75.1",
     "@sonasky/tsconfig": "workspace:*",
     "@types/node": "^24.13.2",
     "typescript": "~6.0.2"
