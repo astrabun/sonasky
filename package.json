@@ -19,7 +19,8 @@
     "lint-staged": "^17.2.0",
     "oxfmt": "^0.60.0",
     "oxlint": "^1.75.0",
-    "oxlint-tsgolint": "^7.0.2001"
+    "oxlint-tsgolint": "^7.0.2001",
+    "wrangler": "^4.114.0"
   },
   "lint-staged": {
     "*": "oxfmt --no-error-on-unmatched-pattern"
