@@ -45,7 +45,10 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy apps/label-browser/dist --project-name=${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}
+          command: >-
+            pages deploy apps/label-browser/dist
+            --project-name=${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}
+            --branch=${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref_name }}
 
       - id: timestamp
         if: github.event_name == 'pull_request'
