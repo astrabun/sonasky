@@ -10,6 +10,7 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "typecheck": "pnpm -r run typecheck",
+    "label-bot:start": "pnpm -F @sonasky/app-label-bot start",
     "label-browser:dev": "pnpm -F @sonasky/app-label-browser dev",
     "labels-sync:sync": "pnpm -F @sonasky/labels-sync sync",
     "prepare": "husky"
