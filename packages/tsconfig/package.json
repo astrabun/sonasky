@@ -1,0 +1,12 @@
+{
+  "name": "@sonasky/tsconfig",
+  "version": "1.0.0",
+  "private": true,
+  "description": "shared tsconfig",
+  "files": [
+    "base.json"
+  ],
+  "scripts": {
+    "typecheck": "echo '@sonasky/tsconfig has no source to typecheck' && exit 0"
+  }
+}

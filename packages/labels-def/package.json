@@ -1,0 +1,24 @@
+{
+  "name": "@sonasky/labels-def",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "src"
+  ],
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -b",
+    "sync-from-yaml": "node scripts/sync-from-yaml.ts"
+  },
+  "devDependencies": {
+    "@sonasky/tsconfig": "workspace:*",
+    "@types/node": "^24.13.2",
+    "typescript": "~6.0.2",
+    "yaml": "^2.6.0"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "sonasky",
+  "version": "1.0.0",
+  "description": "Monorepo of SonaSky Apps/Packages",
+  "author": "Astra Bun",
+  "type": "module",
+  "scripts": {
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "typecheck": "pnpm -r run typecheck",
+    "label-browser:dev": "pnpm -F @sonasky/app-label-browser dev",
+    "labels-sync:sync": "pnpm -F @sonasky/labels-sync sync",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.2.0",
+    "oxfmt": "^0.60.0",
+    "oxlint": "^1.75.0",
+    "oxlint-tsgolint": "^7.0.2001"
+  },
+  "lint-staged": {
+    "*": "oxfmt --no-error-on-unmatched-pattern"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^11.3.0",
+      "onFail": "download"
+    }
+  }
+}
