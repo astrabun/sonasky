@@ -1,0 +1,47 @@
+name: Deploy Label Browser
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "apps/label-browser/**"
+      - "packages/labels-def/**"
+      - "packages/tsconfig/**"
+      - ".github/workflows/deploy-label-browser.yml"
+  pull_request:
+    paths:
+      - "apps/label-browser/**"
+      - "packages/labels-def/**"
+      - "packages/tsconfig/**"
+      - ".github/workflows/deploy-label-browser.yml"
+
+concurrency:
+  group: deploy-label-browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm -F @sonasky/app-label-browser build
+
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/label-browser/dist --project-name=${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}
