@@ -16,12 +16,10 @@
  * Usage: pnpm feed-generator:publish
  */
 
-import { Agent, CredentialSession } from "@atproto/api";
+import type { Agent } from "@atproto/api";
 import { config } from "../config.ts";
 import { getServedFeeds } from "../feeds.ts";
-
-const COLLECTION = "app.bsky.feed.generator";
-const BATCH_SIZE = 200;
+import { BATCH_SIZE, COLLECTION, login } from "./repo.ts";
 
 interface GeneratorValue {
   did: string;
@@ -29,22 +27,6 @@ interface GeneratorValue {
   description: string;
   createdAt: string;
 }
-
-const requireEnv = (name: string): string => {
-  const value = process.env[name];
-  if (!value) throw new Error(`Missing required env var ${name}`);
-  return value;
-};
-
-const login = async (): Promise<Agent> => {
-  const session = new CredentialSession(new URL("https://bsky.social"));
-  await session.login({
-    identifier: requireEnv("SONASKY_BSKY_USER"),
-    password: requireEnv("SONASKY_BSKY_PASS"),
-  });
-  console.log(`Authenticated as ${session.did}`);
-  return new Agent(session);
-};
 
 /** Maps existing feed-generator rkey -> its stored record value. */
 const fetchExisting = async (agent: Agent, repo: string): Promise<Map<string, GeneratorValue>> => {
@@ -73,9 +55,8 @@ const isRateLimit = (err: unknown): err is { headers?: Record<string, string> } 
   (err as { status?: number }).status === 429;
 
 const main = async (): Promise<void> => {
-  const agent = await login();
-  const repo = agent.did;
-  if (!repo) throw new Error("Agent has no DID after login");
+  const { agent, repo, handle } = await login();
+  console.log(`Authenticated as ${handle} (${repo})`);
 
   const existing = await fetchExisting(agent, repo);
   console.log(`Found ${existing.size} existing feed records`);

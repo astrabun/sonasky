@@ -17,6 +17,7 @@
     "feed-generator:migrate": "pnpm -F @sonasky/app-feed-generator migrate",
     "feed-generator:publish": "pnpm -F @sonasky/app-feed-generator publish-feeds",
     "feed-generator:unpublish": "pnpm -F @sonasky/app-feed-generator unpublish-feeds",
+    "feed-generator:purge": "pnpm -F @sonasky/app-feed-generator purge-feeds",
     "labels-sync:sync": "pnpm -F @sonasky/labels-sync sync",
     "prepare": "husky"
   },

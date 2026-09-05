@@ -70,6 +70,8 @@ names trip the PDS record-key slur filter. `getFeedSkeleton` maps the rkey back 
 ```
 pnpm feed-generator:publish      # idempotent create/update, preserves createdAt
 pnpm feed-generator:unpublish    # deletes records whose rkey is no longer an active label
+pnpm feed-generator:purge        # DESTRUCTIVE: deletes ALL feed records; prompts for the
+                                 # account handle to confirm (--yes to skip). Wipes a test account.
 ```
 
 CI (`.github/workflows/publish-feeds.yml`) runs `publish` on pushes to `main` that touch
