@@ -4,11 +4,11 @@ A Bluesky [custom feed generator](https://atproto.com/guides/custom-feed-tutoria
 that serves **one reverse-chronological feed per active SonaSky species label** - the feed
 for label `X` is the recent posts authored by accounts that currently carry label `X` -
 plus an **"All SonaSky Users"** feed of posts from any account with any SonaSky species
-label.
+label, and a **"SonaSky Trending"** feed of the same population ranked by recent engagement.
 
 ## How it works
 
-One process runs four things:
+One process runs five things:
 
 1. **Label sync** - polls each realm's Ozone labeler `com.atproto.label.queryLabels`
    (`uriPatterns=*`) every 60s, keeping the `account_label` table and an in-memory DID set
@@ -21,7 +21,11 @@ One process runs four things:
    (`feeds:jetstream:cursor`). Only posts seen after an account is known to be labeled are
    captured (no historical backfill).
 3. **Prune job** - hourly, drops posts older than `POST_RETENTION_DAYS` (default 7).
-4. **HTTP server** - serves the XRPC endpoints:
+4. **Trending refresh** - every 15 min, scores the last 24h of posts from labeled accounts
+   (engagement / age falloff, counts pulled from the AppView `app.bsky.feed.getPosts`) and
+   rebuilds the `trending:all` Redis sorted set the "SonaSky Trending" feed is served from.
+   Tuning constants are at the top of [`src/consumers/trending.ts`](./src/consumers/trending.ts).
+5. **HTTP server** - serves the XRPC endpoints:
    - `GET /.well-known/did.json` - the `did:web:<SERVICE_HOSTNAME>` document
    - `GET /xrpc/app.bsky.feed.describeFeedGenerator`
    - `GET /xrpc/app.bsky.feed.getFeedSkeleton?feed=<at-uri>&limit=&cursor=`

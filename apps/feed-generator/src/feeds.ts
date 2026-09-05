@@ -34,10 +34,12 @@ interface BaseFeed {
 }
 
 export type ServedFeed =
-  /** Posts from accounts carrying one specific label (`labelId` = its value). */
+  /** Reverse-chron posts from accounts carrying one specific label (`labelId` = its value). */
   | (BaseFeed & { kind: "species"; labelId: string })
-  /** Posts from accounts carrying any SonaSky label. */
-  | (BaseFeed & { kind: "all"; labelId: null });
+  /** Reverse-chron posts from accounts carrying any SonaSky label. */
+  | (BaseFeed & { kind: "all"; labelId: null })
+  /** Trending (engagement-ranked) posts from accounts carrying any SonaSky label. */
+  | (BaseFeed & { kind: "trending"; labelId: null });
 
 const englishName = (locales: { lang: string; name: string }[]): string =>
   (locales.find((l) => l.lang === "en") ?? locales[0])?.name ?? "";
@@ -55,6 +57,17 @@ const allUsersFeed: ServedFeed = {
   description: "Reverse-chronological posts from every account SonaSky has given a species label.",
 };
 
+const trendingRkey = feedRkey("__all_sonasky_users_trending__");
+const trendingFeed: ServedFeed = {
+  kind: "trending",
+  labelId: null,
+  rkey: trendingRkey,
+  uri: feedUri(trendingRkey),
+  displayName: "SonaSky Trending",
+  description:
+    "The most-liked and reposted recent posts from accounts SonaSky has given a species label.",
+};
+
 const speciesFeeds: ServedFeed[] = getAllLabels().map((label) => {
   const name = englishName(label.locales) || label.id;
   const rkey = feedRkey(label.id);
@@ -68,7 +81,7 @@ const speciesFeeds: ServedFeed[] = getAllLabels().map((label) => {
   };
 });
 
-const servedFeeds: ServedFeed[] = [allUsersFeed, ...speciesFeeds];
+const servedFeeds: ServedFeed[] = [allUsersFeed, trendingFeed, ...speciesFeeds];
 
 const labelIds = new Set(speciesFeeds.map((f) => f.labelId));
 const rkeyToFeed = new Map(servedFeeds.map((f) => [f.rkey, f]));

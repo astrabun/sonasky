@@ -1,7 +1,9 @@
 import type { ServerResponse } from "node:http";
 import { db } from "../../db/index.ts";
+import { TRENDING_ZSET_KEY } from "../../consumers/trending.ts";
 import { feedForUri } from "../../feeds.ts";
 import { mergePins, pinsForFeed } from "../../pinnedPosts.ts";
+import { redis } from "../../utils/redis.ts";
 import { sendError, sendJson } from "../json.ts";
 
 const DEFAULT_LIMIT = 50;
@@ -14,11 +16,17 @@ const parseLimit = (raw: string | null): number => {
   return Math.min(Math.max(Math.trunc(n), 1), MAX_LIMIT);
 };
 
+const respond = (res: ServerResponse, feedUris: string[], nextCursor: string | undefined): void =>
+  sendJson(res, 200, {
+    ...(nextCursor ? { cursor: nextCursor } : {}),
+    feed: feedUris.map((uri) => ({ post: uri })),
+  });
+
 /**
- * app.bsky.feed.getFeedSkeleton - returns a reverse-chronological page of post
- * URIs authored by accounts carrying the requested feed's species label (or any
- * SonaSky label, for the "all" feed), with any configured pinned posts injected
- * into the first page. Non-personalized: the requester JWT is ignored.
+ * app.bsky.feed.getFeedSkeleton - a page of post URIs for the requested feed:
+ * reverse-chron for species / "all" feeds, engagement-ranked for the "trending"
+ * feed. Configured pins are injected into the first page. Non-personalized: the
+ * requester JWT is ignored.
  */
 export async function getFeedSkeleton(res: ServerResponse, params: URLSearchParams): Promise<void> {
   const feedParam = params.get("feed");
@@ -35,6 +43,21 @@ export async function getFeedSkeleton(res: ServerResponse, params: URLSearchPara
 
   const limit = parseLimit(params.get("limit"));
   const cursor = params.get("cursor");
+  const pins = cursor ? [] : pinsForFeed(feed.labelId ?? "*");
+  const pinUris = new Set(pins.map((p) => p.uri));
+
+  if (feed.kind === "trending") {
+    // Trending is served from a periodically-rebuilt Redis sorted set; the
+    // sort key is unstable across refreshes, so pagination is a plain offset.
+    const offset = cursor ? Math.max(0, Number.parseInt(cursor, 10) || 0) : 0;
+    const uris = await redis.zrange(TRENDING_ZSET_KEY, offset, offset + limit - 1, "REV");
+    const hasMore = uris.length === limit;
+
+    const feedUris = mergePins(uris, pins, limit);
+    const organicShown = feedUris.filter((u) => !pinUris.has(u)).length;
+    respond(res, feedUris, hasMore ? String(offset + organicShown) : undefined);
+    return;
+  }
 
   let query = db
     .selectFrom("post as p")
@@ -74,15 +97,18 @@ export async function getFeedSkeleton(res: ServerResponse, params: URLSearchPara
 
   const organic = await query.execute();
   const hasMore = organic.length === limit;
+  const feedUris = mergePins(
+    organic.map((row) => row.uri),
+    pins,
+    limit,
+  );
 
-  // Pins are injected into the first page only.
-  const pins = cursor ? [] : pinsForFeed(feed.labelId ?? "*");
-  const { feedUris, cursorRow } = mergePins(organic, pins, limit, hasMore);
+  let nextCursor: string | undefined;
+  if (hasMore) {
+    const lastOrganicUri = [...feedUris].reverse().find((u) => !pinUris.has(u));
+    const row = (lastOrganicUri && organic.find((o) => o.uri === lastOrganicUri)) || organic.at(-1);
+    if (row) nextCursor = `${row.indexed_at}::${row.uri}`;
+  }
 
-  const nextCursor = cursorRow ? `${cursorRow.indexed_at}::${cursorRow.uri}` : undefined;
-
-  sendJson(res, 200, {
-    ...(nextCursor ? { cursor: nextCursor } : {}),
-    feed: feedUris.map((uri) => ({ post: uri })),
-  });
+  respond(res, feedUris, nextCursor);
 }

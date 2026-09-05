@@ -1,6 +1,7 @@
 import { startLabelSync } from "./consumers/labelSync.ts";
 import { startPostStream } from "./consumers/postStream.ts";
 import { startPrune } from "./consumers/prune.ts";
+import { startTrending } from "./consumers/trending.ts";
 import { closeDb } from "./db/index.ts";
 import { migrateToLatest } from "./db/migrate.ts";
 import { hydrate } from "./labeledDids.ts";
@@ -13,6 +14,7 @@ await hydrate();
 const labelSync = await startLabelSync();
 const postStream = await startPostStream();
 const pruneInterval = startPrune();
+const trending = startTrending();
 const server = await startHttpServer();
 
 let shuttingDown = false;
@@ -23,6 +25,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
     console.log(`${signal} received, shutting down`);
 
     labelSync.stop();
+    trending.stop();
     clearInterval(pruneInterval);
     server.close();
 

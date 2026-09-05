@@ -35,49 +35,24 @@ export function pinsForFeed(labelId: string): PinnedPost[] {
     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 }
 
-export interface OrganicPost {
-  uri: string;
-  indexed_at: number;
-}
-
 /**
- * Merges `pins` into a page of `organic` posts (already reverse-chron, at most
- * `limit` rows fetched). Pins are de-duplicated from the organic set, inserted
- * at their clamped `position`, and the result truncated to `limit`. Returns the
- * page URIs and the organic row to derive the next cursor from (or `undefined`
- * when there is no next page).
+ * Merges pin URIs into a page of `organicUris` (already in feed order, at most
+ * `limit` fetched). Pins are de-duplicated from the organic set, inserted at
+ * their clamped `position`, and the result truncated to `limit`. Callers derive
+ * the next cursor themselves from the organic URIs that survived into the page.
  */
-export function mergePins(
-  organic: OrganicPost[],
-  pins: PinnedPost[],
-  limit: number,
-  hasMore: boolean,
-): { feedUris: string[]; cursorRow: OrganicPost | undefined } {
+export function mergePins(organicUris: string[], pins: PinnedPost[], limit: number): string[] {
   const capped = pins.slice(0, Math.max(limit - 1, 0));
-
-  if (capped.length === 0) {
-    return {
-      feedUris: organic.map((row) => row.uri),
-      cursorRow: hasMore ? organic.at(-1) : undefined,
-    };
-  }
+  if (capped.length === 0) return organicUris.slice(0, limit);
 
   const pinUris = new Set(capped.map((p) => p.uri));
-  const items: { uri: string; row?: OrganicPost }[] = organic
-    .filter((row) => !pinUris.has(row.uri))
-    .map((row) => ({ uri: row.uri, row }));
+  const items = organicUris.filter((uri) => !pinUris.has(uri));
 
   for (const pin of capped) {
     // Clamp into the visible page so a pin never falls off the end.
     const at = Math.max(0, Math.min(pin.position ?? 0, limit - 1, items.length));
-    items.splice(at, 0, { uri: pin.uri });
+    items.splice(at, 0, pin.uri);
   }
 
-  const page = items.slice(0, limit);
-  const lastOrganic = [...page].reverse().find((item) => item.row)?.row;
-
-  return {
-    feedUris: page.map((item) => item.uri),
-    cursorRow: hasMore ? (lastOrganic ?? organic.at(-1)) : undefined,
-  };
+  return items.slice(0, limit);
 }
