@@ -13,6 +13,10 @@
     "label-bot:start": "pnpm -F @sonasky/app-label-bot start",
     "cursor-status:start": "pnpm -F @sonasky/app-cursor-status start",
     "label-browser:dev": "pnpm -F @sonasky/app-label-browser dev",
+    "feed-generator:start": "pnpm -F @sonasky/app-feed-generator start",
+    "feed-generator:migrate": "pnpm -F @sonasky/app-feed-generator migrate",
+    "feed-generator:publish": "pnpm -F @sonasky/app-feed-generator publish-feeds",
+    "feed-generator:unpublish": "pnpm -F @sonasky/app-feed-generator unpublish-feeds",
     "labels-sync:sync": "pnpm -F @sonasky/labels-sync sync",
     "prepare": "husky"
   },
