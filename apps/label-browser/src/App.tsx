@@ -182,7 +182,9 @@ function App() {
         </div>
         <div>
           <h1>SonaSky Label Browser</h1>
-          <p>Find your species!</p>
+          <p>
+            Find your species! &middot; <a href="/faq">FAQ</a>
+          </p>
         </div>
         <BotStatus />
         <div style={{ display: "flex", flexDirection: "row", gap: "1rem" }}>
