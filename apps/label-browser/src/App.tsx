@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 import "./App.css";
 import { BotStatus } from "./components/BotStatus";
 import { generateSonaskyPostLink } from "./utils/generateSonaskyPostLink";
@@ -6,6 +8,7 @@ import { getAllLabels } from "@sonasky/labels-def";
 import { getGlobalFeeds, getLabelFeedsMap } from "@sonasky/feeds-def";
 import { useDebounce } from "./hooks/useDebounce";
 import { useLikeCounts } from "./hooks/useLikeCounts";
+import { useUniqueLikerCount } from "./hooks/useUniqueLikerCount";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import {
   arrayCodec,
@@ -13,6 +16,8 @@ import {
   useUrlSyncedState,
   type UrlCodec,
 } from "./hooks/useUrlSyncedState";
+
+dayjs.extend(relativeTime);
 
 const REALM_ORDER = ["prime", "pokemon"] as const;
 const REALM_LABELS: Record<(typeof REALM_ORDER)[number], string> = {
@@ -149,6 +154,7 @@ function App() {
     [labels],
   );
   const likeCounts = useLikeCounts(postRefs);
+  const uniqueLikers = useUniqueLikerCount(postRefs);
 
   const [sortBy, setSortBy] = useUrlSyncedState<SortBy>("sortBy", "default", SORT_CODEC);
 
@@ -209,6 +215,27 @@ function App() {
           )}
         </div>
         <BotStatus />
+        <p className="user-population">
+          {uniqueLikers.refreshing
+            ? `Counting labeler users... (${uniqueLikers.postsProcessed}/${uniqueLikers.totalPosts} species scanned)`
+            : uniqueLikers.count !== null
+              ? `${uniqueLikers.count} unique users are using the labeler`
+              : "User population unknown"}
+          <button
+            type="button"
+            className="refresh-button"
+            onClick={uniqueLikers.refresh}
+            disabled={uniqueLikers.refreshing}
+            title={
+              uniqueLikers.updatedAt
+                ? `Last updated ${dayjs(uniqueLikers.updatedAt).fromNow()}`
+                : "Not yet calculated"
+            }
+            aria-label="Refresh user population count"
+          >
+            ↻
+          </button>
+        </p>
         <div style={{ display: "flex", flexDirection: "row", gap: "1rem" }}>
           <select value={preferredLocale} onChange={(e) => setPreferredLocale(e.target.value)}>
             {localeOptions.map((lang) => (
