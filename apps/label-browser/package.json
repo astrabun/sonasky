@@ -13,7 +13,8 @@
   "dependencies": {
     "dayjs": "^1.11.21",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "swetrix": "^4.6.1"
   },
   "devDependencies": {
     "@sonasky/feeds-def": "workspace:*",
