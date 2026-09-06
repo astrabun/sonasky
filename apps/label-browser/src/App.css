@@ -359,6 +359,18 @@ a:visited {
     color: var(--text);
     font-size: 14px;
   }
+
+  .species-feeds {
+    font-size: 13px;
+
+    a {
+      color: var(--text);
+    }
+  }
+}
+
+.feed-links {
+  font-size: 15px;
 }
 
 .spacer {
