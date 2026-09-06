@@ -39,6 +39,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm -F @sonasky/app-label-browser build
+        env:
+          SWETRIX_BASE_URL: ${{ vars.SWETRIX_BASE_URL || secrets.SWETRIX_BASE_URL }}
+          SWETRIX_PROJECT_ID: ${{ vars.SWETRIX_PROJECT_ID || secrets.SWETRIX_PROJECT_ID }}
 
       - id: deploy
         uses: cloudflare/wrangler-action@v3
