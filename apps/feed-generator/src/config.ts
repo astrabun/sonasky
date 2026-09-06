@@ -22,7 +22,11 @@ export const config = {
   /** Account that owns the published app.bsky.feed.generator records. */
   publisherDid: SONASKY_DID,
   port: Number(process.env.PORT ?? 8080),
-  databaseUrl: requireEnv("DATABASE_URL"),
+  /** Required by the running service; resolved lazily so publish-only scripts
+   * (which never touch Postgres) don't need it set. */
+  get databaseUrl(): string {
+    return requireEnv("DATABASE_URL");
+  },
   redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379",
   /** How many days of post history to keep before pruning. */
   postRetentionDays: Number(process.env.POST_RETENTION_DAYS ?? 7),
