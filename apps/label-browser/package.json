@@ -16,6 +16,7 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
+    "@sonasky/feeds-def": "workspace:*",
     "@sonasky/labels-def": "workspace:*",
     "@sonasky/tsconfig": "workspace:*",
     "@types/node": "^24.13.2",

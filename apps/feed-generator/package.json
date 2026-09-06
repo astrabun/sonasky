@@ -1,0 +1,34 @@
+{
+  "name": "@sonasky/app-feed-generator",
+  "version": "1.0.0",
+  "description": "Bluesky custom feed generator serving one reverse-chronological feed per SonaSky species label.",
+  "author": "Astra Bun",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -b",
+    "start": "dotenvx run -- tsx src/index.ts",
+    "migrate": "dotenvx run -- tsx src/db/migrate.ts",
+    "publish-feeds": "dotenvx run -- tsx src/scripts/publishFeeds.ts",
+    "unpublish-feeds": "dotenvx run -- tsx src/scripts/unpublishFeeds.ts",
+    "purge-feeds": "dotenvx run -- tsx src/scripts/purgeFeeds.ts"
+  },
+  "dependencies": {
+    "@atproto/api": "^0.20.34",
+    "@skyware/jetstream": "^0.2.5",
+    "ioredis": "^5.4.2",
+    "kysely": "^0.27.5",
+    "pg": "^8.13.1",
+    "ws": "^8.21.1"
+  },
+  "devDependencies": {
+    "@dotenvx/dotenvx": "^1.75.1",
+    "@sonasky/feeds-def": "workspace:*",
+    "@sonasky/labels-def": "workspace:*",
+    "@sonasky/tsconfig": "workspace:*",
+    "@types/node": "^24.13.2",
+    "@types/pg": "^8.11.10",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.19.2",
+    "typescript": "~6.0.2"
+  }
+}

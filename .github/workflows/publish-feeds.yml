@@ -1,0 +1,30 @@
+name: Publish feed generator records
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "packages/labels-def/**"
+      - "apps/feed-generator/**"
+      - ".github/workflows/publish-feeds.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      SERVICE_HOSTNAME: feeds.sonasky.app
+      SONASKY_BSKY_USER: ${{ secrets.SONASKY_BSKY_USER }}
+      SONASKY_BSKY_PASS: ${{ secrets.SONASKY_BSKY_PASS }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm feed-generator:publish

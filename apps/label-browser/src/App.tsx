@@ -3,8 +3,10 @@ import "./App.css";
 import { BotStatus } from "./components/BotStatus";
 import { generateSonaskyPostLink } from "./utils/generateSonaskyPostLink";
 import { getAllLabels } from "@sonasky/labels-def";
+import { getGlobalFeeds, getLabelFeedsMap } from "@sonasky/feeds-def";
 import { useDebounce } from "./hooks/useDebounce";
 import { useLikeCounts } from "./hooks/useLikeCounts";
+import { useLocalStorage } from "./hooks/useLocalStorage";
 import {
   arrayCodec,
   stringCodec,
@@ -26,6 +28,11 @@ const SORT_CODEC: UrlCodec<SortBy> = {
 
 function App() {
   const allLabels = useMemo(() => getAllLabels({ localesToObject: true }), []);
+
+  // Optional feed links (bsky.app custom feeds). Preference persisted locally.
+  const [showFeeds, setShowFeeds] = useLocalStorage("showFeeds", false);
+  const globalFeeds = useMemo(() => getGlobalFeeds(), []);
+  const labelFeedsMap = useMemo(() => getLabelFeedsMap(), []);
 
   // Some labels (e.g. sonasky-ref-sheet-user) have no associated post, so
   // they can't get a bsky.app link or like count here.
@@ -182,7 +189,24 @@ function App() {
         </div>
         <div>
           <h1>SonaSky Label Browser</h1>
-          <p>Find your species!</p>
+          <p>
+            Find your species! &middot; <a href="/faq">FAQ</a>
+          </p>
+          {showFeeds && (globalFeeds.all.rkey || globalFeeds.trending.rkey) && (
+            <p className="feed-links">
+              {globalFeeds.all.rkey && (
+                <a href={globalFeeds.all.bskyUrl} target="_blank" rel="noopener noreferrer">
+                  {globalFeeds.all.displayName} Feed
+                </a>
+              )}
+              {globalFeeds.all.rkey && globalFeeds.trending.rkey && " · "}
+              {globalFeeds.trending.rkey && (
+                <a href={globalFeeds.trending.bskyUrl} target="_blank" rel="noopener noreferrer">
+                  {globalFeeds.trending.displayName} Feed
+                </a>
+              )}
+            </p>
+          )}
         </div>
         <BotStatus />
         <div style={{ display: "flex", flexDirection: "row", gap: "1rem" }}>
@@ -211,6 +235,14 @@ function App() {
           <button type="button" onClick={resetFilters}>
             Reset filters
           </button>
+          <label style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+            <input
+              type="checkbox"
+              checked={showFeeds}
+              onChange={(e) => setShowFeeds(e.target.checked)}
+            />
+            Show feeds
+          </label>
         </div>
         <div className="search">
           <input
@@ -284,22 +316,45 @@ function App() {
       {!(showSuggestions && suggestions.length > 0) && (
         <section id="browser">
           <div id="species">
-            {sortedLabels.map(({ label, name }) => (
-              <p key={label.id}>
-                <a
-                  href={generateSonaskyPostLink({ id: label.post })}
-                  target={"_blank"}
-                  rel={"noopener noreferrer"}
-                >
-                  {name}
-                </a>
-                {likeCounts[label.id] !== undefined ? (
-                  <span className="like-count"> ({likeCounts[label.id]})</span>
-                ) : (
-                  <span className="like-count"> (...)</span>
-                )}
-              </p>
-            ))}
+            {sortedLabels.map(({ label, name }) => {
+              const feeds = labelFeedsMap[label.id];
+              return (
+                <p key={label.id}>
+                  <a
+                    href={generateSonaskyPostLink({ id: label.post })}
+                    target={"_blank"}
+                    rel={"noopener noreferrer"}
+                  >
+                    {name}
+                  </a>
+                  {likeCounts[label.id] !== undefined ? (
+                    <span className="like-count"> ({likeCounts[label.id]})</span>
+                  ) : (
+                    <span className="like-count"> (...)</span>
+                  )}
+                  {showFeeds && feeds && (
+                    <span className="species-feeds">
+                      {" Feed(s): "}
+                      <a href={feeds.feed.bskyUrl} target="_blank" rel="noopener noreferrer">
+                        chrono
+                      </a>
+                      {feeds.trendingFeed && (
+                        <>
+                          {" · "}
+                          <a
+                            href={feeds.trendingFeed.bskyUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            popular
+                          </a>
+                        </>
+                      )}
+                    </span>
+                  )}
+                </p>
+              );
+            })}
           </div>
         </section>
       )}
