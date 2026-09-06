@@ -1,3 +1,4 @@
+import { PER_SPECIES_TRENDING_DEFAULT } from "@sonasky/feeds-def";
 import { SONASKY_DID } from "@sonasky/labels-def";
 
 const requireEnv = (name: string): string => {
@@ -7,6 +8,9 @@ const requireEnv = (name: string): string => {
   }
   return value;
 };
+
+const parseBool = (value: string | undefined, fallback: boolean): boolean =>
+  value == null || value === "" ? fallback : /^(1|true|yes|on)$/i.test(value);
 
 const serviceHostname = requireEnv("SERVICE_HOSTNAME");
 
@@ -22,4 +26,6 @@ export const config = {
   redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379",
   /** How many days of post history to keep before pruning. */
   postRetentionDays: Number(process.env.POST_RETENTION_DAYS ?? 7),
+  /** Also define/serve a trending feed per species label. */
+  perSpeciesTrending: parseBool(process.env.TRENDING_PER_SPECIES, PER_SPECIES_TRENDING_DEFAULT),
 } as const;

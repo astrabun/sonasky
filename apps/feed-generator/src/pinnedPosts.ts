@@ -10,8 +10,14 @@ export interface PinnedPost {
   /** at:// URI of the post to pin. */
   uri: string;
   /**
-   * Label ids whose feeds this pin applies to. Omit (or include "*") to pin it
-   * across every feed; e.g. `["rabbit"]` pins it only on the rabbit feed.
+   * Feed selectors this pin applies to. Omit (or `["*"]`) to pin it on every
+   * feed. Each selector is one of:
+   *   - `"all"`                - the global reverse-chronological feed
+   *   - `"trending"`           - the global trending feed
+   *   - `"<labelId>"`          - that species' reverse-chronological feed
+   *   - `"<labelId>.trending"` - that species' trending feed
+   *   - `"*.chrono"`           - every reverse-chronological feed
+   *   - `"*.trending"`         - every trending feed
    */
   feeds?: string[];
   /**
@@ -21,17 +27,42 @@ export interface PinnedPost {
   position?: number;
 }
 
+type FeedKind = "all" | "species" | "trending";
+
 export const pinnedPosts: PinnedPost[] = [
+  {
+    uri: "at://did:plc:nkleu4mgtlxpsfwkdm6otsqu/app.bsky.feed.post/3mutboyzfcc2q",
+    feeds: ["*"],
+    position: 2,
+  },
   // { uri: "at://did:plc:xxxx/app.bsky.feed.post/announcement", position: 0 },
   // { uri: "at://did:plc:xxxx/app.bsky.feed.post/rabbitday", feeds: ["rabbit"], position: 2 },
+  // { uri: "at://did:plc:xxxx/app.bsky.feed.post/hot", feeds: ["*.trending"], position: 0 },
 ];
 
+/** The selector string that identifies a served feed. */
+const feedSelector = (kind: FeedKind, labelId: string | null): string => {
+  if (kind === "all") return "all";
+  if (kind === "species") return labelId ?? "";
+  return labelId ? `${labelId}.trending` : "trending";
+};
+
+const pinMatches = (pin: PinnedPost, kind: FeedKind, selector: string): boolean => {
+  if (!pin.feeds || pin.feeds.length === 0) return true;
+  return pin.feeds.some(
+    (f) =>
+      f === "*" ||
+      f === selector ||
+      (f === "*.trending" && kind === "trending") ||
+      (f === "*.chrono" && kind !== "trending"),
+  );
+};
+
 /** Pins that apply to a given feed, in the order they should be inserted. */
-export function pinsForFeed(labelId: string): PinnedPost[] {
+export function pinsForFeed(kind: FeedKind, labelId: string | null): PinnedPost[] {
+  const selector = feedSelector(kind, labelId);
   return pinnedPosts
-    .filter(
-      (p) => !p.feeds || p.feeds.length === 0 || p.feeds.includes("*") || p.feeds.includes(labelId),
-    )
+    .filter((p) => pinMatches(p, kind, selector))
     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 }
 

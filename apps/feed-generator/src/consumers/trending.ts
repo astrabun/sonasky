@@ -1,3 +1,4 @@
+import { config } from "../config.ts";
 import { db } from "../db/index.ts";
 import { redis } from "../utils/redis.ts";
 
@@ -11,14 +12,23 @@ const MAX_CANDIDATES = 5000;
 const GRAVITY = 1.5;
 const GET_POSTS_URL = "https://public.api.bsky.app/xrpc/app.bsky.feed.getPosts";
 
-/** Redis sorted set the trending feed is served from (member = post URI, score = rank). */
-export const TRENDING_ZSET_KEY = "trending:all";
+const SPECIES_KEY_PREFIX = "trending:species:";
+
+/** Redis sorted set a trending feed is served from (member = post URI, score = rank). */
+export const trendingZsetKey = (labelId?: string | null): string =>
+  labelId ? `${SPECIES_KEY_PREFIX}${labelId}` : "trending:all";
 
 interface HydratedPost {
   uri: string;
   likeCount?: number;
   repostCount?: number;
   quoteCount?: number;
+}
+
+interface ScoredPost {
+  uri: string;
+  authorDid: string;
+  score: number;
 }
 
 const scoreOf = (post: HydratedPost, indexedAtMs: number): number => {
@@ -46,12 +56,47 @@ const fetchCounts = async (uris: string[]): Promise<Map<string, HydratedPost>> =
   return byUri;
 };
 
+/** Replaces `key` with a sorted set of `[score, uri]` entries via an atomic swap. */
+const rebuildZset = async (key: string, entries: [number, string][]): Promise<void> => {
+  if (entries.length === 0) {
+    await redis.del(key);
+    return;
+  }
+  const tmp = `${key}:next`;
+  const pipe = redis.pipeline();
+  pipe.del(tmp);
+  for (const [score, uri] of entries) pipe.zadd(tmp, score, uri);
+  pipe.rename(tmp, key);
+  await pipe.exec();
+};
+
+/** Buckets scored posts into per-species entry lists using the current label map. */
+const bySpecies = async (scored: ScoredPost[]): Promise<Map<string, [number, string][]>> => {
+  const rows = await db.selectFrom("account_label").select(["did", "label"]).distinct().execute();
+  const labelsByDid = new Map<string, string[]>();
+  for (const { did, label } of rows) {
+    const list = labelsByDid.get(did);
+    if (list) list.push(label);
+    else labelsByDid.set(did, [label]);
+  }
+
+  const byLabel = new Map<string, [number, string][]>();
+  for (const post of scored) {
+    for (const label of labelsByDid.get(post.authorDid) ?? []) {
+      const list = byLabel.get(label);
+      if (list) list.push([post.score, post.uri]);
+      else byLabel.set(label, [[post.score, post.uri]]);
+    }
+  }
+  return byLabel;
+};
+
 const refresh = async (): Promise<void> => {
   const cutoff = Date.now() - WINDOW_HOURS * 3_600_000;
 
   const candidates = await db
     .selectFrom("post as p")
-    .select(["p.uri", "p.indexed_at"])
+    .select(["p.uri", "p.indexed_at", "p.author_did"])
     .where("p.indexed_at", ">", cutoff)
     .where((eb) =>
       eb.exists(
@@ -66,33 +111,36 @@ const refresh = async (): Promise<void> => {
     .execute();
 
   if (candidates.length === 0) {
-    await redis.del(TRENDING_ZSET_KEY);
+    await rebuildZset(trendingZsetKey(), []);
     return;
   }
 
   const counts = await fetchCounts(candidates.map((c) => c.uri));
 
   const scored = candidates
-    .map((c) => {
+    .map((c): ScoredPost | null => {
       const hydrated = counts.get(c.uri);
-      return hydrated ? { uri: c.uri, score: scoreOf(hydrated, c.indexed_at) } : null;
+      return hydrated
+        ? { uri: c.uri, authorDid: c.author_did, score: scoreOf(hydrated, c.indexed_at) }
+        : null;
     })
-    .filter((s): s is { uri: string; score: number } => s !== null);
+    .filter((s): s is ScoredPost => s !== null);
 
-  if (scored.length === 0) {
-    await redis.del(TRENDING_ZSET_KEY);
-    return;
-  }
-
-  // Build into a temp key, then swap atomically.
-  const tmp = `${TRENDING_ZSET_KEY}:next`;
-  const pipe = redis.pipeline();
-  pipe.del(tmp);
-  for (const { uri, score } of scored) pipe.zadd(tmp, score, uri);
-  pipe.rename(tmp, TRENDING_ZSET_KEY);
-  await pipe.exec();
-
+  await rebuildZset(
+    trendingZsetKey(),
+    scored.map((s) => [s.score, s.uri]),
+  );
   console.log(`trending: ranked ${scored.length} posts`);
+
+  if (!config.perSpeciesTrending) return;
+
+  const byLabel = await bySpecies(scored);
+  for (const [label, entries] of byLabel) await rebuildZset(trendingZsetKey(label), entries);
+
+  // Drop per-species sets for labels that no longer have any ranked post.
+  const live = new Set([...byLabel.keys()].map((l) => trendingZsetKey(l)));
+  const stale = (await redis.keys(`${SPECIES_KEY_PREFIX}*`)).filter((k) => !live.has(k));
+  if (stale.length > 0) await redis.del(...stale);
 };
 
 /** Rebuilds the trending ranking now and every REFRESH_MS. */

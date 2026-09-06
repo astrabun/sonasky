@@ -6,6 +6,10 @@ for label `X` is the recent posts authored by accounts that currently carry labe
 plus an **"All SonaSky Users"** feed of posts from any account with any SonaSky species
 label, and a **"SonaSky Trending"** feed of the same population ranked by recent engagement.
 
+The feed catalog (record keys, `at://` URIs, `bsky.app` links) lives in
+[`@sonasky/feeds-def`](../../packages/feeds-def) so front-ends can link to a label's feeds.
+Setting `TRENDING_PER_SPECIES=true` also defines/serves a trending feed per species label.
+
 ## How it works
 
 One process runs five things:
@@ -23,8 +27,9 @@ One process runs five things:
 3. **Prune job** - hourly, drops posts older than `POST_RETENTION_DAYS` (default 7).
 4. **Trending refresh** - every 15 min, scores the last 24h of posts from labeled accounts
    (engagement / age falloff, counts pulled from the AppView `app.bsky.feed.getPosts`) and
-   rebuilds the `trending:all` Redis sorted set the "SonaSky Trending" feed is served from.
-   Tuning constants are at the top of [`src/consumers/trending.ts`](./src/consumers/trending.ts).
+   rebuilds the `trending:all` Redis sorted set the "SonaSky Trending" feed is served from
+   (plus `trending:species:<label>` sets when `TRENDING_PER_SPECIES=true`). Tuning constants
+   are at the top of [`src/consumers/trending.ts`](./src/consumers/trending.ts).
 5. **HTTP server** - serves the XRPC endpoints:
    - `GET /.well-known/did.json` - the `did:web:<SERVICE_HOSTNAME>` document
    - `GET /xrpc/app.bsky.feed.describeFeedGenerator`
@@ -39,9 +44,13 @@ feeds (edit + redeploy to change). Each entry:
 
 ```ts
 { uri: "at://did:plc:.../app.bsky.feed.post/xyz",
-  feeds: ["rabbit"],   // omit or ["*"] = pin on every feed
+  feeds: ["rabbit"],   // feed selectors - omit or ["*"] = every feed
   position: 0 }         // 0-indexed slot from the top; default 0
 ```
+
+`feeds` selectors: `"all"` (global reverse-chron), `"trending"` (global trending),
+`"<labelId>"` (a species' reverse-chron feed), `"<labelId>.trending"` (a species' trending
+feed), `"*.chrono"` / `"*.trending"` (every feed of that kind), `"*"` (everything).
 
 Pins are injected into the **first page only** (requests with no `cursor`), de-duplicated
 from the organic results, and clamped into the visible page. Cursor continuity is preserved,

@@ -26,3 +26,8 @@ jobs:
       - run: pnpm fmt:check
 
       - run: pnpm typecheck
+
+      # The @sonasky/feeds-def catalog is generated from @sonasky/labels-def; fail
+      # if it wasn't regenerated (pnpm feeds-def:gen) after a label change.
+      - run: pnpm feeds-def:gen
+      - run: git diff --exit-code packages/feeds-def/src/catalog.generated.ts

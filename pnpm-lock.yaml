@@ -272,6 +272,9 @@ importers:
       '@dotenvx/dotenvx':
         specifier: ^1.75.1
         version: 1.75.1
+      '@sonasky/feeds-def':
+        specifier: workspace:*
+        version: link:../../packages/feeds-def
       '@sonasky/labels-def':
         specifier: workspace:*
         version: link:../../packages/labels-def
@@ -343,6 +346,9 @@ importers:
         specifier: ^19.2.7
         version: 19.2.8(react@19.2.8)
     devDependencies:
+      '@sonasky/feeds-def':
+        specifier: workspace:*
+        version: link:../../packages/feeds-def
       '@sonasky/labels-def':
         specifier: workspace:*
         version: link:../../packages/labels-def
@@ -370,6 +376,24 @@ importers:
       vite:
         specifier: ^8.1.1
         version: 8.1.5(@types/node@24.13.3)(esbuild@0.28.1)(tsx@4.23.1)(yaml@2.9.0)
+
+  packages/feeds-def:
+    devDependencies:
+      '@sonasky/labels-def':
+        specifier: workspace:*
+        version: link:../labels-def
+      '@sonasky/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/node':
+        specifier: ^24.13.2
+        version: 24.13.3
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.1
+      typescript:
+        specifier: ~6.0.2
+        version: 6.0.3
 
   packages/labels-def:
     devDependencies:
