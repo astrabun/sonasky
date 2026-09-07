@@ -198,21 +198,34 @@ function App() {
           <p>
             Find your species! &middot; <a href="/faq">FAQ</a>
           </p>
-          {showFeeds && (globalFeeds.all.rkey || globalFeeds.trending.rkey) && (
-            <p className="feed-links">
-              {globalFeeds.all.rkey && (
-                <a href={globalFeeds.all.bskyUrl} target="_blank" rel="noopener noreferrer">
-                  {globalFeeds.all.displayName} Feed
-                </a>
-              )}
-              {globalFeeds.all.rkey && globalFeeds.trending.rkey && " · "}
-              {globalFeeds.trending.rkey && (
-                <a href={globalFeeds.trending.bskyUrl} target="_blank" rel="noopener noreferrer">
-                  {globalFeeds.trending.displayName} Feed
-                </a>
-              )}
-            </p>
-          )}
+          {showFeeds &&
+            (globalFeeds.all.rkey || globalFeeds.trending.rkey || globalFeeds.interacted.rkey) && (
+              <p className="feed-links">
+                {globalFeeds.all.rkey && (
+                  <a href={globalFeeds.all.bskyUrl} target="_blank" rel="noopener noreferrer">
+                    {globalFeeds.all.displayName} Feed
+                  </a>
+                )}
+                {globalFeeds.all.rkey && globalFeeds.trending.rkey && " · "}
+                {globalFeeds.trending.rkey && (
+                  <a href={globalFeeds.trending.bskyUrl} target="_blank" rel="noopener noreferrer">
+                    {globalFeeds.trending.displayName} Feed
+                  </a>
+                )}
+                {globalFeeds.interacted.rkey && (
+                  <>
+                    {" · "}
+                    <a
+                      href={globalFeeds.interacted.bskyUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {globalFeeds.interacted.displayName} Feed
+                    </a>
+                  </>
+                )}
+              </p>
+            )}
         </div>
         <BotStatus />
         <p className="user-population">
