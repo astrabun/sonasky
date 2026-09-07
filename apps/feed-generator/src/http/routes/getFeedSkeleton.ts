@@ -1,5 +1,6 @@
 import type { ServerResponse } from "node:http";
 import { db } from "../../db/index.ts";
+import { interactedZsetKey } from "../../consumers/interacted.ts";
 import { trendingZsetKey } from "../../consumers/trending.ts";
 import { feedForUri } from "../../feeds.ts";
 import { mergePins, pinsForFeed } from "../../pinnedPosts.ts";
@@ -46,16 +47,13 @@ export async function getFeedSkeleton(res: ServerResponse, params: URLSearchPara
   const pins = cursor ? [] : pinsForFeed(feed.kind, feed.labelId);
   const pinUris = new Set(pins.map((p) => p.uri));
 
-  if (feed.kind === "trending") {
-    // Trending is served from a periodically-rebuilt Redis sorted set; the
-    // sort key is unstable across refreshes, so pagination is a plain offset.
+  if (feed.kind === "trending" || feed.kind === "interacted") {
+    // These are served from a periodically-rebuilt Redis sorted set; the sort
+    // key is unstable across refreshes, so pagination is a plain offset.
+    const zsetKey =
+      feed.kind === "interacted" ? interactedZsetKey() : trendingZsetKey(feed.labelId);
     const offset = cursor ? Math.max(0, Number.parseInt(cursor, 10) || 0) : 0;
-    const uris = await redis.zrange(
-      trendingZsetKey(feed.labelId),
-      offset,
-      offset + limit - 1,
-      "REV",
-    );
+    const uris = await redis.zrange(zsetKey, offset, offset + limit - 1, "REV");
     const hasMore = uris.length === limit;
 
     const feedUris = mergePins(uris, pins, limit);

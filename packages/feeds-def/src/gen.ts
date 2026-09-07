@@ -12,7 +12,12 @@ import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { getAllLabels } from "@sonasky/labels-def";
-import { ALL_USERS_SEED, ALL_USERS_TRENDING_SEED, SPECIES_TRENDING_SEED_SUFFIX } from "./const.ts";
+import {
+  ALL_USERS_INTERACTED_SEED,
+  ALL_USERS_SEED,
+  ALL_USERS_TRENDING_SEED,
+  SPECIES_TRENDING_SEED_SUFFIX,
+} from "./const.ts";
 import { englishName, truncateGraphemes } from "./displayName.ts";
 import type { GeneratedCatalog } from "./index.ts";
 
@@ -21,6 +26,7 @@ const rkey = (seed: string): string => createHash("sha256").update(seed).digest(
 const catalog: GeneratedCatalog = {
   allRkey: rkey(ALL_USERS_SEED),
   allTrendingRkey: rkey(ALL_USERS_TRENDING_SEED),
+  allInteractedRkey: rkey(ALL_USERS_INTERACTED_SEED),
   // Only labels that are earned by liking a post get feeds; meta labels without
   // a `post` (e.g. sonasky-ref-sheet-user) are skipped.
   labels: getAllLabels()
@@ -46,4 +52,4 @@ const body =
   `export const generatedCatalog: GeneratedCatalog = ${JSON.stringify(catalog, null, 2)};\n`;
 
 writeFileSync(out, body);
-console.log(`Wrote ${catalog.labels.length + 2} feed keys to ${out}`);
+console.log(`Wrote ${catalog.labels.length + 3} feed keys to ${out}`);

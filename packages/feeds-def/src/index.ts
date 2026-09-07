@@ -2,6 +2,8 @@ import { generatedCatalog } from "./catalog.generated.ts";
 import {
   ALL_USERS_DESCRIPTION,
   ALL_USERS_DISPLAY_NAME,
+  ALL_USERS_INTERACTED_DESCRIPTION,
+  ALL_USERS_INTERACTED_DISPLAY_NAME,
   ALL_USERS_TRENDING_DESCRIPTION,
   ALL_USERS_TRENDING_DISPLAY_NAME,
   GENERATOR_COLLECTION,
@@ -16,6 +18,7 @@ export {
   SONASKY_HANDLE,
   ALL_USERS_DISPLAY_NAME,
   ALL_USERS_TRENDING_DISPLAY_NAME,
+  ALL_USERS_INTERACTED_DISPLAY_NAME,
 } from "./const.ts";
 
 // Shape of catalog.generated.ts (produced by `pnpm -F @sonasky/feeds-def gen`)
@@ -35,6 +38,7 @@ export interface GeneratedLabelFeed {
 export interface GeneratedCatalog {
   allRkey: string;
   allTrendingRkey: string;
+  allInteractedRkey: string;
   labels: GeneratedLabelFeed[];
 }
 
@@ -66,6 +70,8 @@ export interface GlobalFeeds {
   all: FeedRef;
   /** Engagement-ranked posts from every SonaSky-labelled account. */
   trending: FeedRef;
+  /** Posts ranked by how much the SonaSky-labelled population liked/reposted them. */
+  interacted: FeedRef;
 }
 
 const ref = (rkey: string, displayName: string, description: string): FeedRef => ({
@@ -89,6 +95,11 @@ export function getGlobalFeeds(): GlobalFeeds {
       generatedCatalog.allTrendingRkey,
       ALL_USERS_TRENDING_DISPLAY_NAME,
       ALL_USERS_TRENDING_DESCRIPTION,
+    ),
+    interacted: ref(
+      generatedCatalog.allInteractedRkey,
+      ALL_USERS_INTERACTED_DISPLAY_NAME,
+      ALL_USERS_INTERACTED_DESCRIPTION,
     ),
   };
 }

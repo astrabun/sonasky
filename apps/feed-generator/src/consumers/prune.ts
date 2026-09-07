@@ -5,9 +5,20 @@ const pruneIntervalMs = 60 * 60 * 1000; // hourly
 
 const prune = async (): Promise<void> => {
   const cutoff = Date.now() - config.postRetentionDays * 86_400_000;
-  const result = await db.deleteFrom("post").where("indexed_at", "<", cutoff).executeTakeFirst();
-  if (result.numDeletedRows) {
-    console.log(`Pruned ${result.numDeletedRows} posts older than ${config.postRetentionDays}d`);
+
+  const posts = await db.deleteFrom("post").where("indexed_at", "<", cutoff).executeTakeFirst();
+  if (posts.numDeletedRows) {
+    console.log(`Pruned ${posts.numDeletedRows} posts older than ${config.postRetentionDays}d`);
+  }
+
+  const interactions = await db
+    .deleteFrom("interaction")
+    .where("indexed_at", "<", cutoff)
+    .executeTakeFirst();
+  if (interactions.numDeletedRows) {
+    console.log(
+      `Pruned ${interactions.numDeletedRows} interactions older than ${config.postRetentionDays}d`,
+    );
   }
 };
 

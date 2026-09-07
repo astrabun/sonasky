@@ -14,6 +14,7 @@ export interface PinnedPost {
    * feed. Each selector is one of:
    *   - `"all"`                - the global reverse-chronological feed
    *   - `"trending"`           - the global trending feed
+   *   - `"interacted"`         - the global "SonaSky Comet" feed
    *   - `"<labelId>"`          - that species' reverse-chronological feed
    *   - `"<labelId>.trending"` - that species' trending feed
    *   - `"*.chrono"`           - every reverse-chronological feed
@@ -27,13 +28,18 @@ export interface PinnedPost {
   position?: number;
 }
 
-type FeedKind = "all" | "species" | "trending";
+type FeedKind = "all" | "species" | "trending" | "interacted";
 
 export const pinnedPosts: PinnedPost[] = [
   {
+    uri: "at://did:plc:2qawvcwumvgxmed6iy6pmt6l/app.bsky.feed.post/3muu4guygkc23",
+    feeds: ["interacted", "trending", "all"],
+    position: 0,
+  },
+  {
     uri: "at://did:plc:nkleu4mgtlxpsfwkdm6otsqu/app.bsky.feed.post/3mutboyzfcc2q",
     feeds: ["*"],
-    position: 2,
+    position: 10,
   },
   // { uri: "at://did:plc:xxxx/app.bsky.feed.post/announcement", position: 0 },
   // { uri: "at://did:plc:xxxx/app.bsky.feed.post/rabbitday", feeds: ["rabbit"], position: 2 },
@@ -44,6 +50,7 @@ export const pinnedPosts: PinnedPost[] = [
 const feedSelector = (kind: FeedKind, labelId: string | null): string => {
   if (kind === "all") return "all";
   if (kind === "species") return labelId ?? "";
+  if (kind === "interacted") return "interacted";
   return labelId ? `${labelId}.trending` : "trending";
 };
 
@@ -54,7 +61,7 @@ const pinMatches = (pin: PinnedPost, kind: FeedKind, selector: string): boolean 
       f === "*" ||
       f === selector ||
       (f === "*.trending" && kind === "trending") ||
-      (f === "*.chrono" && kind !== "trending"),
+      (f === "*.chrono" && (kind === "all" || kind === "species")),
   );
 };
 

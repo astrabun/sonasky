@@ -4,7 +4,10 @@ A Bluesky [custom feed generator](https://atproto.com/guides/custom-feed-tutoria
 that serves **one reverse-chronological feed per active SonaSky species label** - the feed
 for label `X` is the recent posts authored by accounts that currently carry label `X` -
 plus an **"All SonaSky Users"** feed of posts from any account with any SonaSky species
-label, and a **"SonaSky Trending"** feed of the same population ranked by recent engagement.
+label, a **"SonaSky Trending"** feed of the same population ranked by recent engagement,
+and a **"SonaSky Comet"** feed of recent posts ranked by how many labeled accounts have
+liked or reposted them (discovering posts popular with SonaSky users but may extend outside
+the user base a bit more).
 
 The feed catalog (record keys, `at://` URIs, `bsky.app` links) lives in
 [`@sonasky/feeds-def`](../../packages/feeds-def) so front-ends can link to a label's feeds.
@@ -12,7 +15,7 @@ Setting `TRENDING_PER_SPECIES=true` also defines/serves a trending feed per spec
 
 ## How it works
 
-One process runs five things:
+One process runs seven things:
 
 1. **Label sync** - polls each realm's Ozone labeler `com.atproto.label.queryLabels`
    (`uriPatterns=*`) every 60s, keeping the `account_label` table and an in-memory DID set
@@ -24,13 +27,24 @@ One process runs five things:
    stores every post whose author is a currently-labeled account. Cursor in Redis
    (`feeds:jetstream:cursor`). Only posts seen after an account is known to be labeled are
    captured (no historical backfill).
-3. **Prune job** - hourly, drops posts older than `POST_RETENTION_DAYS` (default 7).
-4. **Trending refresh** - every 15 min, scores the last 24h of posts from labeled accounts
+3. **Interaction stream consumer** - reads the `app.bsky.feed.like` and
+   `app.bsky.feed.repost` Jetstream firehoses and stores every like/repost whose author is a
+   currently-labeled account (row dropped when the like/repost is undone). Cursor in Redis
+   (`feeds:jetstream:interactions:cursor`). Same "no historical backfill" caveat.
+4. **Prune job** - hourly, drops `post` and `interaction` rows older than
+   `POST_RETENTION_DAYS` (default 7).
+5. **Trending refresh** - every 15 min, scores the last 24h of posts from labeled accounts
    (engagement / age falloff, counts pulled from the AppView `app.bsky.feed.getPosts`) and
    rebuilds the `trending:all` Redis sorted set the "SonaSky Trending" feed is served from
    (plus `trending:species:<label>` sets when `TRENDING_PER_SPECIES=true`). Tuning constants
-   are at the top of [`src/consumers/trending.ts`](./src/consumers/trending.ts).
-5. **HTTP server** - serves the XRPC endpoints:
+   are at the top of [`src/consumers/trending.ts`](./src/consumers/trending.ts); the shared
+   scoring/hydration helpers live in [`src/consumers/ranking.ts`](./src/consumers/ranking.ts).
+6. **Picks refresh** - every 15 min, groups the last 24h of `interaction` rows by post,
+   scores each post by its weighted count of distinct labeled likers/reposters (repost =
+   2x like) with the same age falloff, and rebuilds the `interacted:all` sorted set the
+   "SonaSky Comet" feed is served from. Constants at the top of
+   [`src/consumers/interacted.ts`](./src/consumers/interacted.ts).
+7. **HTTP server** - serves the XRPC endpoints:
    - `GET /.well-known/did.json` - the `did:web:<SERVICE_HOSTNAME>` document
    - `GET /xrpc/app.bsky.feed.describeFeedGenerator`
    - `GET /xrpc/app.bsky.feed.getFeedSkeleton?feed=<at-uri>&limit=&cursor=`
@@ -49,8 +63,9 @@ feeds (edit + redeploy to change). Each entry:
 ```
 
 `feeds` selectors: `"all"` (global reverse-chron), `"trending"` (global trending),
-`"<labelId>"` (a species' reverse-chron feed), `"<labelId>.trending"` (a species' trending
-feed), `"*.chrono"` / `"*.trending"` (every feed of that kind), `"*"` (everything).
+`"interacted"` (global "SonaSky Comet"), `"<labelId>"` (a species' reverse-chron feed),
+`"<labelId>.trending"` (a species' trending feed), `"*.chrono"` / `"*.trending"` (every feed
+of that kind), `"*"` (everything).
 
 Pins are injected into the **first page only** (requests with no `cursor`), de-duplicated
 from the organic results, and clamped into the visible page. Cursor continuity is preserved,
