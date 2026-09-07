@@ -16,7 +16,9 @@ export type ServedFeed =
   /** Reverse-chron posts from accounts carrying any SonaSky label. */
   | (BaseFeed & { kind: "all"; labelId: null })
   /** Engagement-ranked posts: `labelId` null = global, a string = that species. */
-  | (BaseFeed & { kind: "trending"; labelId: string | null });
+  | (BaseFeed & { kind: "trending"; labelId: string | null })
+  /** Posts ranked by how much the SonaSky-labeled population liked/reposted them. */
+  | (BaseFeed & { kind: "interacted"; labelId: null });
 
 const toServed = (kind: ServedFeed["kind"], labelId: string | null, ref: FeedRef): ServedFeed =>
   ({
@@ -34,6 +36,7 @@ const labelFeeds = getLabelFeeds({ perSpeciesTrending: config.perSpeciesTrending
 const servedFeeds: ServedFeed[] = [
   toServed("all", null, global.all),
   toServed("trending", null, global.trending),
+  toServed("interacted", null, global.interacted),
   ...labelFeeds.map((lf) => toServed("species", lf.labelId, lf.feed)),
   ...labelFeeds.flatMap((lf) =>
     lf.trendingFeed ? [toServed("trending", lf.labelId, lf.trendingFeed)] : [],

@@ -6,6 +6,7 @@ import type { GeneratedCatalog } from "./index.ts";
 export const generatedCatalog: GeneratedCatalog = {
   allRkey: "e300e70df6a144ac",
   allTrendingRkey: "d8bae9551f2e615e",
+  allInteractedRkey: "b94e29f3f2d41e61",
   labels: [
     {
       labelId: "rabbit",

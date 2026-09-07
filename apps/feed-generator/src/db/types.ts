@@ -18,7 +18,21 @@ export interface PostTable {
   rkey: string;
 }
 
+export interface InteractionTable {
+  /** at://<authorDid>/app.bsky.feed.post/<rkey> of the liked/reposted post. */
+  post_uri: string;
+  /** DID of the labeled account that liked or reposted it. */
+  actor_did: string;
+  /** "like" | "repost". */
+  kind: string;
+  /** rkey of the like/repost record - needed to apply delete events. */
+  rkey: string;
+  /** ms epoch the interaction was seen - Jetstream `time_us` / 1000. */
+  indexed_at: number;
+}
+
 export interface Database {
   account_label: AccountLabelTable;
   post: PostTable;
+  interaction: InteractionTable;
 }

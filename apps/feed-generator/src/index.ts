@@ -1,3 +1,5 @@
+import { startInteracted } from "./consumers/interacted.ts";
+import { startInteractionStream } from "./consumers/interactionStream.ts";
 import { startLabelSync } from "./consumers/labelSync.ts";
 import { startPostStream } from "./consumers/postStream.ts";
 import { startPrune } from "./consumers/prune.ts";
@@ -13,8 +15,10 @@ await hydrate();
 
 const labelSync = await startLabelSync();
 const postStream = await startPostStream();
+const interactionStream = await startInteractionStream();
 const pruneInterval = startPrune();
 const trending = startTrending();
+const interacted = startInteracted();
 const server = await startHttpServer();
 
 let shuttingDown = false;
@@ -26,11 +30,11 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 
     labelSync.stop();
     trending.stop();
+    interacted.stop();
     clearInterval(pruneInterval);
     server.close();
 
-    postStream
-      .flushCursor()
+    Promise.all([postStream.flushCursor(), interactionStream.flushCursor()])
       .then(() => closeDb())
       .then(() => redis.quit())
       .catch((err) => console.error("Error during shutdown:", err))
