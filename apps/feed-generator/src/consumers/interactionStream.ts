@@ -12,7 +12,7 @@ type Kind = "like" | "repost";
 /**
  * Consumes the `app.bsky.feed.like` and `app.bsky.feed.repost` Jetstreams,
  * recording every like/repost whose author is a currently-labeled account and
- * dropping the row when the like/repost is undone. Feeds the "SonaSky Picks"
+ * dropping the row when the like/repost is undone. Feeds the "SonaSky Comet"
  * ranking. Cursor in Redis (`feeds:jetstream:interactions:cursor`); only
  * interactions seen after an account is known to be labeled are captured.
  */

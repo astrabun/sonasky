@@ -10,7 +10,7 @@ const MAX_CANDIDATES = 5000;
 /** A repost by a labeled account is worth this many likes. */
 const REPOST_WEIGHT = 2;
 
-/** Redis sorted set the "SonaSky Picks" feed is served from (member = post URI, score = rank). */
+/** Redis sorted set the "SonaSky Comet" feed is served from (member = post URI, score = rank). */
 export const interactedZsetKey = (): string => "interacted:all";
 
 const scoreOf = (weightedActors: number, indexedAtMs: number): number => {
@@ -57,7 +57,7 @@ const refresh = async (): Promise<void> => {
   console.log(`interacted: ranked ${entries.length} posts`);
 };
 
-/** Rebuilds the "SonaSky Picks" ranking now and every REFRESH_MS. */
+/** Rebuilds the "SonaSky Comet" ranking now and every REFRESH_MS. */
 export function startInteracted(): { stop: () => void } {
   void refresh().catch((err) => console.error("interacted: initial refresh failed:", err));
   const interval = setInterval(() => {

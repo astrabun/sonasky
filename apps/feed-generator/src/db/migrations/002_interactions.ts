@@ -15,7 +15,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addPrimaryKeyConstraint("interaction_pkey", ["actor_did", "kind", "rkey"])
     .execute();
 
-  // The "SonaSky Picks" refresh groups the last 24h of rows by post_uri.
+  // The "SonaSky Comet" refresh groups the last 24h of rows by post_uri.
   await db.schema
     .createIndex("interaction_indexed")
     .on("interaction")

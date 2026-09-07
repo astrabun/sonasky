@@ -14,7 +14,7 @@ export interface PinnedPost {
    * feed. Each selector is one of:
    *   - `"all"`                - the global reverse-chronological feed
    *   - `"trending"`           - the global trending feed
-   *   - `"interacted"`         - the global "SonaSky Picks" feed
+   *   - `"interacted"`         - the global "SonaSky Comet" feed
    *   - `"<labelId>"`          - that species' reverse-chronological feed
    *   - `"<labelId>.trending"` - that species' trending feed
    *   - `"*.chrono"`           - every reverse-chronological feed

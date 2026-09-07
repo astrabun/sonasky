@@ -5,8 +5,9 @@ that serves **one reverse-chronological feed per active SonaSky species label** 
 for label `X` is the recent posts authored by accounts that currently carry label `X` -
 plus an **"All SonaSky Users"** feed of posts from any account with any SonaSky species
 label, a **"SonaSky Trending"** feed of the same population ranked by recent engagement,
-and a **"SonaSky Picks"** feed of recent posts ranked by how many labeled accounts have
-liked or reposted them.
+and a **"SonaSky Comet"** feed of recent posts ranked by how many labeled accounts have
+liked or reposted them (discovering posts popular with SonaSky users but may extend outside
+the user base a bit more).
 
 The feed catalog (record keys, `at://` URIs, `bsky.app` links) lives in
 [`@sonasky/feeds-def`](../../packages/feeds-def) so front-ends can link to a label's feeds.
@@ -41,7 +42,7 @@ One process runs seven things:
 6. **Picks refresh** - every 15 min, groups the last 24h of `interaction` rows by post,
    scores each post by its weighted count of distinct labeled likers/reposters (repost =
    2x like) with the same age falloff, and rebuilds the `interacted:all` sorted set the
-   "SonaSky Picks" feed is served from. Constants at the top of
+   "SonaSky Comet" feed is served from. Constants at the top of
    [`src/consumers/interacted.ts`](./src/consumers/interacted.ts).
 7. **HTTP server** - serves the XRPC endpoints:
    - `GET /.well-known/did.json` - the `did:web:<SERVICE_HOSTNAME>` document
@@ -62,7 +63,7 @@ feeds (edit + redeploy to change). Each entry:
 ```
 
 `feeds` selectors: `"all"` (global reverse-chron), `"trending"` (global trending),
-`"interacted"` (global "SonaSky Picks"), `"<labelId>"` (a species' reverse-chron feed),
+`"interacted"` (global "SonaSky Comet"), `"<labelId>"` (a species' reverse-chron feed),
 `"<labelId>.trending"` (a species' trending feed), `"*.chrono"` / `"*.trending"` (every feed
 of that kind), `"*"` (everything).
 
