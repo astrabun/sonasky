@@ -196,7 +196,10 @@ function App() {
         <div>
           <h1>SonaSky Label Browser</h1>
           <p>
-            Find your species! &middot; <a href="/faq">FAQ</a>
+            Find your species! &middot; <a href="/faq">FAQ</a> &middot;{" "}
+            <a href="https://forms.sonasky.app/f/000-sonasky-open-feedback" target="_blank">
+              Feedback
+            </a>
           </p>
           {showFeeds &&
             (globalFeeds.all.rkey || globalFeeds.trending.rkey || globalFeeds.interacted.rkey) && (
