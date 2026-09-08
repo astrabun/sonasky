@@ -8,6 +8,7 @@
     "typecheck": "tsc -b",
     "start": "dotenvx run -- tsx src/index.ts",
     "migrate": "dotenvx run -- tsx src/db/migrate.ts",
+    "backfill-content-visibility": "dotenvx run -- tsx src/scripts/backfillContentVisibility.ts",
     "publish-feeds": "dotenvx run -- tsx src/scripts/publishFeeds.ts",
     "unpublish-feeds": "dotenvx run -- tsx src/scripts/unpublishFeeds.ts",
     "purge-feeds": "dotenvx run -- tsx src/scripts/purgeFeeds.ts"

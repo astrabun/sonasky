@@ -1,3 +1,5 @@
+import type { Generated } from "kysely";
+
 export interface AccountLabelTable {
   /** Subject DID carrying the label (for account labels, the label's `uri`). */
   did: string;
@@ -31,8 +33,19 @@ export interface InteractionTable {
   indexed_at: number;
 }
 
+export interface OptOutTable {
+  /**
+   * DID of an account whose `app.bsky.actor.contentVisibilityDeclaration` record
+   * sets `hideFromAlgorithmicRecommendations: true`.
+   */
+  did: string;
+  /** When the opt-out row was recorded; defaulted by the DB. */
+  created_at: Generated<string>;
+}
+
 export interface Database {
   account_label: AccountLabelTable;
   post: PostTable;
   interaction: InteractionTable;
+  opt_out: OptOutTable;
 }
