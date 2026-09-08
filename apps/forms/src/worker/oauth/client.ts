@@ -28,7 +28,7 @@ import type { AppEnv } from "../env.ts";
 import { edgeFetch } from "./fetch.ts";
 import { makeSessionStore, makeStateStore } from "./kv-store.ts";
 
-const OAUTH_SCOPE = "atproto transition:generic";
+const OAUTH_SCOPE = "atproto repo:app.sonasky.form.submission repo:app.sonasky.form.response";
 const SIGNING_ALG = "ES256";
 
 /**
