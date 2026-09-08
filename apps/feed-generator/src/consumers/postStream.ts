@@ -2,6 +2,7 @@ import { Jetstream } from "@skyware/jetstream";
 import WebSocket from "ws";
 import { db } from "../db/index.ts";
 import { labeledDids } from "../labeledDids.ts";
+import { optedOutDids } from "../optedOutDids.ts";
 import { redis } from "../utils/redis.ts";
 
 const cursorKey = "feeds:jetstream:cursor";
@@ -28,7 +29,7 @@ export async function startPostStream(): Promise<{ flushCursor: () => Promise<vo
   };
 
   jetstream.onCreate("app.bsky.feed.post", (event) => {
-    if (!labeledDids.has(event.did)) return;
+    if (!labeledDids.has(event.did) || optedOutDids.has(event.did)) return;
     const uri = `at://${event.did}/app.bsky.feed.post/${event.commit.rkey}`;
     db.insertInto("post")
       .values({

@@ -68,7 +68,15 @@ export async function getFeedSkeleton(res: ServerResponse, params: URLSearchPara
     .distinct()
     .orderBy("p.indexed_at", "desc")
     .orderBy("p.uri", "desc")
-    .limit(limit);
+    .limit(limit)
+    // Accounts that opted out of algorithmic recommendations never appear.
+    .where((eb) =>
+      eb.not(
+        eb.exists(
+          eb.selectFrom("opt_out as o").select("o.did").whereRef("o.did", "=", "p.author_did"),
+        ),
+      ),
+    );
 
   if (feed.kind === "all") {
     query = query.where((eb) =>

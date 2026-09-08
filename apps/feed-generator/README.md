@@ -15,7 +15,7 @@ Setting `TRENDING_PER_SPECIES=true` also defines/serves a trending feed per spec
 
 ## How it works
 
-One process runs seven things:
+One process runs eight things:
 
 1. **Label sync** - polls each realm's Ozone labeler `com.atproto.label.queryLabels`
    (`uriPatterns=*`) every 60s, keeping the `account_label` table and an in-memory DID set
@@ -31,20 +31,30 @@ One process runs seven things:
    `app.bsky.feed.repost` Jetstream firehoses and stores every like/repost whose author is a
    currently-labeled account (row dropped when the like/repost is undone). Cursor in Redis
    (`feeds:jetstream:interactions:cursor`). Same "no historical backfill" caveat.
-4. **Prune job** - hourly, drops `post` and `interaction` rows older than
+4. **Content-visibility consumer** - reads the
+   `app.bsky.actor.contentVisibilityDeclaration` Jetstream firehose and keeps the `opt_out`
+   table / in-memory DID set in sync with each account's
+   `hideFromAlgorithmicRecommendations` flag (record key `self`; a delete reverts to not
+   hidden). Cursor in Redis (`feeds:jetstream:contentVisibility:cursor`). Every feed here is
+   an algorithmic recommendation surface, so an opted-out account's posts are never ingested
+   and never returned by any skeleton; opting in also drops the author's already-stored
+   posts. Declarations published before this consumer existed are seeded with
+   `pnpm feed-generator:backfill-content-visibility` (walks labeled DIDs, resolves each PDS,
+   reads the `self` record).
+5. **Prune job** - hourly, drops `post` and `interaction` rows older than
    `POST_RETENTION_DAYS` (default 7).
-5. **Trending refresh** - every 15 min, scores the last 24h of posts from labeled accounts
+6. **Trending refresh** - every 15 min, scores the last 24h of posts from labeled accounts
    (engagement / age falloff, counts pulled from the AppView `app.bsky.feed.getPosts`) and
    rebuilds the `trending:all` Redis sorted set the "SonaSky Trending" feed is served from
    (plus `trending:species:<label>` sets when `TRENDING_PER_SPECIES=true`). Tuning constants
    are at the top of [`src/consumers/trending.ts`](./src/consumers/trending.ts); the shared
    scoring/hydration helpers live in [`src/consumers/ranking.ts`](./src/consumers/ranking.ts).
-6. **Picks refresh** - every 15 min, groups the last 24h of `interaction` rows by post,
+7. **Picks refresh** - every 15 min, groups the last 24h of `interaction` rows by post,
    scores each post by its weighted count of distinct labeled likers/reposters (repost =
    2x like) with the same age falloff, and rebuilds the `interacted:all` sorted set the
    "SonaSky Comet" feed is served from. Constants at the top of
    [`src/consumers/interacted.ts`](./src/consumers/interacted.ts).
-7. **HTTP server** - serves the XRPC endpoints:
+8. **HTTP server** - serves the XRPC endpoints:
    - `GET /.well-known/did.json` - the `did:web:<SERVICE_HOSTNAME>` document
    - `GET /xrpc/app.bsky.feed.describeFeedGenerator`
    - `GET /xrpc/app.bsky.feed.getFeedSkeleton?feed=<at-uri>&limit=&cursor=`

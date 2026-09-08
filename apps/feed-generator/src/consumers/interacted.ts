@@ -1,4 +1,5 @@
 import { db } from "../db/index.ts";
+import { optedOutDids } from "../optedOutDids.ts";
 import { GRAVITY, hydratePosts, rebuildZset } from "./ranking.ts";
 
 /** How recent a like/repost must be to keep its post eligible. */
@@ -48,7 +49,8 @@ const refresh = async (): Promise<void> => {
 
   const entries = candidates.flatMap((c): [number, string][] => {
     const post = hydrated.get(c.post_uri);
-    if (!post) return [];
+    // Drop posts whose author opted out of algorithmic recommendations.
+    if (!post || optedOutDids.has(post.authorDid)) return [];
     const weighted = Number(c.actors) + (REPOST_WEIGHT - 1) * Number(c.reposters);
     return [[scoreOf(weighted, post.indexedAtMs), c.post_uri]];
   });

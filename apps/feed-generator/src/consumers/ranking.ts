@@ -7,6 +7,8 @@ export const GRAVITY = 1.5;
 
 export interface HydratedPost {
   uri: string;
+  /** DID of the post's author, or "" */
+  authorDid: string;
   /** ms epoch the AppView first indexed the post. */
   indexedAtMs: number;
   likeCount: number;
@@ -33,6 +35,7 @@ export const hydratePosts = async (uris: string[]): Promise<Map<string, Hydrated
     const data = (await res.json()) as {
       posts: {
         uri: string;
+        author?: { did?: string };
         indexedAt?: string;
         likeCount?: number;
         repostCount?: number;
@@ -43,6 +46,7 @@ export const hydratePosts = async (uris: string[]): Promise<Map<string, Hydrated
       const parsed = post.indexedAt ? Date.parse(post.indexedAt) : Number.NaN;
       byUri.set(post.uri, {
         uri: post.uri,
+        authorDid: post.author?.did ?? "",
         indexedAtMs: Number.isNaN(parsed) ? Date.now() : parsed,
         likeCount: post.likeCount ?? 0,
         repostCount: post.repostCount ?? 0,
