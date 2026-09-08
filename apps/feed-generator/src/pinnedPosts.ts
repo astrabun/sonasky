@@ -32,15 +32,15 @@ type FeedKind = "all" | "species" | "trending" | "interacted";
 
 export const pinnedPosts: PinnedPost[] = [
   {
-    uri: "at://did:plc:2qawvcwumvgxmed6iy6pmt6l/app.bsky.feed.post/3muu4guygkc23",
+    uri: "at://did:plc:2qawvcwumvgxmed6iy6pmt6l/app.bsky.feed.post/3muzyyy6x4s27",
     feeds: ["interacted", "trending", "all"],
     position: 0,
   },
-  {
-    uri: "at://did:plc:nkleu4mgtlxpsfwkdm6otsqu/app.bsky.feed.post/3mutboyzfcc2q",
-    feeds: ["*"],
-    position: 10,
-  },
+  // {
+  //   uri: "at://did:plc:nkleu4mgtlxpsfwkdm6otsqu/app.bsky.feed.post/3mutboyzfcc2q",
+  //   feeds: ["*"],
+  //   position: 10,
+  // },
   // { uri: "at://did:plc:xxxx/app.bsky.feed.post/announcement", position: 0 },
   // { uri: "at://did:plc:xxxx/app.bsky.feed.post/rabbitday", feeds: ["rabbit"], position: 2 },
   // { uri: "at://did:plc:xxxx/app.bsky.feed.post/hot", feeds: ["*.trending"], position: 0 },
