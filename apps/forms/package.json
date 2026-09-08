@@ -1,0 +1,41 @@
+{
+  "name": "@sonasky/app-forms",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:worker": "wrangler dev",
+    "build": "tsc -b && vite build",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc -b",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "@atproto/api": "^0.20.42",
+    "@atproto/common-web": "^0.5.10",
+    "@atproto/jwk": "^0.7.4",
+    "@atproto/jwk-jose": "^0.2.4",
+    "@atproto/jwk-webcrypto": "^0.3.4",
+    "@atproto/oauth-client": "^0.8.4",
+    "@atproto/oauth-types": "^0.7.5",
+    "hono": "^4.13.7",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@sonasky/tsconfig": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.75.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1",
+    "wrangler": "^4.114.0"
+  }
+}

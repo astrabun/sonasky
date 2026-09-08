@@ -1,0 +1,23 @@
+# Copy to .dev.vars (git-ignored) for `wrangler dev` / `vite dev`.
+
+# HMAC key for the session cookie. Use a long random value, e.g. `openssl rand -hex 32`.
+COOKIE_SECRET=dev-only-change-me-to-32-plus-random-bytes
+
+# Public origin the Worker is served from. In prod use the real https origin.
+# Locally, a localhost/127.0.0.1 origin switches OAuth to atproto "loopback client"
+# mode (no hosted metadata, redirect to http://127.0.0.1:<port>/oauth/callback) - so
+# open the app at http://127.0.0.1:8787 (not "localhost") when testing sign-in.
+PUBLIC_URL=http://127.0.0.1:8787
+
+# Handle / PDS resolver used during sign-in.
+HANDLE_RESOLVER_URL=https://bsky.social
+
+# Confidential OAuth client signing key (ES256). A PKCS8 PEM or a JWK JSON string.
+# Leave unset to run as a public client (fine for local dev).
+# Generate: openssl ecparam -name prime256v1 -genkey -noout -out key.pem && openssl pkcs8 -topk8 -nocrypt -in key.pem
+OAUTH_PRIVATE_KEY=
+
+# Per-form Google Form ids: the "<ID>" in https://docs.google.com/forms/d/e/<ID>/formResponse
+# Name each var to match `destination.formIdEnvVar` in the form definition.
+GFORM_TEST1=
+

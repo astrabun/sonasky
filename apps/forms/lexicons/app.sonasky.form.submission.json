@@ -1,0 +1,25 @@
+{
+  "lexicon": 1,
+  "id": "app.sonasky.form.submission",
+  "description": "Documentation only - not loaded or validated at runtime (records are written with validate:false). Marker written to a user's repo when they submit a SonaSky form; used to enforce single-response-per-user.",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["formId", "submittedAt", "createdAt"],
+        "properties": {
+          "formId": { "type": "string", "description": "The form's stable slug." },
+          "submittedAt": { "type": "string", "format": "datetime" },
+          "createdAt": { "type": "string", "format": "datetime" },
+          "responseUri": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "at:// uri of the full response record, when one was written."
+          }
+        }
+      }
+    }
+  }
+}
