@@ -64,6 +64,13 @@ const refresh = async (): Promise<void> => {
           .whereRef("al.did", "=", "p.author_did"),
       ),
     )
+    .where((eb) =>
+      eb.not(
+        eb.exists(
+          eb.selectFrom("opt_out as o").select("o.did").whereRef("o.did", "=", "p.author_did"),
+        ),
+      ),
+    )
     .orderBy("p.indexed_at", "desc")
     .limit(MAX_CANDIDATES)
     .execute();
