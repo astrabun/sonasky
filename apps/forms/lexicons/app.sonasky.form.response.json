@@ -1,0 +1,28 @@
+{
+  "lexicon": 1,
+  "id": "app.sonasky.form.response",
+  "description": "Documentation only - not loaded or validated at runtime (records are written with validate:false). Full response to a SonaSky form, written to the user's repo for `atproto-record` destinations. A form may use a different collection NSID via `destination.collection`.",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["formId", "answers", "visitedSections", "createdAt"],
+        "properties": {
+          "formId": { "type": "string", "description": "The form's stable slug." },
+          "answers": {
+            "type": "unknown",
+            "description": "Object of fieldId -> string | string[], limited to fields on the visited section path."
+          },
+          "visitedSections": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Ordered ids of the sections the user actually saw."
+          },
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}

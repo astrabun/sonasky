@@ -2,5 +2,7 @@ packages:
   - packages/*
   - apps/*
 allowBuilds:
-  esbuild: false
-  workerd: false
+  esbuild: true
+  workerd: true
+  "@tailwindcss/oxide": true
+  core-js: false

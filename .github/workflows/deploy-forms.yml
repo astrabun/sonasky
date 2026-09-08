@@ -1,0 +1,56 @@
+name: Deploy Forms
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "apps/forms/**"
+      - "packages/tsconfig/**"
+      - ".github/workflows/deploy-forms.yml"
+  pull_request:
+    paths:
+      - "apps/forms/**"
+      - "packages/tsconfig/**"
+      - ".github/workflows/deploy-forms.yml"
+
+concurrency:
+  group: deploy-forms-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm -F @sonasky/app-forms build
+
+      # PRs only validate the bundle; pushes to main deploy for real.
+      - name: Validate bundle (PR)
+        if: github.event_name == 'pull_request'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/forms
+          command: deploy --dry-run
+
+      - name: Deploy (main)
+        if: github.event_name == 'push'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/forms
+          command: deploy

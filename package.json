@@ -20,6 +20,12 @@
     "feed-generator:purge": "pnpm -F @sonasky/app-feed-generator purge-feeds",
     "feeds-def:gen": "pnpm -F @sonasky/feeds-def gen && oxfmt packages/feeds-def/src/catalog.generated.ts",
     "labels-sync:sync": "pnpm -F @sonasky/labels-sync sync",
+    "forms:dev": "pnpm -F @sonasky/app-forms dev",
+    "forms:dev:worker": "pnpm -F @sonasky/app-forms dev:worker",
+    "forms:build": "pnpm -F @sonasky/app-forms build",
+    "forms:deploy": "pnpm -F @sonasky/app-forms deploy",
+    "forms:typecheck": "pnpm -F @sonasky/app-forms typecheck",
+    "forms:cf-typegen": "pnpm -F @sonasky/app-forms cf-typegen",
     "prepare": "husky"
   },
   "devDependencies": {
