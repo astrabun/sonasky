@@ -35,6 +35,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm -F @sonasky/app-forms build
+        env:
+          SWETRIX_BASE_URL: ${{ vars.SWETRIX_BASE_URL || secrets.SWETRIX_BASE_URL }}
+          # Forms-specific project so its pageviews don't land in label-browser's.
+          SWETRIX_PROJECT_ID: ${{ vars.SWETRIX_FORMS_PROJECT_ID || secrets.SWETRIX_FORMS_PROJECT_ID }}
 
       # PRs only validate the bundle; pushes to main deploy for real.
       - name: Validate bundle (PR)

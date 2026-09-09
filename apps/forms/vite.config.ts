@@ -11,6 +11,8 @@ const WORKER_ORIGIN = process.env.WORKER_ORIGIN ?? "http://localhost:8787";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: { outDir: "dist/client" },
+  // Expose SWETRIX_* (in addition to the default VITE_*) to client code.
+  envPrefix: ["VITE_", "SWETRIX_"],
   server: {
     proxy: {
       "/api": WORKER_ORIGIN,

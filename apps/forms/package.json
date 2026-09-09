@@ -23,7 +23,8 @@
     "@atproto/oauth-types": "^0.7.5",
     "hono": "^4.13.7",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "swetrix": "^4.6.1"
   },
   "devDependencies": {
     "@sonasky/tsconfig": "workspace:*",

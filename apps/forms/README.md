@@ -89,6 +89,14 @@ Merges to `main` that touch `apps/forms/**` deploy via `.github/workflows/deploy
    question to the Google Form first).
 5. Set `active: false` to retire a form - it then 404s and drops out of `/api/forms`.
 
+## Analytics
+
+Optional [Swetrix](https://swetrix.com) pageview tracking (`src/client/analytics.ts`). It is a
+**no-op unless both** `SWETRIX_BASE_URL` and `SWETRIX_PROJECT_ID` are set at Vite build time
+(`.env.example` -> `.env` locally; repo vars/secrets `SWETRIX_BASE_URL` +
+`SWETRIX_FORMS_PROJECT_ID` in CI, see `deploy-forms.yml`). These are baked into the SPA bundle,
+not Worker vars. Local/dev builds ship with analytics disabled.
+
 ## Notes
 
 - Single-response-per-user is **best effort**: the check reads the user's PDS (which has no
