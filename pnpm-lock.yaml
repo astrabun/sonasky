@@ -571,6 +571,52 @@ importers:
         specifier: ^8.1.1
         version: 8.1.5(@types/node@25.9.6)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1)(yaml@2.9.0)
 
+  apps/sonasky-ref-firehose:
+    dependencies:
+      '@atcute/jetstream':
+        specifier: ^2.0.0
+        version: 2.2.0(@atcute/cid@2.4.2)(@atcute/lexicons@2.1.0)(react@19.2.8)(typescript@6.0.3)
+      react:
+        specifier: ^19.2.6
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.2.6
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@sonasky/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@tailwindcss/vite':
+        specifier: ^4.3.0
+        version: 4.3.3(vite@8.1.5(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1)(yaml@2.9.0))
+      '@types/node':
+        specifier: ^24.13.2
+        version: 24.13.3
+      '@types/react':
+        specifier: ^19.2.14
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.17)
+      '@vitejs/plugin-react':
+        specifier: ^6.1.1
+        version: 6.1.1(vite@8.1.5(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1)(yaml@2.9.0))
+      oxlint:
+        specifier: ^1.75.0
+        version: 1.75.0(oxlint-tsgolint@7.0.2001)
+      tailwindcss:
+        specifier: ^4.3.0
+        version: 4.3.3
+      typescript:
+        specifier: ~6.0.2
+        version: 6.0.3
+      vite:
+        specifier: ^8.1.1
+        version: 8.1.5(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1)(yaml@2.9.0)
+      wrangler:
+        specifier: ^4.114.0
+        version: 4.129.1
+
   packages/feeds-def:
     devDependencies:
       '@sonasky/labels-def':
@@ -635,23 +681,52 @@ packages:
     peerDependencies:
       '@atcute/lexicons': ^1.0.0
 
+  '@atcute/atproto@4.0.4':
+    resolution: {integrity: sha512-aEp5wQVPVbZcFJUwoi54tyT+ehRI/xtPe9T0zIvcryHAVXF/zxHtNboM+htbZLOAGsDFsqzgCyxph0Bafw7L8w==}
+    peerDependencies:
+      '@atcute/lexicons': ^2.0.0
+
   '@atcute/bluesky@3.3.5':
     resolution: {integrity: sha512-DmzdCQ1VkPRBsIMr79EDxLWLpg0UNWVahFjMelfzau717r+I3ceJm9SxfOK/of+biLOUj4rlr00tNZT+BRe6Ww==}
     peerDependencies:
       '@atcute/lexicons': ^1.0.0
+
+  '@atcute/cbor@2.3.7':
+    resolution: {integrity: sha512-gkhTqd8yCovatjnLAqJlHyvkpAqyKLLLQjTpcv1XoLYEPnbN/uNNBlX2DJJ+zuIM129V9cEFDBaGp7+pSyCxDw==}
+    peerDependencies:
+      '@atcute/cid': ^2.0.0
+
+  '@atcute/cid@2.4.2':
+    resolution: {integrity: sha512-Uy48yfyo/hPQXF+XMXWIGomF6v8IvX5ErjozXMV7rlfU3EV7PSVX3J7plJXV6MRC3iI1z3PgTZTS7V0drCQVVw==}
 
   '@atcute/client@4.2.2':
     resolution: {integrity: sha512-z16BaGgdO6WIkDCxqeI+zhnh2KmW9jsjd312PJ6YYsoDBpPPqL+WkBmxQ7eO9C6CMFxXsZpYcM81RzZEETA4PQ==}
     peerDependencies:
       '@atcute/lexicons': ^1.0.0
 
+  '@atcute/firehose@1.2.0':
+    resolution: {integrity: sha512-u6Oh137haGOzWNFbJzakUjjDOHvVNORY5r5H4v9OfHqVzFOYwSDptMYsD2TlRf4BbdtmHfjCb7pL1/D0eMfh6Q==}
+    peerDependencies:
+      '@atcute/lexicons': ^2.1.0
+
   '@atcute/identity@1.1.5':
     resolution: {integrity: sha512-5i9nl1UVnBDPCumUwrLNl4BZpGvQ/XABEXbjhiw3PQwRUfpQA8FqByDGxXy2gWpFDrNvQ9yVuOoNsjzxJgjjVA==}
     peerDependencies:
       '@atcute/lexicons': ^1.0.0
 
+  '@atcute/jetstream@2.2.0':
+    resolution: {integrity: sha512-2Aux4AxUj+mRLNyI1L7kycZM/q9UuAF4pGcyuWVfGLrK95OgAe4BSyCn33HbuKidBYZPwQjDn+j6B8fz5cOUYg==}
+    peerDependencies:
+      '@atcute/lexicons': ^2.0.0
+
   '@atcute/lexicons@1.3.1':
     resolution: {integrity: sha512-2JVxDmHt+QwsUoPyVYWIN7ZLRLfLx4GeJxKFjA9ofStuby9hCMv7Q4GAPIXuJD8wPv8vrnhr1yRNQhiJX+bthw==}
+
+  '@atcute/lexicons@2.1.0':
+    resolution: {integrity: sha512-cqbtPfFctoddrSFBt65xyD7st01d8rNntyinRfRhlRPGlqEg8FWacgc7piBw0SAs1SG+5BoV3d3mhzWfQHcByg==}
+
+  '@atcute/multibase@1.2.5':
+    resolution: {integrity: sha512-cReTONgYpQo/VHD3ZmzPNoyBKJgSk1J4h//cvvdVVJBMar+SjlQ/sUXeTjQfuyfmDKv+TLKhmutLcvbMcQ9Rvw==}
 
   '@atcute/uint8array@1.1.5':
     resolution: {integrity: sha512-1SFCXOtjE3ismP92CqzbOfYSwJmPPPFbj798wLXSpLv2hSd5OIaUrTh6EqRVR1VZ3ZhR+vaBmd3kxAN0wkw+gQ==}
@@ -1372,6 +1447,12 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
+
+  '@mary-ext/event-iterator@1.1.0':
+    resolution: {integrity: sha512-uL6XFBsfAq+h6wnmioLTDMKzgbuKKQTo/2k512W1w1M5SgVroS6+D4MOD+j1K0loEYUJD9rIKV0Fo5ETZlgafw==}
+
+  '@mary-ext/simple-event-emitter@1.0.2':
+    resolution: {integrity: sha512-A644JdOf+KfTGyX/EYf8AI1Y18mM7369KrhtOVkdEwRa2QIC0Botv7XWnK6/XU7HuQfvtFpCufmHJC3hi4YMuw==}
 
   '@mui/core-downloads-tracker@7.3.11':
     resolution: {integrity: sha512-a7I/b/nBTdXYz2cOSlEmkQ9WWE1x8FHpqMhFPp+Y1VPFxcOw91G5ELOHARQAGSPy5V+UCgJua6K/1x70bAtQPw==}
@@ -3053,6 +3134,14 @@ packages:
   unicode-segmenter@0.17.1:
     resolution: {integrity: sha512-imwm2Aty0hfnY/3LqBWiyhuxxGso7qwhLXDp0BjOpmtYdjYgWJvT9JXthbu3MmEITwgjbYWaRJ0b2yRfgYnD5Q==}
 
+  valibot@1.5.0:
+    resolution: {integrity: sha512-nil6AkP2TChWL43Z5uJ6GTxX01CUA+g8LWUM+N/rB9NBbkUMaUsi9PUNzlUPgoKASgmx9f7eGOYpJ04/fSa6FQ==}
+    peerDependencies:
+      typescript: '>=5'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   vite@8.1.5:
     resolution: {integrity: sha512-7ULLwsCdYx/nRyrpiEwvqb5TFHrMVZyBt+rg/OAXT7rgj/z+DtTDyKFeLAdDkubDVDKD8jOsndmy7m55XcfUsw==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -3158,6 +3247,10 @@ packages:
     engines: {node: '>= 14.6'}
     hasBin: true
 
+  yocto-queue@1.2.2:
+    resolution: {integrity: sha512-4LCcse/U2MHZ63HAJVE+v71o7yOdIe4cZ70Wpf8D/IyjDKYQLV5GD46B+hSTjJsvV5PztjvHoU580EftxjDZFQ==}
+    engines: {node: '>=12.20'}
+
   yocto-spinner@1.2.2:
     resolution: {integrity: sha512-DODGl1wJjA/s5pnJFKau9lIYHT81lnhob1i3e1TjxZRxEhWRKl74nTbWE6H5KlkViQQTo/Z29YFdxzTZAMY3ng==}
     engines: {node: '>=18.19'}
@@ -3181,20 +3274,61 @@ snapshots:
     dependencies:
       '@atcute/lexicons': 1.3.1
 
+  '@atcute/atproto@4.0.4(@atcute/lexicons@2.1.0)':
+    dependencies:
+      '@atcute/lexicons': 2.1.0
+
   '@atcute/bluesky@3.3.5(@atcute/lexicons@1.3.1)':
     dependencies:
       '@atcute/atproto': 3.1.12(@atcute/lexicons@1.3.1)
       '@atcute/lexicons': 1.3.1
+
+  '@atcute/cbor@2.3.7(@atcute/cid@2.4.2)':
+    dependencies:
+      '@atcute/cid': 2.4.2
+      '@atcute/multibase': 1.2.5
+      '@atcute/uint8array': 1.1.5
+
+  '@atcute/cid@2.4.2':
+    dependencies:
+      '@atcute/multibase': 1.2.5
+      '@atcute/uint8array': 1.1.5
 
   '@atcute/client@4.2.2(@atcute/lexicons@1.3.1)':
     dependencies:
       '@atcute/identity': 1.1.5(@atcute/lexicons@1.3.1)
       '@atcute/lexicons': 1.3.1
 
+  '@atcute/firehose@1.2.0(@atcute/cid@2.4.2)(@atcute/lexicons@2.1.0)(react@19.2.8)':
+    dependencies:
+      '@atcute/cbor': 2.3.7(@atcute/cid@2.4.2)
+      '@atcute/lexicons': 2.1.0
+      '@atcute/uint8array': 1.1.5
+      '@mary-ext/event-iterator': 1.1.0
+      '@mary-ext/simple-event-emitter': 1.0.2
+      partysocket: 1.3.0(react@19.2.8)
+    transitivePeerDependencies:
+      - '@atcute/cid'
+      - react
+
   '@atcute/identity@1.1.5(@atcute/lexicons@1.3.1)':
     dependencies:
       '@atcute/lexicons': 1.3.1
       '@badrap/valita': 0.4.6
+
+  '@atcute/jetstream@2.2.0(@atcute/cid@2.4.2)(@atcute/lexicons@2.1.0)(react@19.2.8)(typescript@6.0.3)':
+    dependencies:
+      '@atcute/atproto': 4.0.4(@atcute/lexicons@2.1.0)
+      '@atcute/firehose': 1.2.0(@atcute/cid@2.4.2)(@atcute/lexicons@2.1.0)(react@19.2.8)
+      '@atcute/lexicons': 2.1.0
+      '@mary-ext/event-iterator': 1.1.0
+      '@mary-ext/simple-event-emitter': 1.0.2
+      partysocket: 1.3.0(react@19.2.8)
+      valibot: 1.5.0(typescript@6.0.3)
+    transitivePeerDependencies:
+      - '@atcute/cid'
+      - react
+      - typescript
 
   '@atcute/lexicons@1.3.1':
     dependencies:
@@ -3202,6 +3336,17 @@ snapshots:
       '@atcute/util-text': 1.3.4
       '@standard-schema/spec': 1.1.0
       esm-env: 1.2.2
+
+  '@atcute/lexicons@2.1.0':
+    dependencies:
+      '@atcute/uint8array': 1.1.5
+      '@atcute/util-text': 1.3.4
+      '@standard-schema/spec': 1.1.0
+      esm-env: 1.2.2
+
+  '@atcute/multibase@1.2.5':
+    dependencies:
+      '@atcute/uint8array': 1.1.5
 
   '@atcute/uint8array@1.1.5': {}
 
@@ -4004,6 +4149,12 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@mary-ext/event-iterator@1.1.0':
+    dependencies:
+      yocto-queue: 1.2.2
+
+  '@mary-ext/simple-event-emitter@1.0.2': {}
 
   '@mui/core-downloads-tracker@7.3.11': {}
 
@@ -5386,6 +5537,10 @@ snapshots:
 
   unicode-segmenter@0.17.1: {}
 
+  valibot@1.5.0(typescript@6.0.3):
+    optionalDependencies:
+      typescript: 6.0.3
+
   vite@8.1.5(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1)(yaml@2.9.0):
     dependencies:
       lightningcss: 1.33.0
@@ -5457,6 +5612,8 @@ snapshots:
   yaml@1.10.3: {}
 
   yaml@2.9.0: {}
+
+  yocto-queue@1.2.2: {}
 
   yocto-spinner@1.2.2:
     dependencies:

@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sonasky-ref-firehose",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-08",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+  },
+  "observability": { "enabled": true },
+  // Runs in front of the sonasky-ref Pages project for this one path - Worker
+  // routes take precedence over a Pages custom domain on the same zone.
+  "routes": [{ "pattern": "ref.sonasky.app/firehose*", "zone_name": "sonasky.app" }],
+}
