@@ -1,0 +1,47 @@
+name: "\U0001F4DD Forms issue / new form request"
+description: Report a bug in the forms app, or request a new form.
+title: "[Forms]: "
+labels:
+  - forms
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for problems with an existing form in `apps/forms`, or to request a brand new form.
+
+  - type: dropdown
+    id: request-type
+    attributes:
+      label: Request type
+      options:
+        - Bug in an existing form
+        - New form request
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: form-name
+    attributes:
+      label: Form name / URL
+      description: Which form is this about? (leave blank if requesting a brand new one)
+    validations:
+      required: false
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: |
+        - If reporting a bug: what did you do, what happened, what did you expect?
+        - If requesting a new form: what's it for, and what fields/logic does it need?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, links, browser/device info, etc.
+    validations:
+      required: false

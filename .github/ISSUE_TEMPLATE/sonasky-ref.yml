@@ -1,0 +1,49 @@
+name: "\U0001F4DA SonaSky-ref issue"
+description: Report a bug or data issue in sonasky-ref or sonasky-ref-firehose.
+title: "[SonaSky-ref]: "
+labels:
+  - sonasky-ref
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for problems with `apps/sonasky-ref` or `apps/sonasky-ref-firehose` (bugs, incorrect reference data, sync/firehose issues, etc).
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - sonasky-ref
+        - sonasky-ref-firehose
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: request-type
+    attributes:
+      label: Request type
+      options:
+        - Bug
+        - Incorrect/missing data
+        - Feature request
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: What did you do, what happened, what did you expect? Include relevant IDs/records if this is a data issue.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Logs, links, screenshots, etc.
+    validations:
+      required: false
