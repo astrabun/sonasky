@@ -1,0 +1,21 @@
+name: "\U0001F4E6 Other"
+description: Anything that doesn't fit label requests, forms, label browser, or sonasky-ref.
+title: ""
+labels:
+  - other
+body:
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: What's going on? What did you expect to happen instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, links, logs, etc.
+    validations:
+      required: false

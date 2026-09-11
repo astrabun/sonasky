@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question / Discussion
+    url: https://github.com/astrabun/sonasky/discussions
+    about: For general questions or discussion, please use Discussions instead of an issue.

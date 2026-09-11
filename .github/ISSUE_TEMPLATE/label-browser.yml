@@ -1,0 +1,39 @@
+name: "\U0001F50D Label browser issue"
+description: Report a bug or request a feature for the label browser app (sonasky.app).
+title: "[Label Browser]: "
+labels:
+  - label-browser
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for problems with, or feature requests for, the label browser app in `apps/label-browser` (sonasky.app).
+
+  - type: dropdown
+    id: request-type
+    attributes:
+      label: Request type
+      options:
+        - Bug
+        - Feature request
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: |
+        - If a bug: what did you do, what happened, what did you expect?
+        - If a feature request: what do you want, and why?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, links, browser/device info, etc.
+    validations:
+      required: false

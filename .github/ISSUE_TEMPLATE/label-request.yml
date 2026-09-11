@@ -1,0 +1,50 @@
+name: "\U0001F3F7️ Label request"
+description: Request a new species/Pokemon label, or a change to an existing one, in labels-def.
+title: "[Label]: "
+labels:
+  - label-request
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this to request a new label be added to `@sonasky/labels-def`, or to flag a problem with an existing label (wrong name, description, category, realm, etc).
+
+  - type: dropdown
+    id: request-type
+    attributes:
+      label: Request type
+      options:
+        - New label
+        - Change to existing label
+        - Remove/deprecate a label
+    validations:
+      required: true
+
+  - type: input
+    id: label-name
+    attributes:
+      label: Label name
+      description: The species/Pokemon name (or existing label id if this is a change).
+      placeholder: e.g. "Snorlax" or "snorlax"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: realm
+    attributes:
+      label: Realm
+      description: Which labeler should this belong to?
+      options:
+        - prime
+        - pokemon
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: What should the label's name/description say, or what's wrong with the current one? Include any reference links/images if helpful.
+    validations:
+      required: true
