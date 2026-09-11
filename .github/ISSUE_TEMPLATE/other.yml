@@ -1,5 +1,5 @@
 name: "\U0001F4E6 Other"
-description: Anything that doesn't fit label requests, forms, label browser, or sonasky-ref.
+description: Anything that doesn't fit the other issue types (and isn't a general discussion/question topic).
 title: ""
 labels:
   - other

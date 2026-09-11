@@ -1,5 +1,5 @@
 name: "\U0001F3F7️ Label request"
-description: Request a new species/Pokemon label, or a change to an existing one, in labels-def.
+description: Request a new species label, or a change to an existing one, in labels-def.
 title: "[Label]: "
 labels:
   - label-request
