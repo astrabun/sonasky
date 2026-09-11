@@ -13,6 +13,7 @@
     "label-bot:start": "pnpm -F @sonasky/app-label-bot start",
     "cursor-status:start": "pnpm -F @sonasky/app-cursor-status start",
     "label-browser:dev": "pnpm -F @sonasky/app-label-browser dev",
+    "sonasky-ref:dev": "pnpm -F @sonasky/app-sonasky-ref dev",
     "feed-generator:start": "pnpm -F @sonasky/app-feed-generator start",
     "feed-generator:migrate": "pnpm -F @sonasky/app-feed-generator migrate",
     "feed-generator:backfill-content-visibility": "pnpm -F @sonasky/app-feed-generator backfill-content-visibility",
