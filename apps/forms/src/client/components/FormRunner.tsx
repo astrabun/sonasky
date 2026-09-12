@@ -125,6 +125,18 @@ export function FormRunner({
         ) : null}
       </div>
 
+      {form.publishesFullResponse ? (
+        <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+          Your full answers to this form will be published publicly to your own repo. Anyone could
+          read them.
+        </p>
+      ) : (
+        <p className="rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
+          Your answers themselves stay private. A public record will still be posted to your repo
+          confirming that you submitted this form, but the answers will *not* be published publicly.
+        </p>
+      )}
+
       {phase === "review" ? (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Review your answers</h2>

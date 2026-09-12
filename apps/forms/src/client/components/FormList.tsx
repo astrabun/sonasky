@@ -27,7 +27,14 @@ export function FormList({ onOpen }: { onOpen: (id: string) => void }) {
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="font-semibold text-neutral-900 dark:text-neutral-50">{f.title}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-neutral-900 dark:text-neutral-50">{f.title}</h3>
+                  {f.publishesFullResponse ? (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                      Public responses
+                    </span>
+                  ) : null}
+                </div>
                 {f.description ? (
                   <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
                     {f.description}
