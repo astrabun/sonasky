@@ -3408,6 +3408,7 @@ export const labels: LabelDefs = {
   tayra: {
     post: "3kzhijx6vyx2k",
     realm: "prime",
+    flags: ["NOT_USED_AFTER_LONG_TIME"],
     category: {
       en: "Mustelid",
       "pt-BR": "Mustelídeo",
@@ -4757,6 +4758,7 @@ export const labels: LabelDefs = {
   potoroo: {
     post: "3l23ojhvnfg26",
     realm: "prime",
+    flags: ["NOT_USED_AFTER_LONG_TIME"],
     category: {
       en: "Marsupial",
       "pt-BR": "Marsupial",
@@ -6008,6 +6010,7 @@ export const labels: LabelDefs = {
   pooka: {
     post: "3l3dpzb3khh2r",
     realm: "prime",
+    flags: ["NOT_USED_AFTER_LONG_TIME"],
     category: {
       en: "Odin Sphere",
       "pt-BR": "Odin Sphere",
@@ -11761,7 +11764,7 @@ export const labels: LabelDefs = {
     ],
   },
   toad: {
-    flags: ["POTENTIAL_LOW_USE__NO_INTERACTIONS_ONE_WEEK_OUT"],
+    flags: ["POTENTIAL_LOW_USE__NO_INTERACTIONS_ONE_WEEK_OUT", "NOT_USED_AFTER_LONG_TIME"],
     post: "3l72wxqao2t2b",
     realm: "prime",
     locales: [
@@ -11925,7 +11928,7 @@ export const labels: LabelDefs = {
     ],
   },
   geroo: {
-    flags: ["POTENTIAL_LOW_USE__NO_INTERACTIONS_ONE_WEEK_OUT"],
+    flags: ["POTENTIAL_LOW_USE__NO_INTERACTIONS_ONE_WEEK_OUT", "NOT_USED_AFTER_LONG_TIME"],
     post: "3l75ksp4t2s25",
     realm: "prime",
     locales: [
@@ -13426,6 +13429,7 @@ export const labels: LabelDefs = {
   camel: {
     post: "3lapo2d3vze2x",
     realm: "prime",
+    flags: ["NOT_USED_AFTER_LONG_TIME"],
     locales: [
       {
         lang: "en",
@@ -13452,6 +13456,7 @@ export const labels: LabelDefs = {
   capercaillie: {
     post: "3lapo2eqp2w2a",
     realm: "prime",
+    flags: ["NOT_USED_AFTER_LONG_TIME"],
     category: {
       en: "Avian/Bird",
       "pt-BR": "Ave/Pássaro",
@@ -13563,6 +13568,7 @@ export const labels: LabelDefs = {
   couatl: {
     post: "3lapo2m4cqq2u",
     realm: "prime",
+    flags: ["NOT_USED_AFTER_LONG_TIME"],
     locales: [
       {
         lang: "en",
@@ -13916,6 +13922,7 @@ export const labels: LabelDefs = {
   "prairie-dog": {
     post: "3lapo3dyirw2h",
     realm: "prime",
+    flags: ["NOT_USED_AFTER_LONG_TIME"],
     locales: [
       {
         lang: "en",
@@ -13977,6 +13984,7 @@ export const labels: LabelDefs = {
   "sand-fox": {
     post: "3lapo3hqy4i2x",
     realm: "prime",
+    flags: ["NOT_USED_AFTER_LONG_TIME"],
     locales: [
       {
         lang: "en",
