@@ -355,7 +355,7 @@ export const feedbackSurvey202609: FormDefinition = {
           help:
             "Presented with the label and the number of users who have that label. All of these " +
             "labels are here because someone asked for them. Check all that apply.",
-          required: true,
+          required: false,
           options: LOW_USE_LABELS.map((v) => opt(v)),
         },
       ],
