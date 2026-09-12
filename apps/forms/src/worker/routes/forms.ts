@@ -15,6 +15,7 @@ function toSummary(form: FormDefinition, alreadySubmitted: boolean): FormSummary
     description: form.description,
     singleResponsePerUser: form.singleResponsePerUser,
     alreadySubmitted,
+    publishesFullResponse: form.destinations.some((d) => d.kind === "atproto-record"),
   };
 }
 

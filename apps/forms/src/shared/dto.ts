@@ -19,6 +19,13 @@ export interface FormSummary {
   singleResponsePerUser: boolean;
   /** Only meaningful for `singleResponsePerUser` forms when the caller is authed. */
   alreadySubmitted: boolean;
+  /**
+   * True when this form has an `atproto-record` destination, i.e. the full
+   * answers get written to the user's own repo (publicly readable), not just
+   * a submission marker. Surfaced to the client so it can warn the user
+   * before they fill the form out.
+   */
+  publishesFullResponse: boolean;
 }
 
 export interface FormDetailDTO extends FormSummary {

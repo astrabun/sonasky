@@ -25,6 +25,13 @@ export function SubmitResult({ result, onExit }: { result: SubmitResponse; onExi
           again if the form is not built for this. Your responses will be discarded if you do.
         </p>
       ) : null}
+      {ok ? (
+        <p className="text-sm text-neutral-600 dark:text-neutral-300">
+          {result.recordUri
+            ? "Your full answers were published publicly to your repo."
+            : "Your answers were not public. A public record confirming you submitted this form was posted to your repo."}
+        </p>
+      ) : null}
       {!ok ? (
         <p className="text-sm text-neutral-700 dark:text-neutral-300">
           {MESSAGES[result.code]}
