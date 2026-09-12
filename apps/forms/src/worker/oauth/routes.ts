@@ -1,14 +1,27 @@
+import { OAuthResolverError } from "@atproto/oauth-client";
 import { Hono } from "hono";
 import type { AppEnv } from "../env.ts";
 import { clientMetadata, getOAuthClient } from "./client.ts";
 import { clearSessionCookie, readSessionCookie, serializeSessionCookie } from "./cookie.ts";
 
 const HANDLE_INPUT_RE = /^[^\s]{1,512}$/;
+// A real handle is a dotted domain (e.g. alice.bsky.social). The most common
+// mistake is typing it like an email address (alice@bsky.social), so that shape
+// gets its own error with a corrected suggestion instead of a generic failure.
+const HANDLE_SHAPE_RE = /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+$/;
 
 /** Only allow returning to a same-origin path, never an absolute/protocol-relative URL. */
 function safeReturnPath(value: string | undefined): string {
   if (value && value.startsWith("/") && !value.startsWith("//")) return value;
   return "/";
+}
+
+/** Build a redirect back to the app that carries a specific, user-facing sign-in error. */
+function loginFailureRedirect(returnPath: string, code: string, hint?: string): string {
+  const params = new URLSearchParams({ auth_error: code });
+  if (hint) params.set("hint", hint);
+  const sep = returnPath.includes("?") ? "&" : "?";
+  return `${returnPath}${sep}${params.toString()}`;
 }
 
 export const oauthRoutes = new Hono<{ Bindings: AppEnv }>();
@@ -27,17 +40,25 @@ oauthRoutes.get("/jwks.json", async (c) => {
 
 /** Begin sign-in: redirect the browser to the user's authorization server. */
 oauthRoutes.get("/oauth/login", async (c) => {
-  const handle = c.req.query("handle")?.trim();
-  if (!handle || !HANDLE_INPUT_RE.test(handle)) {
-    return c.json({ ok: false, error: "invalid handle" }, 400);
+  const returnPath = safeReturnPath(c.req.query("return"));
+  const raw = c.req.query("handle")?.trim();
+  if (!raw || !HANDLE_INPUT_RE.test(raw)) {
+    return c.redirect(loginFailureRedirect(returnPath, "invalid_handle"), 302);
+  }
+  const handle = raw.replace(/^@/, "").toLowerCase();
+  if (!HANDLE_SHAPE_RE.test(handle)) {
+    // Handles look like domains, not emails.
+    const hint = handle.includes("@") ? handle.replace(/@/g, ".") : undefined;
+    return c.redirect(loginFailureRedirect(returnPath, "invalid_handle", hint), 302);
   }
   try {
     const client = await getOAuthClient(c.env);
-    const url = await client.authorize(handle, { state: safeReturnPath(c.req.query("return")) });
+    const url = await client.authorize(handle, { state: returnPath });
     return c.redirect(url.toString(), 302);
   } catch (err) {
     console.error("oauth/login failed", err);
-    return c.json({ ok: false, error: "could not start sign-in" }, 502);
+    const code = err instanceof OAuthResolverError ? "handle_not_found" : "sign_in_failed";
+    return c.redirect(loginFailureRedirect(returnPath, code), 302);
   }
 });
 
@@ -52,7 +73,7 @@ oauthRoutes.get("/oauth/callback", async (c) => {
     return c.redirect(safeReturnPath(state ?? undefined), 302);
   } catch (err) {
     console.error("oauth/callback failed", err);
-    return c.redirect("/?auth_error=1", 302);
+    return c.redirect("/?auth_error=sign_in_failed", 302);
   }
 });
 

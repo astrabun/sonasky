@@ -11,16 +11,46 @@ function formIdFromPath(): string | null {
   return m ? m[1] : null;
 }
 
+/** A handle looks like a dotted domain (alice.bsky.social), never like an email. */
+const HANDLE_SHAPE_RE = /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+$/;
+
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  invalid_handle: "That doesn't look like a Bluesky handle.",
+  handle_not_found:
+    "We couldn't find an account for that handle. Check the spelling and try again.",
+  sign_in_failed: "Sign-in failed or was cancelled. Try again.",
+};
+
 function SignIn({ returnTo }: { returnTo: string }) {
   const [handle, setHandle] = useState("");
-  const authError = new URLSearchParams(window.location.search).has("auth_error");
+  const params = new URLSearchParams(window.location.search);
+  const authError = params.get("auth_error");
+  const hint = params.get("hint");
+  const authErrorMessage = authError
+    ? (AUTH_ERROR_MESSAGES[authError] ?? AUTH_ERROR_MESSAGES.sign_in_failed)
+    : null;
+
+  const normalized = handle.trim().replace(/^@/, "").toLowerCase();
+  const emailTypoHint =
+    normalized && !HANDLE_SHAPE_RE.test(normalized) && normalized.includes("@")
+      ? normalized.replace(/@/g, ".")
+      : null;
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-neutral-600 dark:text-neutral-300">
         Sign in with your Bluesky account to see the forms available to you.
       </p>
-      {authError ? (
-        <p className="text-sm text-rose-600">Sign-in failed or was cancelled. Try again.</p>
+      {authErrorMessage ? (
+        <p className="text-sm text-rose-600">
+          {authErrorMessage}
+          {hint ? (
+            <>
+              {" "}
+              Did you mean <span className="font-medium">{hint}</span>?
+            </>
+          ) : null}
+        </p>
       ) : null}
       <form
         className="flex gap-2"
@@ -29,15 +59,26 @@ function SignIn({ returnTo }: { returnTo: string }) {
           if (handle.trim()) window.location.href = loginHref(handle, returnTo);
         }}
       >
-        <input
-          className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-          placeholder="you.bsky.social"
-          value={handle}
-          onChange={(e) => setHandle(e.target.value)}
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
-        />
+        <div className="w-full">
+          <input
+            className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+            placeholder="you.bsky.social"
+            value={handle}
+            onChange={(e) => setHandle(e.target.value)}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+          {emailTypoHint ? (
+            <p className="mt-1 text-xs text-amber-600">
+              Handles look like a domain, not an email - try{" "}
+              <button type="button" className="underline" onClick={() => setHandle(emailTypoHint)}>
+                {emailTypoHint}
+              </button>
+              ?
+            </p>
+          ) : null}
+        </div>
         <button
           className="shrink-0 rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500"
           type="submit"
