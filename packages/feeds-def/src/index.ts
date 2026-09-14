@@ -20,6 +20,10 @@ export {
   ALL_USERS_TRENDING_DISPLAY_NAME,
   ALL_USERS_INTERACTED_DISPLAY_NAME,
 } from "./const.ts";
+export type { CustomFeed, CustomFeedDef, CustomFeedFilter } from "./customFeeds.ts";
+export { getCustomFeeds } from "./customFeeds.ts";
+export type { Destination, FeedDestination } from "./destination.ts";
+export { resolveDestinations } from "./destination.ts";
 
 // Shape of catalog.generated.ts (produced by `pnpm -F @sonasky/feeds-def gen`)
 

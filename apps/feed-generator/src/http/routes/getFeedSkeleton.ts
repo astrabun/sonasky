@@ -1,4 +1,5 @@
 import type { ServerResponse } from "node:http";
+import { sql } from "kysely";
 import { db } from "../../db/index.ts";
 import { interactedZsetKey } from "../../consumers/interacted.ts";
 import { trendingZsetKey } from "../../consumers/trending.ts";
@@ -9,6 +10,9 @@ import { sendError, sendJson } from "../json.ts";
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
+
+/** Escapes LIKE wildcards so a `contains` filter's substring matches literally. */
+const escapeLike = (s: string): string => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 
 const parseLimit = (raw: string | null): number => {
   if (raw === null || raw === "") return DEFAULT_LIMIT;
@@ -78,7 +82,47 @@ export async function getFeedSkeleton(res: ServerResponse, params: URLSearchPara
       ),
     );
 
-  if (feed.kind === "all") {
+  if (feed.kind === "custom") {
+    const { filter } = feed;
+    if (filter.authorDid) {
+      query = query.where("p.author_did", "=", filter.authorDid);
+    }
+    if (filter.labelId) {
+      const labelId = filter.labelId;
+      query = query.where((eb) =>
+        eb.exists(
+          eb
+            .selectFrom("account_label as al")
+            .select("al.did")
+            .whereRef("al.did", "=", "p.author_did")
+            .where("al.label", "=", labelId),
+        ),
+      );
+    }
+    if (filter.tags && filter.tags.length > 0) {
+      const tags = filter.tags.map((t) => t.toLowerCase());
+      const op = filter.tagMode === "all" ? "@>" : "&&";
+      query = query.where(sql<boolean>`${sql.ref("p.tags")} ${sql.raw(op)} ${tags}`);
+    }
+    if (filter.contains && filter.contains.length > 0) {
+      const target =
+        filter.containsIn === "text"
+          ? sql.ref("p.text")
+          : filter.containsIn === "altText"
+            ? sql.ref("p.alt_text")
+            : sql`(${sql.ref("p.text")} || ' ' || ${sql.ref("p.alt_text")})`;
+      const conditions = filter.contains.map(
+        (needle) =>
+          sql<boolean>`${target} LIKE ${`%${escapeLike(needle.toLowerCase())}%`} ESCAPE '\\'`,
+      );
+      query = query.where((eb) =>
+        filter.containsMode === "all" ? eb.and(conditions) : eb.or(conditions),
+      );
+    }
+    if (filter.excludeReplies !== false) {
+      query = query.where("p.is_reply", "=", false);
+    }
+  } else if (feed.kind === "all") {
     query = query.where((eb) =>
       eb.exists(
         eb

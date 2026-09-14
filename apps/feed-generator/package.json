@@ -10,8 +10,11 @@
     "migrate": "dotenvx run -- tsx src/db/migrate.ts",
     "backfill-content-visibility": "dotenvx run -- tsx src/scripts/backfillContentVisibility.ts",
     "publish-feeds": "dotenvx run -- tsx src/scripts/publishFeeds.ts",
+    "publish-feeds:test": "dotenvx run -- tsx src/scripts/publishFeeds.ts -- --dest=test",
     "unpublish-feeds": "dotenvx run -- tsx src/scripts/unpublishFeeds.ts",
-    "purge-feeds": "dotenvx run -- tsx src/scripts/purgeFeeds.ts"
+    "unpublish-feeds:test": "dotenvx run -- tsx src/scripts/unpublishFeeds.ts -- --dest=test",
+    "purge-feeds": "dotenvx run -- tsx src/scripts/purgeFeeds.ts",
+    "purge-feeds:test": "dotenvx run -- tsx src/scripts/purgeFeeds.ts -- --dest=test"
   },
   "dependencies": {
     "@atproto/api": "^0.20.34",

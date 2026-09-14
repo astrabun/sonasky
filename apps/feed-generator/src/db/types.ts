@@ -18,6 +18,14 @@ export interface PostTable {
   /** ms epoch - Jetstream `time_us` / 1000. */
   indexed_at: number;
   rkey: string;
+  /** Whether the post's record had a `reply` field. */
+  is_reply: boolean;
+  /** Lowercased tags: the record's `tags` field plus any `#hashtag` facets. */
+  tags: string[];
+  /** Post text, lowercased (matching only, not for display). */
+  text: string;
+  /** Concatenated embed alt text, lowercased (matching only, not for display). */
+  alt_text: string;
 }
 
 export interface InteractionTable {
