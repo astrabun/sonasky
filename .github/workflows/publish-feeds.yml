@@ -15,6 +15,10 @@ jobs:
       SERVICE_HOSTNAME: feeds.sonasky.app
       SONASKY_BSKY_USER: ${{ secrets.SONASKY_BSKY_USER }}
       SONASKY_BSKY_PASS: ${{ secrets.SONASKY_BSKY_PASS }}
+      # Optional - the test-destination publish step below skips cleanly if these aren't set.
+      TEST_BSKY_USER: ${{ secrets.TEST_BSKY_USER }}
+      TEST_BSKY_PASS: ${{ secrets.TEST_BSKY_PASS }}
+      TEST_SONASKY_DID: ${{ secrets.TEST_SONASKY_DID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -28,3 +32,4 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm feed-generator:publish
+      - run: pnpm feed-generator:publish-test
