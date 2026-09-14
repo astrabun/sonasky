@@ -1,10 +1,15 @@
 /**
  * Hand-maintained one-off feeds that aren't tied to the generated species
  * catalog (see catalog.generated.ts) - each defined by an arbitrary filter
- * instead of a single label. Add an entry and re-deploy to define a new one.
+ * instead of a single label. Add an entry, run
+ * `pnpm -F @sonasky/feeds-def gen` to mint its rkey, and re-deploy.
+ *
+ * This file must stay free of Node-only APIs (no `node:crypto`, etc.) - unlike
+ * catalog.generated.ts, it's imported directly as source by browser apps
+ * (e.g. label-browser), which have no Node types available.
  */
 
-import { createHash } from "node:crypto";
+import { customFeedRkeys } from "./customFeeds.generated.ts";
 import type { FeedDestination } from "./destination.ts";
 
 /**
@@ -60,9 +65,7 @@ export interface CustomFeed extends CustomFeedDef {
   rkey: string;
 }
 
-const rkey = (seed: string): string => createHash("sha256").update(seed).digest("hex").slice(0, 16);
-
-const customFeedDefs: CustomFeedDef[] = [
+export const customFeedDefs: CustomFeedDef[] = [
   {
     seed: "__test_feed__",
     displayName: "Test Feed",
@@ -73,5 +76,14 @@ const customFeedDefs: CustomFeedDef[] = [
 ];
 
 export function getCustomFeeds(): CustomFeed[] {
-  return customFeedDefs.map((def) => ({ ...def, rkey: rkey(def.seed) }));
+  return customFeedDefs.map((def) => {
+    const rkey = customFeedRkeys[def.seed];
+    if (!rkey) {
+      throw new Error(
+        `No generated rkey for custom feed seed "${def.seed}" - ` +
+          "run `pnpm -F @sonasky/feeds-def gen`.",
+      );
+    }
+    return { ...def, rkey };
+  });
 }
