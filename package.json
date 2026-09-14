@@ -44,8 +44,7 @@
   "lint-staged": {
     "*": "oxfmt --no-error-on-unmatched-pattern",
     "packages/{labels-def,feeds-def}/src/**": [
-      "pnpm feeds-def:gen",
-      "git add packages/feeds-def/src/catalog.generated.ts"
+      "pnpm feeds-def:gen"
     ]
   },
   "devEngines": {
