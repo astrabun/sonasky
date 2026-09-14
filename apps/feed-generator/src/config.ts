@@ -21,6 +21,8 @@ export const config = {
   serviceDid: `did:web:${serviceHostname}`,
   /** Account that owns the published app.bsky.feed.generator records. */
   publisherDid: SONASKY_DID,
+  /** DID of the test account custom feeds may be published under (optional). */
+  testPublisherDid: process.env.TEST_SONASKY_DID,
   port: Number(process.env.PORT ?? 8080),
   /** Required by the running service; resolved lazily so publish-only scripts
    * (which never touch Postgres) don't need it set. */

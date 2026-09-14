@@ -1,25 +1,35 @@
 /**
  * publishFeeds.ts
  *
- * Publishes one app.bsky.feed.generator record per active SonaSky species label
- * under the main SonaSky account, pointing at this service's did:web. The record
- * key is a stable hash of the label id (see feeds.ts).
+ * Publishes one app.bsky.feed.generator record per active feed targeting the
+ * given destination, under that destination's account, pointing at this
+ * service's did:web. The record key is a stable hash (see feeds.ts).
  *
  * Idempotent and resumable: existing records with identical content are left
  * untouched (so a re-run after a rate-limit only writes what's missing), and
  * each record's original createdAt is preserved.
  *
  * Requires in the environment:
- *   SONASKY_BSKY_USER / SONASKY_BSKY_PASS - app-password login for the publisher account
+ *   SONASKY_BSKY_USER / SONASKY_BSKY_PASS - app-password login for the "prod" destination
+ *   TEST_BSKY_USER / TEST_BSKY_PASS       - app-password login for the "test" destination
  *   SERVICE_HOSTNAME                       - public hostname (service DID is did:web:<this>)
  *
- * Usage: pnpm feed-generator:publish
+ * Usage:
+ *   pnpm feed-generator:publish              # prod (default)
+ *   pnpm feed-generator:publish -- --dest=test
+ *
+ * If --dest=test is given but TEST_BSKY_USER/TEST_BSKY_PASS aren't set, this
+ * exits cleanly (code 0) instead of failing, so a deploy that always runs the
+ * test-destination publish isn't blocked by an unconfigured test account.
  */
 
 import type { Agent } from "@atproto/api";
 import { config } from "../config.ts";
 import { getServedFeeds } from "../feeds.ts";
-import { BATCH_SIZE, COLLECTION, login } from "./repo.ts";
+import { BATCH_SIZE, COLLECTION, hasCredentials, login } from "./repo.ts";
+import { parseDestination } from "./parseDestination.ts";
+
+const destination = parseDestination(process.argv.slice(2));
 
 interface GeneratorValue {
   did: string;
@@ -55,14 +65,22 @@ const isRateLimit = (err: unknown): err is { headers?: Record<string, string> } 
   (err as { status?: number }).status === 429;
 
 const main = async (): Promise<void> => {
-  const { agent, repo, handle } = await login();
-  console.log(`Authenticated as ${handle} (${repo})`);
+  if (destination === "test" && !hasCredentials("test")) {
+    console.log(
+      "TEST_BSKY_USER/TEST_BSKY_PASS not set - skipping test-destination publish " +
+        "(not treated as a failure).",
+    );
+    return;
+  }
+
+  const { agent, repo, handle } = await login(destination);
+  console.log(`Authenticated as ${handle} (${repo}) [${destination}]`);
 
   const existing = await fetchExisting(agent, repo);
   console.log(`Found ${existing.size} existing feed records`);
 
   const now = new Date().toISOString();
-  const feeds = getServedFeeds();
+  const feeds = getServedFeeds().filter((feed) => feed.destination === destination);
   const writes = feeds.flatMap((feed) => {
     const prior = existing.get(feed.rkey);
     const value: GeneratorValue = {

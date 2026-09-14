@@ -6,12 +6,19 @@
  * Prompts for confirmation (type the account handle); pass --yes to skip the
  * prompt in a non-interactive context.
  *
- * Usage: pnpm feed-generator:purge
+ * Usage:
+ *   pnpm feed-generator:purge                       # prod (default)
+ *   pnpm feed-generator:purge -- --dest=test --yes
+ *
+ * If --dest=test is given but TEST_BSKY_USER/TEST_BSKY_PASS aren't set, this
+ * exits cleanly instead of failing.
  */
 
 import { createInterface } from "node:readline/promises";
-import { deleteGeneratorRecords, listGeneratorRkeys, login } from "./repo.ts";
+import { deleteGeneratorRecords, hasCredentials, listGeneratorRkeys, login } from "./repo.ts";
+import { parseDestination } from "./parseDestination.ts";
 
+const destination = parseDestination(process.argv.slice(2));
 const skipPrompt = process.argv.includes("--yes") || process.argv.includes("-y");
 
 const confirm = async (handle: string, count: number): Promise<boolean> => {
@@ -33,7 +40,12 @@ const confirm = async (handle: string, count: number): Promise<boolean> => {
 };
 
 const main = async (): Promise<void> => {
-  const { agent, repo, handle } = await login();
+  if (destination === "test" && !hasCredentials("test")) {
+    console.log("TEST_BSKY_USER/TEST_BSKY_PASS not set - skipping test-destination purge.");
+    return;
+  }
+
+  const { agent, repo, handle } = await login(destination);
   console.log(`Authenticated as ${handle} (${repo})`);
 
   const rkeys = await listGeneratorRkeys(agent, repo);

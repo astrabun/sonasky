@@ -28,13 +28,13 @@ export interface PinnedPost {
   position?: number;
 }
 
-type FeedKind = "all" | "species" | "trending" | "interacted";
+type FeedKind = "all" | "species" | "trending" | "interacted" | "custom";
 
 export const pinnedPosts: PinnedPost[] = [
   {
     uri: "at://did:plc:2qawvcwumvgxmed6iy6pmt6l/app.bsky.feed.post/3muzyyy6x4s27",
     feeds: ["interacted", "trending", "all"],
-    position: 0,
+    position: 10,
   },
   // {
   //   uri: "at://did:plc:nkleu4mgtlxpsfwkdm6otsqu/app.bsky.feed.post/3mutboyzfcc2q",
@@ -51,6 +51,7 @@ const feedSelector = (kind: FeedKind, labelId: string | null): string => {
   if (kind === "all") return "all";
   if (kind === "species") return labelId ?? "";
   if (kind === "interacted") return "interacted";
+  if (kind === "custom") return "custom";
   return labelId ? `${labelId}.trending` : "trending";
 };
 
