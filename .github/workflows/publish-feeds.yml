@@ -33,3 +33,5 @@ jobs:
 
       - run: pnpm feed-generator:publish
       - run: pnpm feed-generator:publish-test
+      - run: pnpm feed-generator:unpublish
+      - run: pnpm feed-generator:unpublish-test
