@@ -225,12 +225,12 @@ const opt = (value: string) => ({ value, label: value });
 
 export const feedbackSurvey202609: FormDefinition = {
   id: "sonasky-feedback-2026-09",
-  title: "2026-09 - SonaSky Feedback Survey",
+  title: "2026-09 - SonaSky Feedback Survey (Closed, thank you!)",
   description:
     "This is a short survey asking for your feedback on SonaSky. There are a couple of required " +
     "questions and some optional ones you'll be able to skip. The whole survey shouldn't take more " +
     "than 5 minutes to complete. Thank you very much for filling out the feedback form.",
-  active: true,
+  active: false,
   singleResponsePerUser: true,
   sections: [
     {
