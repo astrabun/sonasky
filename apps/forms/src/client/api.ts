@@ -1,13 +1,19 @@
 import type {
+  ArchivedFormSummary,
   FormDetailDTO,
   FormSummary,
+  FormUnavailable,
   MeResponse,
   SubmitRequest,
   SubmitResponse,
 } from "../shared/dto.ts";
 
+// Statuses that still carry a meaningful JSON body worth parsing, rather than
+// a bare network/server failure.
+const BODY_STATUSES = new Set([404, 409, 422]);
+
 async function json<T>(res: Response): Promise<T> {
-  if (!res.ok && res.status !== 409 && res.status !== 422) {
+  if (!res.ok && !BODY_STATUSES.has(res.status)) {
     throw new Error(`${res.status} ${res.statusText}`);
   }
   return (await res.json()) as T;
@@ -21,9 +27,13 @@ export function listForms(): Promise<FormSummary[]> {
   return fetch("/api/forms").then((r) => json<FormSummary[]>(r));
 }
 
-export function getForm(id: string): Promise<FormDetailDTO | { ok: false; code: string }> {
+export function listArchivedForms(): Promise<ArchivedFormSummary[]> {
+  return fetch("/api/forms/archived").then((r) => json<ArchivedFormSummary[]>(r));
+}
+
+export function getForm(id: string): Promise<FormDetailDTO | FormUnavailable> {
   return fetch(`/api/forms/${encodeURIComponent(id)}`).then((r) =>
-    json<FormDetailDTO | { ok: false; code: string }>(r),
+    json<FormDetailDTO | FormUnavailable>(r),
   );
 }
 
