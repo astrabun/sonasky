@@ -1649,14 +1649,6 @@ export const generatedCatalog: GeneratedCatalog = {
       trendingRkey: "caae38fdfad5881b",
     },
     {
-      labelId: "tayra",
-      speciesName: "Tayra",
-      displayName: "🕔 Tayra",
-      trendingDisplayName: "📈 Tayra",
-      feedRkey: "f740b44a64a99e0e",
-      trendingRkey: "6d77b21dc4e2276e",
-    },
-    {
       labelId: "golden-jackal",
       speciesName: "Golden Jackal",
       displayName: "🕔 Golden Jackal",
@@ -2225,14 +2217,6 @@ export const generatedCatalog: GeneratedCatalog = {
       trendingRkey: "ddf878ee0e877201",
     },
     {
-      labelId: "potoroo",
-      speciesName: "Potoroo",
-      displayName: "🕔 Potoroo",
-      trendingDisplayName: "📈 Potoroo",
-      feedRkey: "86b4a03d13d9dcad",
-      trendingRkey: "cd7b91b7f07ba9f4",
-    },
-    {
       labelId: "sugar-glider",
       speciesName: "Sugar Glider",
       displayName: "🕔 Sugar Glider",
@@ -2751,14 +2735,6 @@ export const generatedCatalog: GeneratedCatalog = {
       trendingDisplayName: "📈 Mew",
       feedRkey: "03c1b3e9d025dc98",
       trendingRkey: "3849448a877190f7",
-    },
-    {
-      labelId: "pooka",
-      speciesName: "Pooka",
-      displayName: "🕔 Pooka",
-      trendingDisplayName: "📈 Pooka",
-      feedRkey: "d1d2949eaad15372",
-      trendingRkey: "d4f2c3ca0bc14996",
     },
     {
       labelId: "rottweiler",
@@ -5169,14 +5145,6 @@ export const generatedCatalog: GeneratedCatalog = {
       trendingRkey: "4355c0d3201bb1e3",
     },
     {
-      labelId: "toad",
-      speciesName: "Toad",
-      displayName: "🕔 Toad",
-      trendingDisplayName: "📈 Toad",
-      feedRkey: "1b34942add2c85bb",
-      trendingRkey: "bc208561b456e3dc",
-    },
-    {
       labelId: "anomaly",
       speciesName: "Anomaly",
       displayName: "🕔 Anomaly",
@@ -5271,14 +5239,6 @@ export const generatedCatalog: GeneratedCatalog = {
       trendingDisplayName: "📈 Sea Horse",
       feedRkey: "9149ad023c71f2dc",
       trendingRkey: "63ef2d460fcaf9ea",
-    },
-    {
-      labelId: "geroo",
-      speciesName: "Geroo",
-      displayName: "🕔 Geroo",
-      trendingDisplayName: "📈 Geroo",
-      feedRkey: "f3c96e373d021503",
-      trendingRkey: "c908908fcb900aa4",
     },
     {
       labelId: "pandaren",
@@ -6169,28 +6129,12 @@ export const generatedCatalog: GeneratedCatalog = {
       trendingRkey: "49cd2614addf2971",
     },
     {
-      labelId: "camel",
-      speciesName: "Camel",
-      displayName: "🕔 Camel",
-      trendingDisplayName: "📈 Camel",
-      feedRkey: "4812585e944994cb",
-      trendingRkey: "5725fd17cc361ee1",
-    },
-    {
       labelId: "canary",
       speciesName: "Canary",
       displayName: "🕔 Canary",
       trendingDisplayName: "📈 Canary",
       feedRkey: "e100fbce008c04ec",
       trendingRkey: "46170fa929ae48aa",
-    },
-    {
-      labelId: "capercaillie",
-      speciesName: "Capercaillie",
-      displayName: "🕔 Capercaillie",
-      trendingDisplayName: "📈 Capercaillie",
-      feedRkey: "e046ca9e1073b5dd",
-      trendingRkey: "8339baa1f5a5d822",
     },
     {
       labelId: "cetacean",
@@ -6255,14 +6199,6 @@ export const generatedCatalog: GeneratedCatalog = {
       trendingDisplayName: "📈 Concubus",
       feedRkey: "7235c07af6bc14c4",
       trendingRkey: "a09bb0b25a9cbedd",
-    },
-    {
-      labelId: "couatl",
-      speciesName: "Couatl",
-      displayName: "🕔 Couatl",
-      trendingDisplayName: "📈 Couatl",
-      feedRkey: "07115d1906068aef",
-      trendingRkey: "a48a02df90d7c7ab",
     },
     {
       labelId: "gazelle",
@@ -6497,14 +6433,6 @@ export const generatedCatalog: GeneratedCatalog = {
       trendingRkey: "94428043a9cb65b1",
     },
     {
-      labelId: "prairie-dog",
-      speciesName: "Prairie Dog",
-      displayName: "🕔 Prairie Dog",
-      trendingDisplayName: "📈 Prairie Dog",
-      feedRkey: "9a7db154a20aebce",
-      trendingRkey: "09061cc49b6520ce",
-    },
-    {
       labelId: "pteromon",
       speciesName: "Pteromon",
       displayName: "🕔 Pteromon",
@@ -6535,14 +6463,6 @@ export const generatedCatalog: GeneratedCatalog = {
       trendingDisplayName: "📈 Renamon",
       feedRkey: "c7df3ad6acbca9f0",
       trendingRkey: "b5007b820cf1faad",
-    },
-    {
-      labelId: "sand-fox",
-      speciesName: "Sand Fox",
-      displayName: "🕔 Sand Fox",
-      trendingDisplayName: "📈 Sand Fox",
-      feedRkey: "704917fd304cf22b",
-      trendingRkey: "463421bc006d5dd8",
     },
     {
       labelId: "ryukyu-robin",
