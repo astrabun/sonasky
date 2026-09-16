@@ -320,9 +320,15 @@ importers:
       '@atproto/oauth-types':
         specifier: ^0.7.5
         version: 0.7.5
+      dompurify:
+        specifier: ^3.4.3
+        version: 3.4.15
       hono:
         specifier: ^4.13.7
         version: 4.13.7
+      marked:
+        specifier: ^18.0.3
+        version: 18.0.12
       react:
         specifier: ^19.2.7
         version: 19.2.8
@@ -339,6 +345,9 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@8.1.5(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1)(yaml@2.9.0))
+      '@types/dompurify':
+        specifier: ^3.2.0
+        version: 3.2.0
       '@types/node':
         specifier: ^24.13.2
         version: 24.13.3

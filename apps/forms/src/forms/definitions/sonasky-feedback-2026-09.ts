@@ -231,6 +231,8 @@ export const feedbackSurvey202609: FormDefinition = {
     "questions and some optional ones you'll be able to skip. The whole survey shouldn't take more " +
     "than 5 minutes to complete. Thank you very much for filling out the feedback form.",
   active: false,
+  date: "2026-09-08",
+  postFormDetails: "This survey is now closed - thank you to everyone who filled it out!",
   singleResponsePerUser: true,
   sections: [
     {

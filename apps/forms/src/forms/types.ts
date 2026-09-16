@@ -163,6 +163,26 @@ export interface FormDefinition {
   description?: string;
   /** Inactive forms 404 and are omitted from the list. */
   active: boolean;
+  /**
+   * ISO date (YYYY-MM-DD) this form was published/opened. Drives sort order on
+   * the active list and the archive index (newest first).
+   */
+  date: string;
+  /** When true, pinned to the top of whichever index page (active or archive) it appears on. */
+  pinned?: boolean;
+  /**
+   * Markdown shown in place of the form itself once it's `active: false` - e.g.
+   * a link to results, or a note on why it closed. Rendered on the direct `/f/<id>`
+   * link (which otherwise has nothing useful to show for a closed form) and in
+   * the archive listing.
+   */
+  postFormDetails?: string;
+  /**
+   * Default false: a closed form's title/description/postFormDetails, and its
+   * entry in the archive index, are only visible to signed-in users. Set true
+   * to make them visible to signed-out visitors too.
+   */
+  publicArchive?: boolean;
   /** When true, a user with an existing submission marker for this id is rejected. */
   singleResponsePerUser: boolean;
   /** Ordered. sections[0] is the entry section. */

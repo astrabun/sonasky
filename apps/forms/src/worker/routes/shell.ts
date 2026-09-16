@@ -65,12 +65,14 @@ shellRoutes.get("/", (c) =>
 shellRoutes.get("/f/:id", (c) => {
   const id = c.req.param("id");
   const form = getForm(id);
-  const meta =
-    form && form.active
-      ? {
-          title: `${form.title} - SonaSky Forms`,
-          description: form.description ?? GENERIC.description,
-        }
-      : GENERIC;
+  // No session context here (link-preview crawlers won't carry the user's
+  // cookie), so a private closed form's title/description stays out of OG tags.
+  const visible = form && (form.active || form.publicArchive);
+  const meta = visible
+    ? {
+        title: `${form.title} - SonaSky Forms`,
+        description: form.description ?? GENERIC.description,
+      }
+    : GENERIC;
   return renderShell(c, { ...meta, url: `${c.env.PUBLIC_URL.replace(/\/+$/, "")}/f/${id}` });
 });
