@@ -33,4 +33,11 @@ export const FAQ_ENTRIES: FaqEntry[] = [
       label: "#2803",
     },
   },
+  {
+    id: "feed-types",
+    question:
+      "What's the difference between All Users, Trending, Comet, and the per-species feeds?",
+    answer:
+      "All SonaSky Users shows every post from a labeled account, newest first - no ranking. Species Latest is the same thing, just filtered to one species. SonaSky Trending ranks recent posts from labeled accounts by likes and reposts, weighted so newer posts don't need as much engagement to rank - Species Trending is that same ranking narrowed to one species. SonaSky Comet is different: instead of ranking by a post's total likes and reposts, it only counts engagement from other SonaSky users, and the post itself doesn't need a label - so it can surface posts from unlabeled accounts if enough SonaSky users are engaging with them.",
+  },
 ];
