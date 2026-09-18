@@ -375,6 +375,11 @@ a:visited {
       margin-bottom: 0;
     }
   }
+
+  .faq-update {
+    font-weight: bold;
+    color: var(--accent);
+  }
 }
 
 #browser {

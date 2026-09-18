@@ -78,12 +78,29 @@ export function Faq() {
                     </h3>
                     {isOpen && (
                       <div className="faq-answer">
-                        <p>{entry.answer}</p>
+                        <p>{entry.struckThrough ? <s>{entry.answer}</s> : entry.answer}</p>
                         {entry.link && (
                           <p>
                             <a href={entry.link.href} target="_blank" rel="noopener noreferrer">
                               {entry.link.label}
                             </a>
+                          </p>
+                        )}
+                        {entry.update && (
+                          <p className="faq-update">
+                            {entry.update.text}
+                            {entry.update.link && (
+                              <>
+                                {" "}
+                                <a
+                                  href={entry.update.link.href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  {entry.update.link.label}
+                                </a>
+                              </>
+                            )}
                           </p>
                         )}
                       </div>

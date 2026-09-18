@@ -7,6 +7,16 @@ export type FaqEntry = {
     href: string;
     label: string;
   };
+  // Set when `answer` (and its `link`) is outdated but kept for context - rendered
+  // struck through, with `update` shown alongside as the current guidance.
+  struckThrough?: boolean;
+  update?: {
+    text: string;
+    link?: {
+      href: string;
+      label: string;
+    };
+  };
 };
 
 export type FaqCategory = {
@@ -55,6 +65,14 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         link: {
           href: "https://github.com/bluesky-social/atproto/issues/2803",
           label: "#2803",
+        },
+        struckThrough: true,
+        update: {
+          text: "There's a species request form open right now! Fill it out to request a label.",
+          link: {
+            href: "https://forms.sonasky.app/f/sonasky-species-request-2026-09",
+            label: "Species Request Form",
+          },
         },
       },
       {
