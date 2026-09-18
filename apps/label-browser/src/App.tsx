@@ -9,7 +9,6 @@ import { getGlobalFeeds, getLabelFeedsMap } from "@sonasky/feeds-def";
 import { useDebounce } from "./hooks/useDebounce";
 import { useLikeCounts } from "./hooks/useLikeCounts";
 import { useUniqueLikerCount } from "./hooks/useUniqueLikerCount";
-import { useLocalStorage } from "./hooks/useLocalStorage";
 import {
   arrayCodec,
   boolCodec,
