@@ -56,3 +56,9 @@ export const arrayCodec: UrlCodec<string[]> = {
   toParam: (value) => (value.length === 0 ? null : value.join(",")),
   fromParam: (raw) => (raw === "" ? [] : raw.split(",")),
 };
+
+/** Boolean flag, omitted from the URL when false. */
+export const boolCodec: UrlCodec<boolean> = {
+  toParam: (value) => (value ? "true" : null),
+  fromParam: (raw) => raw === "true",
+};

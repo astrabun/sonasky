@@ -4,7 +4,15 @@ import "./About.css";
 export function About() {
   return (
     <Layout>
-      <div style={{ padding: "2rem", textAlign: "justify" }}>
+      <div
+        style={{
+          padding: "2rem",
+          textAlign: "justify",
+          display: "flex",
+          flexDirection: "column",
+          gap: "2rem",
+        }}
+      >
         <h1>About SonaSky REF</h1>
         <p>
           SonaSky REF was created as an extension/continuation of{" "}

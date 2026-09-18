@@ -177,6 +177,17 @@ a:visited {
   }
 }
 
+.exact-match {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: fit-content;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
 .suggestions {
   position: absolute;
   top: calc(100% + 4px);
@@ -282,6 +293,21 @@ a:visited {
   max-width: 640px;
   text-align: left;
 
+  .faq-category {
+    &:not(:first-child) {
+      margin-top: 32px;
+    }
+  }
+
+  .faq-category-title {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary, var(--text));
+  }
+
   .faq-entry {
     border-top: 1px solid var(--border);
     scroll-margin-top: 24px;
@@ -291,7 +317,7 @@ a:visited {
     }
   }
 
-  h2 {
+  h3 {
     display: flex;
     align-items: baseline;
     gap: 8px;
@@ -348,6 +374,11 @@ a:visited {
     &:last-child {
       margin-bottom: 0;
     }
+  }
+
+  .faq-update {
+    font-weight: bold;
+    color: var(--accent);
   }
 }
 

@@ -1,5 +1,3 @@
-import { ThemeProvider, createTheme } from "@mui/material/styles";
-import CssBaseline from "@mui/material/CssBaseline";
 import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router";
 import Home from "./pages/Home";
 import About from "./pages/About";
@@ -34,12 +32,6 @@ export const clientId =
       })}`
     : `https://ref.sonasky.app/client_metadata.json`;
 
-const theme = createTheme({
-  colorSchemes: {
-    dark: true,
-  },
-});
-
 function RedirectToProfile() {
   const { blueskyHandleOrDID } = useParams();
   return <Navigate to={`/profile/${blueskyHandleOrDID}`} replace />;
@@ -60,8 +52,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <ThemeProvider theme={theme} noSsr defaultMode="system">
-      <CssBaseline />
+    <>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -128,7 +119,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
-    </ThemeProvider>
+    </>
   );
 }
 

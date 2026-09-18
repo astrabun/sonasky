@@ -2,29 +2,24 @@ import React, { useCallback, useEffect, useState } from "react";
 import LinksDialog from "./LinksDialog";
 import { useNavigate, useParams } from "react-router";
 import Layout from "../../../../layouts/Dashboard";
+import { Button } from "../../../../components/ui/Button";
+import { Checkbox, FormControlLabel } from "../../../../components/ui/Checkbox";
 import {
-  Box,
-  Button,
-  Checkbox,
-  Container,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControlLabel,
-  IconButton,
-  TextField,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+} from "../../../../components/ui/Dialog";
+import { AnchorIconButton, IconButton } from "../../../../components/ui/IconButton";
+import { TextField } from "../../../../components/ui/TextField";
+import { Tooltip } from "../../../../components/ui/Tooltip";
 import { type Character, CharacterTypeKeys, validateCharacter } from "../../../../types/Character";
 import { useAuthContext } from "../../../../auth/auth-provider";
 import { PDS_COLLECTION_NS } from "../../../../const";
 import * as SonaskyRef from "../../../../lexicon/types/app/sonasky/ref";
 import { TID } from "@atproto/common-web";
 import { ColorPicker, useColor } from "react-color-palette";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import CloseIcon from "@mui/icons-material/Close";
+import { ExternalLink, X } from "lucide-react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 // @ts-ignore
@@ -158,8 +153,10 @@ function CharacterEditor(props: CharacterEditorProps) {
     }
   };
 
-  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    const type = e.target instanceof HTMLInputElement ? e.target.type : "text";
+    const checked = e.target instanceof HTMLInputElement ? e.target.checked : false;
     if (name === "refSheet" || name === "altRef") {
       const atUri = await handleAtProtoRefImage(value);
       const indexKey = name === "refSheet" ? "refSheetImageIndex" : "altRefImageIndex";
@@ -460,32 +457,26 @@ function CharacterEditor(props: CharacterEditorProps) {
     drag(drop(ref));
 
     return (
-      <Box
+      <div
         ref={ref}
-        sx={{
-          backgroundColor: `#${color.hex}`,
-          cursor: "pointer",
-          height: "100px",
-          opacity: isDragging ? 0.5 : 1,
-          position: "relative",
-          width: "100px",
-        }}
+        className="relative h-[100px] w-[100px] cursor-pointer"
+        style={{ backgroundColor: `#${color.hex}`, opacity: isDragging ? 0.5 : 1 }}
         onClick={() => handleEditColor(index)}
       >
         <Tooltip title={`${color.label} (#${color.hex})`}>
-          <Box sx={{ height: "100%", width: "100%" }} />
+          <div className="h-full w-full" />
         </Tooltip>
         <IconButton
           size="small"
-          sx={{ position: "absolute", right: 0, top: 0 }}
+          className="absolute right-0 top-0"
           onClick={(e) => {
             e.stopPropagation();
             handleRemoveColor(index);
           }}
         >
-          <CloseIcon fontSize="small" />
+          <X size={16} />
         </IconButton>
-      </Box>
+      </div>
     );
   };
 
@@ -504,14 +495,10 @@ function CharacterEditor(props: CharacterEditorProps) {
   if (!character) {
     return (
       <Layout>
-        <Container>
-          <Typography variant="h4" gutterBottom>
-            {editMode ? "Edit" : "Create"} Character
-          </Typography>
-          <Typography variant="body1">
-            {editMode ? "Loading character data..." : "Loading form..."}
-          </Typography>
-        </Container>
+        <div className="mx-auto max-w-6xl px-4">
+          <h4 className="mb-2 text-2xl font-semibold">{editMode ? "Edit" : "Create"} Character</h4>
+          <p>{editMode ? "Loading character data..." : "Loading form..."}</p>
+        </div>
       </Layout>
     );
   }
@@ -519,21 +506,11 @@ function CharacterEditor(props: CharacterEditorProps) {
   return (
     <Layout>
       <DndProvider backend={HTML5Backend}>
-        <Container>
-          <Typography variant="h4" gutterBottom>
-            {editMode ? "Edit" : "Create"} Character
-          </Typography>
-          <Box
-            component="form"
+        <div className="mx-auto max-w-6xl px-4">
+          <h4 className="mb-2 text-2xl font-semibold">{editMode ? "Edit" : "Create"} Character</h4>
+          <form
             onSubmit={editMode ? handleSubmitEdit : handleSubmitNew}
-            sx={{
-              "& > *": {
-                width: "100%",
-              },
-              display: "flex",
-              flexDirection: "column",
-              gap: "16px",
-            }}
+            className="flex flex-col gap-4"
           >
             <TextField
               label="Name"
@@ -541,71 +518,53 @@ function CharacterEditor(props: CharacterEditorProps) {
               value={character.name}
               onChange={handleChange}
               required
-              margin="normal"
-              inputProps={{ maxLength: 256 }}
+              maxLength={256}
             />
             <TextField
               label="Species"
               name="species"
               value={character.species}
               onChange={handleChange}
-              margin="normal"
-              inputProps={{ maxLength: 64 }}
+              maxLength={64}
             />
             <TextField
               label="Pronouns"
               name="pronouns"
               value={character.pronouns}
               onChange={handleChange}
-              margin="normal"
-              inputProps={{ maxLength: 32 }}
-              sx={{ mb: 3 }}
+              maxLength={32}
+              className="mb-3"
             />
-            <Box>
-              <Box sx={{ alignItems: "center", display: "flex" }}>
+            <div>
+              <div className="flex items-center">
                 <TextField
                   label="Ref Sheet Post on Bluesky (URL)"
                   name="refSheet"
                   value={character.refSheet}
                   onChange={handleChange}
-                  margin="normal"
-                  fullWidth
+                  className="flex-1"
                 />
                 {character.refSheet?.startsWith("at://") && (
-                  <IconButton
-                    component="a"
+                  <AnchorIconButton
                     href={getBlueskyLink(character.refSheet)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    sx={{ marginLeft: 1 }}
+                    className="ml-2 mt-6"
                   >
-                    <OpenInNewIcon />
-                  </IconButton>
+                    <ExternalLink size={20} />
+                  </AnchorIconButton>
                 )}
-              </Box>
+              </div>
               {refSheetImages.length > 0 && (
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: "8px",
-                    mt: 1,
-                  }}
-                >
+                <div className="mt-2 flex flex-wrap gap-2">
                   {refSheetImages.map(({ cid, did }, index) => {
                     const isSelected = (character.refSheetImageIndex ?? 0) === index;
                     return (
-                      <Box
+                      <div
                         key={`${did}/${cid}`}
-                        sx={{
-                          border: "3px solid",
-                          borderColor: isSelected ? "primary.main" : "transparent",
-                          borderRadius: "4px",
-                          cursor: "pointer",
-                          height: "80px",
-                          overflow: "hidden",
-                          width: "80px",
-                        }}
+                        className={`h-20 w-20 cursor-pointer overflow-hidden rounded border-[3px] ${
+                          isSelected ? "border-blue-600" : "border-transparent"
+                        }`}
                         onClick={() =>
                           setCharacter((prev) =>
                             prev
@@ -620,72 +579,52 @@ function CharacterEditor(props: CharacterEditorProps) {
                         <img
                           src={`https://cdn.bsky.app/img/feed_thumbnail/plain/${did}/${cid}@jpeg`}
                           alt={`Image ${index + 1}`}
-                          style={{
-                            height: "100%",
-                            objectFit: "cover",
-                            width: "100%",
-                          }}
+                          className="h-full w-full object-cover"
                         />
-                      </Box>
+                      </div>
                     );
                   })}
-                </Box>
+                </div>
               )}
               <TextField
                 label="Reference Credit (optional)"
                 name="refSheetCredit"
                 value={character.refSheetCredit ?? ""}
                 onChange={handleChange}
-                margin="normal"
-                fullWidth
-                slotProps={{ htmlInput: { maxLength: 256 } }}
+                maxLength={256}
+                className="mt-2"
               />
-            </Box>
-            <Box>
-              <Box sx={{ alignItems: "center", display: "flex" }}>
+            </div>
+            <div>
+              <div className="flex items-center">
                 <TextField
                   label="Alt Ref Post on Bluesky (URL)"
                   name="altRef"
                   value={character.altRef}
                   onChange={handleChange}
-                  margin="normal"
-                  fullWidth
+                  className="flex-1"
                 />
                 {character.altRef?.startsWith("at://") && (
-                  <IconButton
-                    component="a"
+                  <AnchorIconButton
                     href={getBlueskyLink(character.altRef)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    sx={{ marginLeft: 1 }}
+                    className="ml-2 mt-6"
                   >
-                    <OpenInNewIcon />
-                  </IconButton>
+                    <ExternalLink size={20} />
+                  </AnchorIconButton>
                 )}
-              </Box>
+              </div>
               {altRefImages.length > 0 && (
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: "8px",
-                    mt: 1,
-                  }}
-                >
+                <div className="mt-2 flex flex-wrap gap-2">
                   {altRefImages.map(({ cid, did }, index) => {
                     const isSelected = (character.altRefImageIndex ?? 0) === index;
                     return (
-                      <Box
+                      <div
                         key={`${did}/${cid}`}
-                        sx={{
-                          border: "3px solid",
-                          borderColor: isSelected ? "primary.main" : "transparent",
-                          borderRadius: "4px",
-                          cursor: "pointer",
-                          height: "80px",
-                          overflow: "hidden",
-                          width: "80px",
-                        }}
+                        className={`h-20 w-20 cursor-pointer overflow-hidden rounded border-[3px] ${
+                          isSelected ? "border-blue-600" : "border-transparent"
+                        }`}
                         onClick={() =>
                           setCharacter((prev) =>
                             prev
@@ -700,159 +639,101 @@ function CharacterEditor(props: CharacterEditorProps) {
                         <img
                           src={`https://cdn.bsky.app/img/feed_thumbnail/plain/${did}/${cid}@jpeg`}
                           alt={`Image ${index + 1}`}
-                          style={{
-                            height: "100%",
-                            objectFit: "cover",
-                            width: "100%",
-                          }}
+                          className="h-full w-full object-cover"
                         />
-                      </Box>
+                      </div>
                     );
                   })}
-                </Box>
+                </div>
               )}
               <TextField
                 label="Reference Credit (optional)"
                 name="altRefCredit"
                 value={character.altRefCredit ?? ""}
                 onChange={handleChange}
-                margin="normal"
-                fullWidth
-                slotProps={{ htmlInput: { maxLength: 256 } }}
+                maxLength={256}
+                className="mt-2"
               />
-            </Box>
-            <Box
-              sx={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "8px",
-                mb: 3,
-                mt: 3,
-              }}
-            >
+            </div>
+            <div className="mb-3 mt-3 flex flex-wrap gap-2">
               {character.colors?.map((color, index) => (
                 <DraggableColorBox key={index} color={color} index={index} moveColor={moveColor} />
               ))}
-            </Box>
-            <Box
-              sx={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "8px",
-                mb: 3,
-              }}
-            >
+            </div>
+            <div className="mb-3 flex flex-wrap gap-2">
               <Button variant="contained" color="primary" onClick={handleOpenColorDialog}>
                 Add Color
               </Button>
               {character.colors && character.colors.length > 0 && (
                 <Button
                   variant="contained"
-                  color="secondary"
+                  color="inherit"
                   onClick={() => setClearColorsDialogOpen(true)}
                 >
                   Clear Colors
                 </Button>
               )}
-            </Box>
-            <Box sx={{ mb: 3 }}>
+            </div>
+            <div className="mb-3">
               <Button variant="contained" color="primary" onClick={() => setLinksDialogOpen(true)}>
                 Manage Links
               </Button>
-            </Box>
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>
-                Drawing Permissions
-              </Typography>
-              <Box
-                sx={{
-                  alignItems: "center",
-                  display: "grid",
-                  gap: 0,
-                  gridTemplateColumns: "auto 1fr 1fr",
-                }}
-              >
-                <Box />
-                <Typography variant="caption" align="center" sx={{ fontWeight: 600 }}>
-                  SFW
-                </Typography>
-                <Typography variant="caption" align="center" sx={{ fontWeight: 600 }}>
-                  NSFW
-                </Typography>
-                <Typography variant="body2">Draw Without Asking</Typography>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                  }}
-                >
+            </div>
+            <div>
+              <p className="mb-1 text-sm font-medium">Drawing Permissions</p>
+              <div className="grid grid-cols-[auto_1fr_1fr] items-center gap-0">
+                <div />
+                <p className="text-center text-xs font-semibold">SFW</p>
+                <p className="text-center text-xs font-semibold">NSFW</p>
+                <p className="text-sm">Draw Without Asking</p>
+                <div className="flex justify-center">
                   <Checkbox
                     checked={Boolean(character.drawWithoutAskingSFW)}
                     onChange={handleChange}
                     name="drawWithoutAskingSFW"
                     disabled={Boolean(character.doNotDrawWithoutAskingSFW)}
-                    size="small"
                   />
-                </Box>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                  }}
-                >
+                </div>
+                <div className="flex justify-center">
                   <Checkbox
                     checked={Boolean(character.drawWithoutAskingNSFW)}
                     onChange={handleChange}
                     name="drawWithoutAskingNSFW"
                     disabled={Boolean(character.doNotDrawWithoutAskingNSFW)}
-                    size="small"
                   />
-                </Box>
-                <Typography variant="body2">Do Not Draw Without Asking</Typography>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                  }}
-                >
+                </div>
+                <p className="text-sm">Do Not Draw Without Asking</p>
+                <div className="flex justify-center">
                   <Checkbox
                     checked={Boolean(character.doNotDrawWithoutAskingSFW)}
                     onChange={handleChange}
                     name="doNotDrawWithoutAskingSFW"
                     disabled={Boolean(character.drawWithoutAskingSFW)}
-                    size="small"
                   />
-                </Box>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                  }}
-                >
+                </div>
+                <div className="flex justify-center">
                   <Checkbox
                     checked={Boolean(character.doNotDrawWithoutAskingNSFW)}
                     onChange={handleChange}
                     name="doNotDrawWithoutAskingNSFW"
                     disabled={Boolean(character.drawWithoutAskingNSFW)}
-                    size="small"
                   />
-                </Box>
-              </Box>
-            </Box>
+                </div>
+              </div>
+            </div>
             <FormControlLabel
               control={<Checkbox checked={character.nsfw} onChange={handleChange} name="nsfw" />}
               label="NSFW"
-              sx={{ mb: 3 }}
+              className="mb-3"
             />
             <TextField
               label="Description"
               name="description"
               value={character.description}
               onChange={handleChange}
-              margin="normal"
               multiline
               rows={4}
-              inputProps={{ maxLength: 2560 }}
+              maxLength={2560}
               helperText="Supports markdown: **bold**, *italic*, ~~strikethrough~~, <u>underline</u>, # Heading, tables, - [ ] checklists"
             />
             <Button type="submit" variant="contained" color="primary">
@@ -865,12 +746,8 @@ function CharacterEditor(props: CharacterEditorProps) {
                 </Button>
               </>
             )}
-            {validationMessage && (
-              <Typography variant="body2" color="error">
-                {validationMessage}
-              </Typography>
-            )}
-          </Box>
+            {validationMessage && <p className="text-sm text-red-600">{validationMessage}</p>}
+          </form>
           <LinksDialog
             open={linksDialogOpen}
             onClose={() => setLinksDialogOpen(false)}
@@ -880,16 +757,17 @@ function CharacterEditor(props: CharacterEditorProps) {
             }
           />
           <Dialog open={colorDialogOpen} onClose={handleCloseColorDialog}>
-            <DialogTitle>{editingColorIndex !== null ? "Edit Color" : "Add Color"}</DialogTitle>
+            <DialogTitle>
+              {editingColorIndex !== undefined ? "Edit Color" : "Add Color"}
+            </DialogTitle>
             <DialogContent>
               <ColorPicker hideAlpha hideInput={["rgb", "hsv"]} color={color} onChange={setColor} />
               <TextField
                 label="Color Label"
                 value={colorLabel}
                 onChange={(e) => setColorLabel(e.target.value)}
-                fullWidth
-                margin="normal"
-                inputProps={{ maxLength: 64 }}
+                maxLength={64}
+                className="mt-2"
               />
             </DialogContent>
             <DialogActions>
@@ -897,16 +775,14 @@ function CharacterEditor(props: CharacterEditorProps) {
                 Cancel
               </Button>
               <Button onClick={handleSaveColor} color="primary">
-                {editingColorIndex !== null ? "Save" : "Add"}
+                {editingColorIndex !== undefined ? "Save" : "Add"}
               </Button>
             </DialogActions>
           </Dialog>
           <Dialog open={clearColorsDialogOpen} onClose={() => setClearColorsDialogOpen(false)}>
             <DialogTitle>Clear Colors</DialogTitle>
             <DialogContent>
-              <Typography>
-                Are you sure you want to clear all colors? This cannot be undone.
-              </Typography>
+              <p>Are you sure you want to clear all colors? This cannot be undone.</p>
             </DialogContent>
             <DialogActions>
               <Button onClick={() => setClearColorsDialogOpen(false)} color="primary">
@@ -926,10 +802,10 @@ function CharacterEditor(props: CharacterEditorProps) {
           <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog}>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogContent>
-              <Typography>
+              <p>
                 This action is permanent and cannot be undone. Are you sure you want to delete this
                 character?
-              </Typography>
+              </p>
             </DialogContent>
             <DialogActions>
               <Button onClick={handleCloseDeleteDialog} color="primary">
@@ -940,7 +816,7 @@ function CharacterEditor(props: CharacterEditorProps) {
               </Button>
             </DialogActions>
           </Dialog>
-        </Container>
+        </div>
       </DndProvider>
     </Layout>
   );

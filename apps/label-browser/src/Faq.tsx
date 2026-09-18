@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import "./App.css";
-import { FAQ_ENTRIES } from "./faqData";
+import { FAQ_CATEGORIES, FAQ_ENTRIES } from "./faqData";
 
 function hashId(): string {
   return decodeURIComponent(window.location.hash.replace(/^#/, ""));
@@ -49,45 +49,67 @@ export function Faq() {
           </p>
         </div>
         <div className="faq">
-          {FAQ_ENTRIES.map((entry) => {
-            const isOpen = open[entry.id] ?? false;
-            return (
-              <div className="faq-entry" id={entry.id} key={entry.id}>
-                <h2>
-                  <button
-                    type="button"
-                    className="faq-question"
-                    aria-expanded={isOpen}
-                    onClick={() => toggle(entry.id)}
-                  >
-                    <span className="faq-chevron" aria-hidden="true">
-                      {isOpen ? "▾" : "▸"}
-                    </span>
-                    {entry.question}
-                  </button>
-                  <a
-                    className="faq-permalink"
-                    href={`#${entry.id}`}
-                    aria-label="Link to this question"
-                  >
-                    #
-                  </a>
-                </h2>
-                {isOpen && (
-                  <div className="faq-answer">
-                    <p>{entry.answer}</p>
-                    {entry.link && (
-                      <p>
-                        <a href={entry.link.href} target="_blank" rel="noopener noreferrer">
-                          {entry.link.label}
-                        </a>
-                      </p>
+          {FAQ_CATEGORIES.map((category) => (
+            <div className="faq-category" key={category.title}>
+              <h2 className="faq-category-title">{category.title}</h2>
+              {category.entries.map((entry) => {
+                const isOpen = open[entry.id] ?? false;
+                return (
+                  <div className="faq-entry" id={entry.id} key={entry.id}>
+                    <h3>
+                      <button
+                        type="button"
+                        className="faq-question"
+                        aria-expanded={isOpen}
+                        onClick={() => toggle(entry.id)}
+                      >
+                        <span className="faq-chevron" aria-hidden="true">
+                          {isOpen ? "▾" : "▸"}
+                        </span>
+                        {entry.question}
+                      </button>
+                      <a
+                        className="faq-permalink"
+                        href={`#${entry.id}`}
+                        aria-label="Link to this question"
+                      >
+                        #
+                      </a>
+                    </h3>
+                    {isOpen && (
+                      <div className="faq-answer">
+                        <p>{entry.struckThrough ? <s>{entry.answer}</s> : entry.answer}</p>
+                        {entry.link && (
+                          <p>
+                            <a href={entry.link.href} target="_blank" rel="noopener noreferrer">
+                              {entry.link.label}
+                            </a>
+                          </p>
+                        )}
+                        {entry.update && (
+                          <p className="faq-update">
+                            {entry.update.text}
+                            {entry.update.link && (
+                              <>
+                                {" "}
+                                <a
+                                  href={entry.update.link.href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  {entry.update.link.label}
+                                </a>
+                              </>
+                            )}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          ))}
         </div>
       </section>
       <section className="spacer"></section>

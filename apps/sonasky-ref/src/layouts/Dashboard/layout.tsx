@@ -1,4 +1,3 @@
-import { Alert, AlertTitle, Box, Button, Container, Typography } from "@mui/material";
 import React from "react";
 import Header from "../../assets/partials/Header";
 import { AuthProvider } from "../../auth/auth-provider";
@@ -8,6 +7,8 @@ import { handleResolver } from "../../helpers/handleResolver";
 import InnerDashLayout from "./innerDash";
 import { latestVersion } from "../../changelog";
 import { Link } from "react-router";
+import { Alert, AlertTitle } from "../../components/ui/Alert";
+import { AnchorButton } from "../../components/ui/Button";
 
 interface LayoutProps {
   children?: React.ReactNode;
@@ -17,7 +18,7 @@ function Layout(props: LayoutProps) {
   const { children } = { ...props };
 
   return (
-    <Box display="flex" flexDirection="column" minHeight="100vh">
+    <div className="flex min-h-screen flex-col">
       <AuthProvider
         clientId={clientId}
         plcDirectoryUrl={PLC_DIRECTORY_URL}
@@ -25,63 +26,47 @@ function Layout(props: LayoutProps) {
         allowHttp={ENV === "development" || ENV === "test"}
       >
         <Header hideNavigation />
-        <Container>
-          <Box component="main" flex="1">
+        <div className="mx-auto w-full max-w-6xl px-4">
+          <main className="flex-1">
             {FLAGS.SHOW_FEEDBACK_FORM_ALERT && (
               <>
-                <Alert severity="info" style={{ margin: "1rem 0" }}>
+                <Alert severity="info" className="my-4">
                   <AlertTitle>Seeking Feedback!</AlertTitle>
-                  <Typography>
+                  <p>
                     I'm looking for feedback on the SonaSky REF project. If you have any
                     thoughts/feature requests/bug reports/positive feedback/etc, please{" "}
-                    <a href="/feedback" target="_blank" style={{ color: "inherit" }}>
+                    <a href="/feedback" target="_blank" className="text-inherit">
                       click here
                     </a>{" "}
                     to fill out a feedback form!
-                  </Typography>
-                  <Button
+                  </p>
+                  <AnchorButton
                     href="/feedback"
                     target="_blank"
-                    style={{ marginTop: "1rem" }}
+                    className="mt-4"
                     variant="contained"
                   >
                     Feedback Form
-                  </Button>
+                  </AnchorButton>
                 </Alert>
               </>
             )}
             <InnerDashLayout>{children}</InnerDashLayout>
-          </Box>
-        </Container>
+          </main>
+        </div>
       </AuthProvider>
-      <footer
-        style={{
-          // Make footer stick to the bottom of the window on short pages
-          marginTop: "auto",
-        }}
-      >
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          color="#fff"
-          bgcolor="#283546"
-          height={50}
-        >
-          <Link to={`/dashboard/changelog`} style={{ color: "inherit" }}>
+      <footer className="mt-auto">
+        <div className="flex h-[50px] items-center justify-center bg-[#283546] text-white">
+          <Link to={`/dashboard/changelog`} className="text-inherit">
             Version: {latestVersion.version}
           </Link>{" "}
           &nbsp;| Made with 💙 by &nbsp;
-          <a
-            href="https://bsky.app/profile/astrabun.com"
-            target="_blank"
-            style={{ color: "inherit" }}
-          >
+          <a href="https://bsky.app/profile/astrabun.com" target="_blank" className="text-inherit">
             Astra
           </a>
-        </Box>
+        </div>
       </footer>
-    </Box>
+    </div>
   );
 }
 

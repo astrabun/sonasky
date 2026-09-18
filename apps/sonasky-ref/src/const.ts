@@ -1,3 +1,5 @@
+import { SONASKY_DID, SONASKY_POKEMON_DID } from "@sonasky/labels-def";
+
 const { searchParams } = new URL(globalThis.location.href);
 
 // Inserted during build
@@ -16,6 +18,8 @@ export const HANDLE_RESOLVER_URL: string =
   "https://bsky.social";
 
 export const PDS_COLLECTION_NS = "app.sonasky.ref";
+
+export const LABELER_DIDS: string[] = [SONASKY_DID, SONASKY_POKEMON_DID];
 
 export const FLAGS = {
   SHOW_FEEDBACK_FORM_ALERT: false,

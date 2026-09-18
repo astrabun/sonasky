@@ -1,21 +1,34 @@
 import { Link, useParams } from "react-router";
 import Layout from "../../layouts/View";
-import {
-  Button,
-  Collapse,
-  Container,
-  Divider,
-  Fade,
-  ListItem,
-  ListItemText,
-  Typography,
-} from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import { Client, CredentialManager } from "@atcute/client";
 import type {} from "@atcute/atproto";
 import type { ActorIdentifier, Handle } from "@atcute/lexicons";
-import { HANDLE_RESOLVER_URL } from "../../const";
+import { HANDLE_RESOLVER_URL, LABELER_DIDS } from "../../const";
 import { getPds } from "../../helpers/getPds";
+import { fetchAccountLabels } from "../../helpers/fetchAccountLabels";
+import { fetchLabelerProfiles, type LabelerProfile } from "../../helpers/fetchLabelerProfiles";
+import { getAllLabels } from "@sonasky/labels-def";
+import { Chip } from "../../components/ui/Chip";
+
+const LABEL_NAMES = new Map(
+  getAllLabels().map((label) => [
+    label.id,
+    label.locales.find((locale) => locale.lang === "en")?.name ?? label.id,
+  ]),
+);
+
+const LABELER_COLORS = [
+  "bg-sky-600 text-white",
+  "bg-fuchsia-600 text-white",
+  "bg-emerald-600 text-white",
+  "bg-amber-600 text-white",
+];
+
+const colorForLabeler = (src: string): string => {
+  const index = LABELER_DIDS.indexOf(src);
+  return LABELER_COLORS[index >= 0 ? index % LABELER_COLORS.length : 0];
+};
 
 function View() {
   const UNKNOWN_ERROR = "INT__UNKNOWN_ERROR__INT";
@@ -52,6 +65,45 @@ function View() {
   const [minLoadingTimePassed, setMinLoadingTimePassed] = useState<boolean>(false);
 
   const [repoData, setRepoData] = useState<any>();
+  const [profile, setProfile] = useState<any>();
+  const loadProfile = useCallback(async () => {
+    if (did && !did.startsWith(UNKNOWN_ERROR)) {
+      await rpc
+        .get("com.atproto.repo.getRecord", {
+          params: {
+            collection: "app.bsky.actor.profile",
+            repo: did as ActorIdentifier,
+            rkey: "self",
+          },
+        })
+        .then((response) => {
+          setProfile((response.data as any).value);
+        })
+        .catch(() => {
+          // Profile record may not exist
+        });
+    }
+  }, [did, rpc]);
+  useEffect(() => {
+    void loadProfile();
+  }, [loadProfile]);
+
+  const [accountLabels, setAccountLabels] = useState<{ val: string; src: string }[]>([]);
+  const loadAccountLabels = useCallback(async () => {
+    if (did && !did.startsWith(UNKNOWN_ERROR)) {
+      const labels = await fetchAccountLabels(LABELER_DIDS, did);
+      setAccountLabels(labels);
+    }
+  }, [did]);
+  useEffect(() => {
+    void loadAccountLabels();
+  }, [loadAccountLabels]);
+
+  const [labelerProfiles, setLabelerProfiles] = useState<Map<string, LabelerProfile>>(new Map());
+  useEffect(() => {
+    void fetchLabelerProfiles(LABELER_DIDS).then(setLabelerProfiles);
+  }, []);
+
   const [sonaRecords, setSonaRecords] = useState<any>();
   const loadSonaRecords = useCallback(async () => {
     if (did) {
@@ -86,7 +138,6 @@ function View() {
     void loadSonaRecords();
   }, [repoData]);
 
-  const transitionTime = 2000;
   const minLoadingTime = 1000;
 
   useEffect(() => {
@@ -222,83 +273,121 @@ function View() {
   return (
     <Layout>
       <div style={{ marginTop: "2rem" }} />
-      <Container maxWidth="lg">
-        <Collapse in={loading} timeout={{ enter: 0, exit: transitionTime }}>
-          <Typography variant="body1" gutterBottom>
-            {loadingText}
-          </Typography>
-        </Collapse>
+      <div className="mx-auto max-w-6xl px-4">
+        {loading && <p className="mb-2">{loadingText}</p>}
         {error ? (
           <>
             <p>An error occurred. Sorry!</p>
-            <Link to="/" style={{ color: "inherit" }}>
+            <Link to="/" className="text-inherit no-underline">
               Go home?
             </Link>
           </>
         ) : (
           <>
-            <Fade in={!loading} timeout={transitionTime}>
-              <div>
-                <a
-                  href={`https://bsky.app/profile/${handle}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    color: "inherit",
-                    textDecoration: "none",
-                  }}
-                >
-                  <Typography sx={{ typography: { sm: "h2", xs: "h4" } }}>@{handle}</Typography>
-                  <Typography variant="caption" gutterBottom sx={{ marginLeft: "2rem" }}>
-                    {did}
-                  </Typography>
-                  {altPds && (
-                    <>
-                      <Typography variant="caption" gutterBottom sx={{ marginLeft: "2rem" }}>
-                        PDS: {altPds}
-                      </Typography>
-                    </>
-                  )}
-                </a>
-                <Divider
-                  sx={{
-                    marginBottom: "1rem",
-                    marginTop: "1rem",
-                  }}
-                />
-                {sonaRecords !== undefined && (
-                  <>
-                    {sonaRecords === null ? (
-                      <Typography variant="body1">No characters found</Typography>
-                    ) : (
-                      <Typography variant="h4" gutterBottom>
-                        Characters
-                      </Typography>
-                    )}
-                    {sonaRecords?.map((record: any) => (
-                      <Link
-                        key={record.uri}
-                        to={`/profile/${did}/${record.uri.split("/").pop()}`}
-                        style={{
-                          color: "inherit",
-                          textDecoration: "none",
-                        }}
-                      >
-                        <ListItem component={Button} variant="outlined">
-                          <ListItemText
-                            primary={record.value.character?.name}
-                            secondary={`${record.uri.split("/").pop()}`}
-                          />
-                        </ListItem>
-                      </Link>
-                    ))}
-                  </>
+            <div
+              className={`transition-opacity duration-[2000ms] ${loading ? "opacity-0" : "opacity-100"}`}
+            >
+              <div className="flex items-center gap-4">
+                {profile?.avatar?.ref?.$link && (
+                  <a
+                    href={`https://bsky.app/profile/${handle}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-inherit no-underline"
+                  >
+                    <img
+                      src={`https://cdn.bsky.app/img/avatar_thumbnail/plain/${did}/${profile.avatar.ref.$link}@jpeg`}
+                      alt=""
+                      className="h-16 w-16 rounded-full sm:h-20 sm:w-20"
+                    />
+                  </a>
                 )}
+                <div>
+                  {profile?.displayName && (
+                    <a
+                      href={`https://bsky.app/profile/${handle}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-inherit no-underline"
+                    >
+                      <p className="text-xl font-semibold sm:text-2xl">{profile.displayName}</p>
+                    </a>
+                  )}
+                  <a
+                    href={`https://bsky.app/profile/${handle}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-inherit no-underline"
+                  >
+                    <p className="text-2xl sm:text-4xl">@{handle}</p>
+                    <p className="ml-8 text-xs">{did}</p>
+                  </a>
+                </div>
               </div>
-            </Fade>
+              {profile?.description && (
+                <p className="mt-2 whitespace-pre-wrap">{profile.description}</p>
+              )}
+              {accountLabels.length > 0 && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  Labels:{" "}
+                  {accountLabels.map((label) => {
+                    const labelerProfile = labelerProfiles.get(label.src);
+                    return (
+                      <a
+                        key={`${label.src}:${label.val}`}
+                        href={`https://sonasky.app/?id=${encodeURIComponent(label.val)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-inherit no-underline hover:opacity-80"
+                      >
+                        <Chip
+                          label={LABEL_NAMES.get(label.val) ?? label.val}
+                          colorClassName={colorForLabeler(label.src)}
+                          icon={
+                            labelerProfile?.avatarUrl ? (
+                              <img
+                                src={labelerProfile.avatarUrl}
+                                alt={labelerProfile.displayName ?? ""}
+                                title={labelerProfile.displayName}
+                                className="h-4 w-4 rounded-full"
+                              />
+                            ) : undefined
+                          }
+                        />
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+              {altPds && <p className="ml-8 text-xs mt-4 mb-4">PDS: {altPds}</p>}
+              <hr className="my-4 border-gray-300 dark:border-gray-700" />
+              {sonaRecords !== undefined && (
+                <>
+                  {sonaRecords === null ? (
+                    <p>No characters found</p>
+                  ) : (
+                    <p className="mb-2 text-2xl font-semibold">Characters</p>
+                  )}
+                  {sonaRecords?.map((record: any) => (
+                    <Link
+                      key={record.uri}
+                      to={`/profile/${did}/${record.uri.split("/").pop()}`}
+                      className="text-inherit no-underline"
+                    >
+                      <div className="mb-2 rounded-md border border-gray-300 p-3 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800">
+                        <p className="font-medium">{record.value.character?.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {record.uri.split("/").pop()}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </>
+              )}
+            </div>
           </>
         )}
-      </Container>
+      </div>
     </Layout>
   );
 }

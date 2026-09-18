@@ -1,4 +1,3 @@
-import { Container } from "@mui/material";
 import React from "react";
 import Header from "../../assets/partials/Header";
 
@@ -9,10 +8,10 @@ function Layout(props: LayoutProps) {
   const { children } = { ...props };
   return (
     <>
-      <Container>
+      <div className="mx-auto max-w-6xl px-4">
         <Header />
         {children}
-      </Container>
+      </div>
     </>
   );
 }

@@ -2,24 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { MarkdownDescription } from "../../../components/MarkdownDescription";
 import { useNavigate, useParams } from "react-router";
 import Layout from "../../../layouts/View";
-import {
-  Box,
-  Button,
-  Chip,
-  Collapse,
-  Container,
-  Fade,
-  FormControlLabel,
-  Grid,
-  Menu,
-  MenuItem,
-  Paper,
-  Switch,
-  Tooltip,
-  Typography,
-  emphasize,
-  styled,
-} from "@mui/material";
+import { Button } from "../../../components/ui/Button";
+import { Chip } from "../../../components/ui/Chip";
+import { FormControlLabel } from "../../../components/ui/Checkbox";
+import { Menu, MenuItem } from "../../../components/ui/Menu";
+import { Switch } from "../../../components/ui/Switch";
+import { Spinner } from "../../../components/ui/Spinner";
+import { Tooltip } from "../../../components/ui/Tooltip";
 import { Client, CredentialManager } from "@atcute/client";
 import type {} from "@atcute/atproto";
 import type { ActorIdentifier } from "@atcute/lexicons";
@@ -30,9 +19,7 @@ import {
   validateCharacterLink,
 } from "../../../types/characterLinks";
 import NotFound from "../../NotFound";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import { ArrowLeft, ChevronDown, ExternalLink } from "lucide-react";
 import {
   exportAco,
   exportCss,
@@ -40,15 +27,18 @@ import {
   exportKpl,
   exportTxt,
 } from "../../../helpers/colorExport";
+import { contrastColor } from "../../../helpers/contrastColor";
 import { getPds } from "../../../helpers/getPds";
 
-const Item = styled(Paper)(({ theme }) => ({
-  ...theme.typography.body2,
-  color: (theme.vars ?? theme).palette.text.secondary,
-  padding: theme.spacing(1),
-  textAlign: "center",
-  ...theme.applyStyles("dark", {}),
-}));
+function Item({ className, children }: { className?: string; children?: React.ReactNode }) {
+  return (
+    <div
+      className={`rounded-md bg-white p-2 text-center text-sm text-gray-600 shadow dark:bg-gray-800 dark:text-gray-300 ${className ?? ""}`}
+    >
+      {children}
+    </div>
+  );
+}
 
 export function ViewCharacter() {
   const manager = new CredentialManager({ service: HANDLE_RESOLVER_URL });
@@ -71,9 +61,10 @@ export function ViewCharacter() {
   const [altRefSheetImage, setAltRefSheetImage] = useState<string>("");
   const [altAltText, setAltAltText] = useState<string>("Alt Ref Sheet");
   const [showAltRef, setShowAltRef] = useState<boolean>(false);
+  const [refSheetImageLoaded, setRefSheetImageLoaded] = useState<boolean>(false);
+  const [altRefSheetImageLoaded, setAltRefSheetImageLoaded] = useState<boolean>(false);
 
   const [copyColorClicked, setCopyColorClicked] = useState<boolean>(false);
-  const [exportMenuAnchor, setExportMenuAnchor] = useState<HTMLElement | undefined>(undefined);
   const [nsfwBlurred, setNsfwBlurred] = useState<boolean>(false);
   const [nsfwFadingOut, setNsfwFadingOut] = useState<boolean>(false);
 
@@ -177,6 +168,7 @@ export function ViewCharacter() {
           const img = images[imageIndex] ?? images[0];
           if (img) {
             setAltText(images[imageIndex]?.alt || images[0]?.alt || "Ref Sheet");
+            setRefSheetImageLoaded(false);
             setRefSheetImage(
               `https://cdn.bsky.app/img/feed_fullsize/plain/${img.did}/${img.cid}@jpeg`,
             );
@@ -192,6 +184,7 @@ export function ViewCharacter() {
           const img = images[imageIndex] ?? images[0];
           if (img) {
             setAltAltText(images[imageIndex]?.alt || images[0]?.alt || "Alt Ref Sheet");
+            setAltRefSheetImageLoaded(false);
             setAltRefSheetImage(
               `https://cdn.bsky.app/img/feed_fullsize/plain/${img.did}/${img.cid}@jpeg`,
             );
@@ -255,13 +248,9 @@ export function ViewCharacter() {
     return (
       <Layout>
         <div style={{ marginTop: "2rem" }} />
-        <Container maxWidth="lg">
-          <Collapse in={loading} timeout={{ enter: 0, exit: transitionTime }}>
-            <Typography variant="body1" gutterBottom>
-              {loadingText}
-            </Typography>
-          </Collapse>
-        </Container>
+        <div className="mx-auto max-w-6xl px-4">
+          <p className="mb-2">{loadingText}</p>
+        </div>
       </Layout>
     );
   }
@@ -280,309 +269,219 @@ export function ViewCharacter() {
   return (
     <Layout>
       <div style={{ marginTop: "2rem" }} />
-      <Container maxWidth="lg">
+      <div className="mx-auto max-w-6xl px-4">
         <Button
-          startIcon={<ArrowBackIcon />}
+          startIcon={<ArrowLeft size={18} />}
           onClick={() => navigate(`/profile/${blueskyHandleOrDID}`)}
-          sx={{ marginBottom: "1rem" }}
+          className="mb-4"
         >
           Back
         </Button>
         <Button
-          startIcon={<OpenInNewIcon />}
-          component="a"
-          href={`https://bsky.app/profile/${blueskyHandleOrDID}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          sx={{ marginBottom: "1rem", marginLeft: "1rem" }}
+          startIcon={<ExternalLink size={18} />}
+          onClick={() =>
+            window.open(
+              `https://bsky.app/profile/${blueskyHandleOrDID}`,
+              "_blank",
+              "noopener,noreferrer",
+            )
+          }
+          className="mb-4 ml-4"
         >
           View Bluesky Profile
         </Button>
-        <Fade in={!loading} timeout={transitionTime}>
-          <div>
-            <Box
-              sx={{
-                alignItems: "center",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <Typography variant="h3">{character.name}</Typography>
-              <Typography variant="h5">Species: {character.species}</Typography>
-              {character.pronouns && <Typography variant="h6">{character.pronouns}</Typography>}
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: "0.5rem",
-                  justifyContent: "center",
-                }}
-              >
-                {/* If nsfw is okay, display chip */}
-                {character.nsfw && <Chip color="warning" label="NSFW" />}
-                {/* If draw without asking, display chip */}
-                {character.drawWithoutAskingSFW && (
-                  <Chip color="info" label="OK to draw SFW without asking" />
-                )}
-                {character.doNotDrawWithoutAskingSFW && (
-                  <Chip color="default" label="Please ask before drawing SFW" />
-                )}
-                {character.drawWithoutAskingNSFW && (
-                  <Chip color="error" label="OK to draw NSFW without asking" />
-                )}
-                {character.doNotDrawWithoutAskingNSFW && (
-                  <Chip color="default" label="Please ask before drawing NSFW" />
-                )}
-              </Box>
-            </Box>
-            {character.description && <MarkdownDescription content={character.description} />}
-            {/* Colors Grid */}
-            <Box sx={{ marginBottom: "1rem", marginTop: "1rem" }}>
-              <Grid container rowSpacing={1} columnSpacing={1} justifyContent="center">
-                {character.colors.map((color: any, idx: any) => {
-                  const defaultChipLabel = `Click to copy ${color.label} (#${color.hex})`;
-                  const handleCopyClick = () => {
-                    setCopyColorClicked(true);
-                  };
-                  const handleMouseLeave = () => {
-                    setCopyColorClicked(false);
-                  };
-                  return (
-                    <Grid size={{ md: 2, sm: 4, xs: 6 }} key={`color-${idx}`}>
-                      <Item sx={{ height: "100%" }}>
-                        <Tooltip title={copyColorClicked ? "Copied!" : defaultChipLabel}>
-                          <Button
-                            fullWidth
-                            id={color.hex}
-                            component={Paper}
-                            sx={{
-                              backgroundColor: `#${color.hex}`,
-                              color: `${emphasize(`#${color.hex}`, 1)}`,
-                              height: "100%",
-                              justifyContent: "flex-start",
-                              padding: "1em",
-                              textAlign: "left",
-                            }}
-                            onClick={() => {
-                              void navigator.clipboard.writeText(`#${color.hex}`);
-                              handleCopyClick();
-                            }}
-                            onMouseLeave={handleMouseLeave}
-                          >
-                            <Box
-                              sx={{
-                                display: "flex",
-                                flexDirection: "column",
-                              }}
-                            >
-                              <Typography>{color.label}</Typography>
-                              <Typography>#{color.hex}</Typography>
-                            </Box>
-                          </Button>
-                        </Tooltip>
-                      </Item>
-                    </Grid>
-                  );
-                })}
-              </Grid>
-              {character.colors?.length > 0 && (
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    marginTop: "0.75rem",
-                  }}
-                >
-                  <Button
-                    variant="outlined"
-                    endIcon={<KeyboardArrowDownIcon />}
-                    onClick={(e) => setExportMenuAnchor(e.currentTarget)}
-                  >
-                    Export Colors
-                  </Button>
-                  <Menu
-                    anchorEl={exportMenuAnchor}
-                    open={Boolean(exportMenuAnchor)}
-                    onClose={() => setExportMenuAnchor(undefined)}
-                  >
-                    <MenuItem
-                      onClick={() => {
-                        exportGpl(character.colors, character.name);
-                        setExportMenuAnchor(undefined);
-                      }}
-                    >
-                      GIMP Palette (.gpl)
-                    </MenuItem>
-                    <MenuItem
-                      onClick={() => {
-                        exportKpl(character.colors, character.name);
-                        setExportMenuAnchor(undefined);
-                      }}
-                    >
-                      Krita Palette (.kpl)
-                    </MenuItem>
-                    <MenuItem
-                      onClick={() => {
-                        exportCss(character.colors, character.name);
-                        setExportMenuAnchor(undefined);
-                      }}
-                    >
-                      CSS Variables (.css)
-                    </MenuItem>
-                    <MenuItem
-                      onClick={() => {
-                        exportAco(character.colors, character.name);
-                        setExportMenuAnchor(undefined);
-                      }}
-                    >
-                      Adobe Color (and CSP) (.aco)
-                    </MenuItem>
-                    <MenuItem
-                      onClick={() => {
-                        exportTxt(character.colors, character.name);
-                        setExportMenuAnchor(undefined);
-                      }}
-                    >
-                      Plain Text (.txt)
-                    </MenuItem>
-                  </Menu>
-                </Box>
+        <div
+          className="transition-opacity"
+          style={{ opacity: loading ? 0 : 1, transitionDuration: `${transitionTime}ms` }}
+        >
+          <div className="flex flex-col items-center">
+            <p className="text-3xl">{character.name}</p>
+            <p className="text-xl">Species: {character.species}</p>
+            {character.pronouns && <p className="text-lg">{character.pronouns}</p>}
+            <div className="flex flex-row flex-wrap justify-center gap-2">
+              {/* If nsfw is okay, display chip */}
+              {character.nsfw && <Chip color="warning" label="NSFW" />}
+              {/* If draw without asking, display chip */}
+              {character.drawWithoutAskingSFW && (
+                <Chip color="info" label="OK to draw SFW without asking" />
               )}
-            </Box>
-            {/* Links */}
-            {validLinks.length > 0 && (
-              <Box
-                sx={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "0.5rem",
-                  marginBottom: "1rem",
-                  marginTop: "1rem",
-                }}
-              >
-                {validLinks.map((link: CharacterLink, idx: number) => (
-                  <Button
-                    key={idx}
-                    variant="outlined"
-                    size="small"
-                    component="a"
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    startIcon={<OpenInNewIcon />}
-                  >
-                    {link.label || LINK_TYPE_LABELS[link.type]}
-                  </Button>
-                ))}
-              </Box>
-            )}
-            {/* Ref Sheet */}
-            {character.altRef && (
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={showAltRef}
-                    onChange={() => setShowAltRef(!showAltRef)}
-                    name="showAltRef"
-                  />
-                }
-                label="Toggle Alt Ref"
-              />
-            )}
-            {!showAltRef && refSheetImage && (
-              <Box sx={{ marginBottom: "1rem" }}>
-                <Typography variant="h5">Ref Sheet</Typography>
-                <img
-                  src={`${refSheetImage}`}
-                  alt={altText}
-                  style={{
-                    cursor: "pointer",
-                    maxWidth: "100%",
-                  }}
-                  onClick={() => window.open(getBlueskyLink(character.refSheet), "_blank")}
-                />
-                {character.refSheetCredit && (
-                  <Typography variant="caption">Credit: {character.refSheetCredit}</Typography>
-                )}
-              </Box>
-            )}
-            {showAltRef && altRefSheetImage && (
-              <Box sx={{ marginBottom: "1rem" }}>
-                <Typography variant="h5">Alt Ref Sheet</Typography>
-                <img
-                  src={`${altRefSheetImage}`}
-                  alt={altAltText}
-                  style={{
-                    cursor: "pointer",
-                    maxWidth: "100%",
-                  }}
-                  onClick={() => window.open(getBlueskyLink(character.altRef), "_blank")}
-                />
-                {character.altRefCredit && (
-                  <Typography variant="caption">Credit: {character.altRefCredit}</Typography>
-                )}
-              </Box>
+              {character.doNotDrawWithoutAskingSFW && (
+                <Chip color="default" label="Please ask before drawing SFW" />
+              )}
+              {character.drawWithoutAskingNSFW && (
+                <Chip color="error" label="OK to draw NSFW without asking" />
+              )}
+              {character.doNotDrawWithoutAskingNSFW && (
+                <Chip color="default" label="Please ask before drawing NSFW" />
+              )}
+            </div>
+          </div>
+          {character.description && <MarkdownDescription content={character.description} />}
+          {/* Colors Grid */}
+          <div className="mb-4 mt-4">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6">
+              {character.colors.map((color: any, idx: any) => {
+                const defaultChipLabel = `Click to copy ${color.label} (#${color.hex})`;
+                const handleCopyClick = () => {
+                  setCopyColorClicked(true);
+                };
+                const handleMouseLeave = () => {
+                  setCopyColorClicked(false);
+                };
+                return (
+                  <Item key={`color-${idx}`} className="h-full">
+                    <Tooltip title={copyColorClicked ? "Copied!" : defaultChipLabel}>
+                      <button
+                        type="button"
+                        id={color.hex}
+                        className="flex h-full w-full flex-col items-start justify-start rounded-md p-4 text-left"
+                        style={{
+                          backgroundColor: `#${color.hex}`,
+                          color: contrastColor(color.hex),
+                        }}
+                        onClick={() => {
+                          void navigator.clipboard.writeText(`#${color.hex}`);
+                          handleCopyClick();
+                        }}
+                        onMouseLeave={handleMouseLeave}
+                      >
+                        <span>{color.label}</span>
+                        <span>#{color.hex}</span>
+                      </button>
+                    </Tooltip>
+                  </Item>
+                );
+              })}
+            </div>
+            {character.colors?.length > 0 && (
+              <div className="mt-3 flex justify-center">
+                <Menu
+                  trigger={
+                    <Button variant="outlined" endIcon={<ChevronDown size={18} />}>
+                      Export Colors
+                    </Button>
+                  }
+                >
+                  <MenuItem onClick={() => exportGpl(character.colors, character.name)}>
+                    GIMP Palette (.gpl)
+                  </MenuItem>
+                  <MenuItem onClick={() => exportKpl(character.colors, character.name)}>
+                    Krita Palette (.kpl)
+                  </MenuItem>
+                  <MenuItem onClick={() => exportCss(character.colors, character.name)}>
+                    CSS Variables (.css)
+                  </MenuItem>
+                  <MenuItem onClick={() => exportAco(character.colors, character.name)}>
+                    Adobe Color (and CSP) (.aco)
+                  </MenuItem>
+                  <MenuItem onClick={() => exportTxt(character.colors, character.name)}>
+                    Plain Text (.txt)
+                  </MenuItem>
+                </Menu>
+              </div>
             )}
           </div>
-        </Fade>
-      </Container>
+          {/* Links */}
+          {validLinks.length > 0 && (
+            <div className="mb-4 mt-4 flex flex-wrap gap-2">
+              {validLinks.map((link: CharacterLink, idx: number) => (
+                <Button
+                  key={idx}
+                  variant="outlined"
+                  size="small"
+                  onClick={() => window.open(link.url, "_blank", "noopener,noreferrer")}
+                  startIcon={<ExternalLink size={16} />}
+                >
+                  {link.label || LINK_TYPE_LABELS[link.type]}
+                </Button>
+              ))}
+            </div>
+          )}
+          {/* Ref Sheet */}
+          {character.altRef && (
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showAltRef}
+                  onChange={() => setShowAltRef(!showAltRef)}
+                  name="showAltRef"
+                />
+              }
+              label="Toggle Alt Ref"
+            />
+          )}
+          {!showAltRef && refSheetImage && (
+            <div className="mb-4">
+              <p className="text-xl">Ref Sheet</p>
+              {!refSheetImageLoaded && (
+                <div className="flex h-32 items-center justify-center">
+                  <Spinner size={32} />
+                </div>
+              )}
+              <img
+                src={`${refSheetImage}`}
+                alt={altText}
+                className={`max-w-full cursor-pointer ${refSheetImageLoaded ? "" : "hidden"}`}
+                onClick={() => window.open(getBlueskyLink(character.refSheet), "_blank")}
+                onLoad={() => setRefSheetImageLoaded(true)}
+              />
+              {character.refSheetCredit && (
+                <p className="text-xs">Credit: {character.refSheetCredit}</p>
+              )}
+            </div>
+          )}
+          {showAltRef && altRefSheetImage && (
+            <div className="mb-4">
+              <p className="text-xl">Alt Ref Sheet</p>
+              {!altRefSheetImageLoaded && (
+                <div className="flex h-32 items-center justify-center">
+                  <Spinner size={32} />
+                </div>
+              )}
+              <img
+                src={`${altRefSheetImage}`}
+                alt={altAltText}
+                className={`max-w-full cursor-pointer ${altRefSheetImageLoaded ? "" : "hidden"}`}
+                onClick={() => window.open(getBlueskyLink(character.altRef), "_blank")}
+                onLoad={() => setAltRefSheetImageLoaded(true)}
+              />
+              {character.altRefCredit && (
+                <p className="text-xs">Credit: {character.altRefCredit}</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
       {nsfwBlurred && (
-        <Box
+        <div
           onTransitionEnd={() => {
             if (nsfwFadingOut) {
               setNsfwBlurred(false);
             }
           }}
-          sx={{
-            alignItems: "center",
+          className="fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-500"
+          style={{
             backdropFilter: "blur(50px)",
             backgroundColor: "rgba(0,0,0,0.6)",
-            bottom: 0,
-            display: "flex",
-            justifyContent: "center",
-            left: 0,
             opacity: nsfwFadingOut ? 0 : 1,
-            position: "fixed",
-            right: 0,
-            top: 0,
-            transition: "opacity 0.6s ease",
-            zIndex: 9999,
           }}
         >
-          <Paper
-            elevation={6}
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 2,
-              maxWidth: 420,
-              mx: 2,
-              p: 4,
-              textAlign: "center",
-            }}
-          >
-            <Typography variant="h5">NSFW Content</Typography>
-            <Typography variant="body1">
+          <div className="mx-2 flex max-w-[420px] flex-col gap-4 rounded-lg bg-white p-8 text-center shadow-xl dark:bg-gray-900">
+            <p className="text-xl">NSFW Content</p>
+            <p>
               This character is marked as NSFW. You must be 18 years of age or older to view this
               content.
-            </Typography>
-            <Box
-              sx={{
-                display: "flex",
-                gap: 2,
-                justifyContent: "center",
-              }}
-            >
+            </p>
+            <div className="flex justify-center gap-4">
               <Button variant="contained" color="primary" onClick={handleNsfwConfirm}>
                 I'm 18+ | Continue
               </Button>
               <Button variant="outlined" onClick={handleNsfwGoBack}>
                 Go Back
               </Button>
-            </Box>
-          </Paper>
-        </Box>
+            </div>
+          </div>
+        </div>
       )}
     </Layout>
   );

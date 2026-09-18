@@ -113,6 +113,13 @@ const changelogData = [
     date: dayjs(`2026-09-08`),
     version: "1.4.5",
   },
+  {
+    changes: [
+      `Refreshed the visual style of SonaSky ref (moved to Tailwind to align with other SonaSky web components)`,
+    ],
+    date: dayjs(`2026-09-18`),
+    version: "1.4.6",
+  },
 ];
 
 // Get latest version by the highest semver version

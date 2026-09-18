@@ -19,17 +19,20 @@ function Header({ hideNavigation }: HeaderProps) {
       {imgError ? (
         <h1 style={{ textAlign: "center" }}>Sonasky REF</h1>
       ) : (
-        <img
-          src="/img/sonasky_ref_draft_logo_dark.png"
-          alt="Sonasky REF"
-          style={{
-            display: "block",
-            height: "auto",
-            margin: "0 auto",
-            maxWidth: "100%",
-          }}
-          onError={() => setImgError(true)}
-        />
+        <>
+          <img
+            src="/img/sonasky_ref_draft_logo_light.png"
+            alt="Sonasky REF"
+            className="mx-auto block h-auto max-w-full dark:hidden"
+            onError={() => setImgError(true)}
+          />
+          <img
+            src="/img/sonasky_ref_draft_logo_dark.png"
+            alt="Sonasky REF"
+            className="mx-auto hidden h-auto max-w-full dark:block"
+            onError={() => setImgError(true)}
+          />
+        </>
       )}
       {!hideNavigation && (
         <nav style={{ display: "flex", justifyContent: "center" }}>
