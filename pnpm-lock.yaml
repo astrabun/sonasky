@@ -497,6 +497,9 @@ importers:
       '@headlessui/react':
         specifier: ^2.2.9
         version: 2.2.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@sonasky/labels-def':
+        specifier: workspace:*
+        version: link:../../packages/labels-def
       '@types/dompurify':
         specifier: ^3.2.0
         version: 3.2.0

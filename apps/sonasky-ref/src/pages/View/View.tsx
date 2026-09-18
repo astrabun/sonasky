@@ -4,8 +4,31 @@ import { useCallback, useEffect, useState } from "react";
 import { Client, CredentialManager } from "@atcute/client";
 import type {} from "@atcute/atproto";
 import type { ActorIdentifier, Handle } from "@atcute/lexicons";
-import { HANDLE_RESOLVER_URL } from "../../const";
+import { HANDLE_RESOLVER_URL, LABELER_DIDS } from "../../const";
 import { getPds } from "../../helpers/getPds";
+import { fetchAccountLabels } from "../../helpers/fetchAccountLabels";
+import { fetchLabelerProfiles, type LabelerProfile } from "../../helpers/fetchLabelerProfiles";
+import { getAllLabels } from "@sonasky/labels-def";
+import { Chip } from "../../components/ui/Chip";
+
+const LABEL_NAMES = new Map(
+  getAllLabels().map((label) => [
+    label.id,
+    label.locales.find((locale) => locale.lang === "en")?.name ?? label.id,
+  ]),
+);
+
+const LABELER_COLORS = [
+  "bg-sky-600 text-white",
+  "bg-fuchsia-600 text-white",
+  "bg-emerald-600 text-white",
+  "bg-amber-600 text-white",
+];
+
+const colorForLabeler = (src: string): string => {
+  const index = LABELER_DIDS.indexOf(src);
+  return LABELER_COLORS[index >= 0 ? index % LABELER_COLORS.length : 0];
+};
 
 function View() {
   const UNKNOWN_ERROR = "INT__UNKNOWN_ERROR__INT";
@@ -64,6 +87,22 @@ function View() {
   useEffect(() => {
     void loadProfile();
   }, [loadProfile]);
+
+  const [accountLabels, setAccountLabels] = useState<{ val: string; src: string }[]>([]);
+  const loadAccountLabels = useCallback(async () => {
+    if (did && !did.startsWith(UNKNOWN_ERROR)) {
+      const labels = await fetchAccountLabels(LABELER_DIDS, did);
+      setAccountLabels(labels);
+    }
+  }, [did]);
+  useEffect(() => {
+    void loadAccountLabels();
+  }, [loadAccountLabels]);
+
+  const [labelerProfiles, setLabelerProfiles] = useState<Map<string, LabelerProfile>>(new Map());
+  useEffect(() => {
+    void fetchLabelerProfiles(LABELER_DIDS).then(setLabelerProfiles);
+  }, []);
 
   const [sonaRecords, setSonaRecords] = useState<any>();
   const loadSonaRecords = useCallback(async () => {
@@ -288,7 +327,39 @@ function View() {
               {profile?.description && (
                 <p className="mt-2 whitespace-pre-wrap">{profile.description}</p>
               )}
-              {altPds && <p className="ml-8 text-xs">PDS: {altPds}</p>}
+              {accountLabels.length > 0 && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  Labels:{" "}
+                  {accountLabels.map((label) => {
+                    const labelerProfile = labelerProfiles.get(label.src);
+                    return (
+                      <a
+                        key={`${label.src}:${label.val}`}
+                        href={`https://sonasky.app/?search=${encodeURIComponent(label.val)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-inherit no-underline hover:opacity-80"
+                      >
+                        <Chip
+                          label={LABEL_NAMES.get(label.val) ?? label.val}
+                          colorClassName={colorForLabeler(label.src)}
+                          icon={
+                            labelerProfile?.avatarUrl ? (
+                              <img
+                                src={labelerProfile.avatarUrl}
+                                alt={labelerProfile.displayName ?? ""}
+                                title={labelerProfile.displayName}
+                                className="h-4 w-4 rounded-full"
+                              />
+                            ) : undefined
+                          }
+                        />
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+              {altPds && <p className="ml-8 text-xs mt-4 mb-4">PDS: {altPds}</p>}
               <hr className="my-4 border-gray-300 dark:border-gray-700" />
               {sonaRecords !== undefined && (
                 <>

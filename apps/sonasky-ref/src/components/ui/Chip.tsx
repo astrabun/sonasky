@@ -12,13 +12,17 @@ const colorClasses: Record<ChipColor, string> = {
 interface ChipProps {
   label: ReactNode;
   color?: ChipColor;
+  icon?: ReactNode;
+  /** Overrides the background/text classes from `color` with arbitrary Tailwind classes. */
+  colorClassName?: string;
 }
 
-export function Chip({ label, color = "default" }: ChipProps) {
+export function Chip({ label, color = "default", icon, colorClassName }: ChipProps) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${colorClasses[color]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${colorClassName ?? colorClasses[color]}`}
     >
+      {icon}
       {label}
     </span>
   );
