@@ -32,6 +32,16 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         answer:
           "This is almost always a temporary networking issue, either on Bluesky's side or on the server that hosts the bot. Check the bot's current lag time on sonasky.app. If the bot is caught up and your labels still aren't right, try liking or unliking the posts again. If the bot is significantly behind, I'm most likely already looking into it. SonaSky is a best-effort hobby project, so I can't guarantee perfect uptime - thanks for your patience.",
       },
+      {
+        id: "make-ref-sheet",
+        question: "Is it true I can make a ref sheet page with SonaSky?",
+        answer:
+          "Yes, using SonaSky Ref. It lets you build a character reference sheet that lives in your Bluesky PDS repo, and gives you a page you can share.",
+        link: {
+          href: "https://ref.sonasky.app",
+          label: "ref.sonasky.app",
+        },
+      },
     ],
   },
   {
@@ -45,6 +55,16 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         link: {
           href: "https://github.com/bluesky-social/atproto/issues/2803",
           label: "#2803",
+        },
+      },
+      {
+        id: "give-feedback",
+        question: "Can I give feedback about SonaSky?",
+        answer:
+          "Yes. Check the open feedback link at the top of sonasky.app, or see if there's an active survey at forms.sonasky.app - that requires signing in with your Bluesky account.",
+        link: {
+          href: "https://forms.sonasky.app",
+          label: "forms.sonasky.app",
         },
       },
     ],
