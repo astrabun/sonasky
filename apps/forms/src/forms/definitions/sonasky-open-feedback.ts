@@ -15,6 +15,7 @@ export const openFeedback: FormDefinition = {
   title: "SonaSky Open Feedback",
   description: "This form allows generic feedback at any time, not related to any ongoing surveys.",
   active: true,
+  pinned: true,
   date: "2026-09-08",
   singleResponsePerUser: false,
   sections: [

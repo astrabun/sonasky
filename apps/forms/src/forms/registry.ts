@@ -2,8 +2,9 @@ import { assertFormValid } from "./routing.ts";
 import type { FormDefinition } from "./types.ts";
 import { feedbackSurvey202609 } from "./definitions/sonasky-feedback-2026-09.ts";
 import { openFeedback } from "./definitions/sonasky-open-feedback.ts";
+import { speciesRequest202609 } from "./definitions/sonasky-species-request-2026-09.ts";
 
-const ALL: readonly FormDefinition[] = [feedbackSurvey202609, openFeedback];
+const ALL: readonly FormDefinition[] = [feedbackSurvey202609, openFeedback, speciesRequest202609];
 
 // Fail fast at module load if any form's section graph is malformed.
 for (const form of ALL) assertFormValid(form);
