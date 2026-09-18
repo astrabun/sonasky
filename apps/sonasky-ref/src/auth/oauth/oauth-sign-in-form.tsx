@@ -1,7 +1,8 @@
 import type { AuthorizeOptions } from "@atproto/oauth-client-browser";
 import { type FormEvent, useCallback, useState } from "react";
 import Header from "../../assets/partials/Header";
-import { Alert, Box, Button, Container, TextField, Typography } from "@mui/material";
+import { Alert } from "../../components/ui/Alert";
+import { Button } from "../../components/ui/Button";
 
 export type OAuthSignIn = (input: string, options?: AuthorizeOptions) => unknown;
 
@@ -154,43 +155,42 @@ export function OAuthSignInForm({
   return (
     <>
       <Header />
-      <Container maxWidth="sm">
-        <Typography variant="body1">Sign in with your Bluesky account</Typography>
+      <div className="mx-auto max-w-sm px-4">
+        <p>Sign in with your Bluesky account</p>
         <form {...props} onSubmit={onSubmit}>
-          <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center">
-            <TextField
-              label="@handle, DID or PDS url"
-              variant="outlined"
+          <div className="flex flex-col items-center justify-center">
+            <label htmlFor="oauth-value" className="mt-4 w-full text-sm font-medium">
+              @handle, DID or PDS url
+            </label>
+            <input
+              id="oauth-value"
               value={value}
               onChange={(e) => setValue(e.target.value)}
               placeholder="@handle, DID or PDS url"
-              fullWidth
-              margin="normal"
               autoComplete="off"
               disabled={loading}
+              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900"
             />
             <Button
               variant="contained"
               color="primary"
               type="submit"
               disabled={loading}
-              style={{ marginTop: "10px" }}
+              className="mt-2.5"
             >
               Login
             </Button>
             {loading && (
-              <Typography variant="body2" color="textSecondary" style={{ marginTop: "10px" }}>
-                Loading...
-              </Typography>
+              <p className="mt-2.5 text-sm text-gray-500 dark:text-gray-400">Loading...</p>
             )}
             {error && (
-              <Alert severity="error" style={{ marginTop: "10px" }}>
+              <Alert severity="error" className="mt-2.5">
                 {error}
               </Alert>
             )}
-          </Box>
+          </div>
         </form>
-      </Container>
+      </div>
     </>
   );
 }

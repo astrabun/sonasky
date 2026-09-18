@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useAuthContext } from "../../../auth/auth-provider";
 import { PDS_COLLECTION_NS } from "../../../const";
 import Layout from "../../../layouts/Dashboard";
-import { Button, Container, ListItem, ListItemText, Typography } from "@mui/material";
+import { Button } from "../../../components/ui/Button";
 import { Link } from "react-router";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -45,17 +45,15 @@ function DraggableCharacterItem({
   drag(drop(ref));
 
   return (
-    <div ref={ref} style={{ cursor: "grab", opacity: isDragging ? 0.5 : 1 }}>
+    <div ref={ref} className="cursor-grab" style={{ opacity: isDragging ? 0.5 : 1 }}>
       <Link
         to={`/dashboard/characters/edit/${record.uri.split("/").pop()}`}
-        style={{ color: "inherit", textDecoration: "none" }}
+        className="text-inherit no-underline"
       >
-        <ListItem component={Button} variant="outlined">
-          <ListItemText
-            primary={record.value.character.name}
-            secondary={`${record.uri.split("/").pop()}`}
-          />
-        </ListItem>
+        <div className="mb-2 rounded-md border border-gray-300 p-3 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800">
+          <p className="font-medium">{record.value.character.name}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{record.uri.split("/").pop()}</p>
+        </div>
       </Link>
     </div>
   );
@@ -145,24 +143,17 @@ export function Characters() {
 
   return (
     <Layout>
-      <Container maxWidth="lg">
-        <Typography variant="h4" gutterBottom>
-          Characters
-        </Typography>
-        <Typography variant="caption" gutterBottom>
-          (Drag to reorder)
-        </Typography>
-        <div style={{ marginBottom: "1rem" }} />
+      <div className="mx-auto max-w-6xl px-4">
+        <h4 className="text-2xl font-semibold">Characters</h4>
+        <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">(Drag to reorder)</p>
         {orderedRecords !== undefined && (
           <>
             {orderModified && (
-              <Button variant="contained" onClick={saveOrder} disabled={saving} sx={{ mb: 2 }}>
+              <Button variant="contained" onClick={saveOrder} disabled={saving} className="mb-4">
                 {saving ? "Saving..." : "Save Order"}
               </Button>
             )}
-            {orderedRecords.length === 0 && (
-              <Typography variant="body1">No characters found</Typography>
-            )}
+            {orderedRecords.length === 0 && <p>No characters found</p>}
             <DndProvider backend={HTML5Backend}>
               {orderedRecords.map((record: any, idx: number) => (
                 <DraggableCharacterItem
@@ -175,7 +166,7 @@ export function Characters() {
             </DndProvider>
           </>
         )}
-      </Container>
+      </div>
     </Layout>
   );
 }

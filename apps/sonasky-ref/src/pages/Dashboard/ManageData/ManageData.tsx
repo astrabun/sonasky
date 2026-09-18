@@ -1,15 +1,13 @@
 import Layout from "../../../layouts/Dashboard";
+import { Button } from "../../../components/ui/Button";
 import {
-  Button,
-  CircularProgress,
-  Container,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Typography,
-} from "@mui/material";
+} from "../../../components/ui/Dialog";
+import { Spinner } from "../../../components/ui/Spinner";
 import { useCallback, useEffect, useState } from "react";
 import { useAuthContext } from "../../../auth/auth-provider";
 import { PDS_COLLECTION_NS } from "../../../const";
@@ -66,14 +64,10 @@ export function ManageData() {
 
   return (
     <Layout>
-      <Container maxWidth="lg">
-        <Typography variant="h4" gutterBottom>
-          Manage Data
-        </Typography>
+      <div className="mx-auto max-w-6xl px-4">
+        <h4 className="mb-2 text-2xl font-semibold">Manage Data</h4>
         {sonaRecords.length === 0 ? (
-          <Typography variant="body1" gutterBottom>
-            No SonaSky REF data found.
-          </Typography>
+          <p className="mb-2">No SonaSky REF data found.</p>
         ) : (
           <Button variant="contained" color="error" onClick={handleClickOpen}>
             Clear SonaSky REF Data from Repo
@@ -95,9 +89,9 @@ export function ManageData() {
             </Button>
             <Button
               onClick={handleDelete}
-              color="secondary"
+              color="error"
               disabled={operationRunning}
-              startIcon={operationRunning ? <CircularProgress size={20} /> : undefined}
+              startIcon={operationRunning ? <Spinner size={20} /> : undefined}
             >
               {operationRunning ? "Deleting..." : "Delete Data"}
             </Button>
@@ -116,10 +110,10 @@ export function ManageData() {
             </Button>
           </DialogActions>
         </Dialog>
-        <pre style={{ whiteSpace: "pre-wrap", wordWrap: "break-word" }}>
+        <pre className="whitespace-pre-wrap break-words">
           {JSON.stringify(sonaRecords, undefined, 2)}
         </pre>
-      </Container>
+      </div>
     </Layout>
   );
 }

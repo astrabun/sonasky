@@ -1,23 +1,14 @@
 import { useRef, useState } from "react";
+import { Button } from "../../../../components/ui/Button";
 import {
-  Box,
-  Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
-  FormHelperText,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
-} from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
-import DragHandleIcon from "@mui/icons-material/DragHandle";
-import EditIcon from "@mui/icons-material/Edit";
+} from "../../../../components/ui/Dialog";
+import { IconButton } from "../../../../components/ui/IconButton";
+import { TextField } from "../../../../components/ui/TextField";
+import { GripVertical, Pencil, Trash2 } from "lucide-react";
 import { useDrag, useDrop } from "react-dnd";
 import {
   ALLOWED_LINK_TYPES,
@@ -94,112 +85,78 @@ function DraggableLinkItem({
   drag(handleRef);
 
   return (
-    <Box
+    <div
       ref={rowRef}
-      sx={{
-        alignItems: "flex-start",
-        borderBottom: "1px solid",
-        borderColor: "divider",
-        display: "flex",
-        gap: 1,
-        opacity: isDragging ? 0.5 : 1,
-        p: 1,
-      }}
+      className="flex items-start gap-2 border-b border-gray-200 p-2 dark:border-gray-700"
+      style={{ opacity: isDragging ? 0.5 : 1 }}
     >
-      <Box
+      <div
         ref={handleRef}
-        component="div"
-        sx={{
-          alignItems: "center",
-          cursor: "grab",
-          display: "flex",
-          mt: isEditing ? 0.5 : 1,
-        }}
+        className={`flex cursor-grab items-center ${isEditing ? "mt-1" : "mt-2"}`}
       >
-        <DragHandleIcon />
-      </Box>
+        <GripVertical size={20} />
+      </div>
       {isEditing ? (
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            flexGrow: 1,
-            gap: 1,
-          }}
-        >
-          <FormControl size="small" sx={{ minWidth: 160 }} error={Boolean(typeError)}>
-            <InputLabel>Link Type</InputLabel>
-            <Select
+        <div className="flex flex-1 flex-col gap-2">
+          <div>
+            <label className="mb-1 block text-xs font-medium">Link Type</label>
+            <select
               value={editType}
-              label="Link Type"
               onChange={(e) => onEditTypeChange(e.target.value as CharacterLinkType | "")}
+              className={`w-40 rounded-md border px-2 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-900 ${
+                typeError ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+              }`}
             >
-              <MenuItem value="" disabled>
+              <option value="" disabled>
                 Select a type...
-              </MenuItem>
+              </option>
               {ALLOWED_LINK_TYPES.map((t) => (
-                <MenuItem key={t} value={t}>
+                <option key={t} value={t}>
                   {LINK_TYPE_LABELS[t]}
-                </MenuItem>
+                </option>
               ))}
-            </Select>
-            {typeError && <FormHelperText>{typeError}</FormHelperText>}
-          </FormControl>
+            </select>
+            {typeError && <p className="mt-1 text-xs text-red-600">{typeError}</p>}
+          </div>
           <TextField
-            size="small"
             label="URL"
             value={editUrl}
             onChange={(e) => onEditUrlChange(e.target.value)}
-            error={Boolean(urlError)}
             helperText={urlError || (editType ? LINK_TYPE_HINTS[editType] : "")}
-            fullWidth
+            className={urlError ? "[&_input]:border-red-500" : ""}
           />
           <TextField
-            size="small"
             label="Label (optional)"
             value={editLabel}
             onChange={(e) => onEditLabelChange(e.target.value)}
-            fullWidth
           />
-          <Box sx={{ display: "flex", gap: 1 }}>
+          <div className="flex gap-2">
             <Button size="small" variant="contained" onClick={onSaveEdit}>
               Save
             </Button>
-            <Button size="small" onClick={onCancelEdit}>
+            <Button size="small" variant="text" onClick={onCancelEdit}>
               Cancel
             </Button>
-          </Box>
-        </Box>
+          </div>
+        </div>
       ) : (
         <>
-          <Box
-            sx={{ cursor: "pointer", flexGrow: 1, minWidth: 0 }}
-            onClick={() => onStartEdit(index)}
-          >
-            <Typography variant="body2" color="text.secondary">
+          <div className="min-w-0 flex-1 cursor-pointer" onClick={() => onStartEdit(index)}>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {LINK_TYPE_LABELS[link.type]}
               {link.label ? ` - ${link.label}` : ""}
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {link.url}
-            </Typography>
-          </Box>
+            </p>
+            <p className="overflow-hidden text-ellipsis whitespace-nowrap">{link.url}</p>
+          </div>
           <IconButton size="small" onClick={() => onStartEdit(index)}>
-            <EditIcon fontSize="small" />
+            <Pencil size={16} />
           </IconButton>
           <IconButton size="small" onClick={() => onDelete(index)}>
-            <DeleteIcon fontSize="small" />
+            <Trash2 size={16} />
           </IconButton>
         </>
       )}
-    </Box>
+    </div>
   );
 }
 
@@ -348,13 +305,13 @@ function LinksDialog({ open, onClose, links, onLinksChange }: LinksDialogProps) 
   };
 
   return (
-    <Dialog open={open} onClose={handleDialogClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleDialogClose} maxWidth="sm">
       <DialogTitle>Manage Links</DialogTitle>
-      <DialogContent sx={{ p: 0 }}>
+      <DialogContent>
         {links.length === 0 && (
-          <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+          <p className="p-4 text-sm text-gray-500 dark:text-gray-400">
             No links added yet. Click "Add Link" to get started.
-          </Typography>
+          </p>
         )}
         {links.map((link, index) => (
           <DraggableLinkItem
@@ -378,8 +335,8 @@ function LinksDialog({ open, onClose, links, onLinksChange }: LinksDialogProps) 
           />
         ))}
       </DialogContent>
-      <DialogActions sx={{ justifyContent: "space-between" }}>
-        <Button onClick={handleAdd} variant="outlined">
+      <DialogActions>
+        <Button onClick={handleAdd} variant="outlined" className="mr-auto">
           Add Link
         </Button>
         <Button onClick={handleDone} color="primary" variant="contained">

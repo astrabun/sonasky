@@ -1,17 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import Layout from "../../layouts/Home";
-import {
-  Autocomplete,
-  type AutocompleteInputChangeReason,
-  Avatar,
-  Box,
-  Button,
-  Container,
-  InputAdornment,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Button } from "../../components/ui/Button";
 import { AtpAgent, type AppBskyActorDefs } from "@atproto/api";
 
 const publicAgent = new AtpAgent({ service: "https://public.api.bsky.app" });
@@ -23,6 +13,7 @@ function Home() {
   const [handle, setHandle] = useState("");
   const [options, setOptions] = useState<AppBskyActorDefs.ProfileViewBasic[]>([]);
   const [loading, setLoading] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const navigate = useNavigate();
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -69,18 +60,11 @@ function Home() {
     }, SEARCH_DEBOUNCE_MS);
   };
 
-  const handleInputChange = (
-    _event: React.SyntheticEvent,
-    value: string,
-    reason: AutocompleteInputChangeReason,
-  ) => {
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
     setHandle(value);
-    if (reason === "input") {
-      searchHandles(value);
-    } else {
-      clearTimeout(debounceRef.current);
-      setOptions([]);
-    }
+    setOptionsOpen(true);
+    searchHandles(value);
   };
 
   const navigateToHandle = (value: string) => {
@@ -98,105 +82,86 @@ function Home() {
 
   return (
     <Layout>
-      <Container maxWidth="sm">
-        <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center">
-          <Box display="flex" alignItems="center" width="100%">
-            <form
-              onSubmit={handleSubmit}
-              style={{ display: "flex", width: "100%" }}
-              autoComplete="off"
-            >
-              <Autocomplete
-                freeSolo
-                fullWidth
-                filterOptions={(x) => x}
-                options={options}
-                loading={loading}
-                inputValue={handle}
-                onInputChange={handleInputChange}
-                isOptionEqualToValue={(option, value) => option.did === value.did}
-                getOptionLabel={(option) => (typeof option === "string" ? option : option.handle)}
-                onChange={(_event, value) => {
-                  if (value && typeof value !== "string") {
-                    navigateToHandle(value.handle);
-                  }
-                }}
-                renderOption={(props, option) => {
-                  const { key, ...rest } = props as typeof props & {
-                    key: string;
-                  };
-                  return (
-                    <Box
-                      component="li"
-                      key={key}
-                      {...rest}
-                      display="flex"
-                      alignItems="center"
-                      gap={1}
-                    >
-                      <Avatar src={option.avatar} sx={{ height: 28, width: 28 }} />
-                      <Box>
-                        <Typography variant="body2">
-                          {option.displayName || option.handle}
-                        </Typography>
-                        <Typography variant="caption" color="textSecondary" display="block">
-                          @{option.handle}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  );
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Bluesky Handle"
-                    variant="outlined"
+      <div className="mx-auto max-w-sm px-4">
+        <div className="flex flex-col items-center justify-center">
+          <div className="flex w-full items-center">
+            <form onSubmit={handleSubmit} className="flex w-full" autoComplete="off">
+              <div className="relative w-full">
+                <label htmlFor="bluesky-handle" className="mb-1 block text-sm font-medium">
+                  Bluesky Handle
+                </label>
+                <div className="relative">
+                  <input
+                    id="bluesky-handle"
+                    type="text"
+                    value={handle}
+                    onChange={handleInputChange}
+                    onFocus={() => setOptionsOpen(true)}
+                    onBlur={() => setTimeout(() => setOptionsOpen(false), 150)}
                     placeholder="some-username-here"
-                    margin="normal"
                     autoComplete="off"
-                    slotProps={{
-                      htmlInput: {
-                        ...params.inputProps,
-                        "data-1p-ignore": true,
-                        "data-bwignore": true,
-                        "data-form-type": "other",
-                        "data-lpignore": true,
-                        "data-protonpass-ignore": true,
-                      },
-                      input: {
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {!(handle.startsWith("did:plc:") || handle.includes(".")) && (
-                              <InputAdornment position="end">
-                                <Typography variant="body2" color="textSecondary">
-                                  .bsky.social
-                                </Typography>
-                              </InputAdornment>
-                            )}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      },
-                    }}
+                    data-1p-ignore
+                    data-bwignore
+                    data-form-type="other"
+                    data-lpignore
+                    data-protonpass-ignore
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 pr-28 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900"
                   />
+                  {!(handle.startsWith("did:plc:") || handle.includes(".")) && (
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-gray-500 dark:text-gray-400">
+                      .bsky.social
+                    </span>
+                  )}
+                </div>
+                {optionsOpen && (loading || options.length > 0) && (
+                  <ul className="absolute z-10 mt-1 w-full rounded-md border border-gray-300 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-900">
+                    {loading && (
+                      <li className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                        Searching...
+                      </li>
+                    )}
+                    {options.map((option) => (
+                      <li key={option.did}>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            navigateToHandle(option.handle);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800"
+                        >
+                          <img
+                            src={option.avatar}
+                            alt=""
+                            className="h-7 w-7 rounded-full bg-gray-200 dark:bg-gray-700"
+                          />
+                          <div>
+                            <p className="text-sm">{option.displayName || option.handle}</p>
+                            <p className="block text-xs text-gray-500 dark:text-gray-400">
+                              @{option.handle}
+                            </p>
+                          </div>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 )}
-              />
+              </div>
               <Button
                 variant="contained"
                 color="primary"
                 onClick={handleSubmit}
-                style={{ marginLeft: "10px" }}
+                className="ml-2.5 mt-6 self-start"
               >
                 View
               </Button>
             </form>
-          </Box>
-          <Typography variant="body2" gutterBottom>
+          </div>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
             Enter a Bluesky handle to view the user's character(s)/info.
-          </Typography>
-        </Box>
-      </Container>
+          </p>
+        </div>
+      </div>
     </Layout>
   );
 }

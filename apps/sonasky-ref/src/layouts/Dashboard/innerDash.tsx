@@ -1,7 +1,7 @@
-import { Box, Button, Typography } from "@mui/material";
 import React, { useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { useAuthContext } from "../../auth/auth-provider";
+import { buttonClassName } from "../../components/ui/Button";
 
 interface LayoutProps {
   children?: React.ReactNode;
@@ -61,49 +61,44 @@ function InnerDashLayout(props: LayoutProps) {
 
   return (
     <>
-      <Box display="flex">
-        <Box width="200px" p={2}>
-          <Typography variant="h6" gutterBottom>
-            SonaSky REF
-          </Typography>
+      <div className="flex">
+        <div className="w-[200px] p-4">
+          <h6 className="mb-2 text-lg font-semibold">SonaSky REF</h6>
           {navItems.map((item, idx) => {
             if (item.path) {
               return (
-                <Button
+                <Link
                   key={item.path}
-                  component={Link}
                   to={item.path}
-                  variant={location.pathname === item.path ? "contained" : "outlined"}
-                  fullWidth
-                  style={{
-                    justifyContent: "flex-start",
-                    marginBottom: "10px",
-                  }}
+                  className={buttonClassName({
+                    variant: location.pathname === item.path ? "contained" : "outlined",
+                    fullWidth: true,
+                    className: "mb-2.5 justify-start",
+                  })}
                 >
                   {item.name}
-                </Button>
+                </Link>
               );
             }
             if (item.onclick) {
               return (
-                <Button
+                <button
                   key={idx}
                   onClick={item.onclick}
-                  variant={location.pathname === item.path ? "contained" : "outlined"}
-                  fullWidth
-                  style={{
-                    justifyContent: "flex-start",
-                    marginBottom: "10px",
-                  }}
+                  className={buttonClassName({
+                    variant: location.pathname === item.path ? "contained" : "outlined",
+                    fullWidth: true,
+                    className: "mb-2.5 justify-start",
+                  })}
                 >
                   {item.name}
-                </Button>
+                </button>
               );
             }
             return <></>;
           })}
-        </Box>
-        <Box flexGrow={1} p={2}>
+        </div>
+        <div className="flex-1 p-4">
           <div>
             <p>
               Logged in as{" "}
@@ -111,18 +106,15 @@ function InnerDashLayout(props: LayoutProps) {
                 href={`https://bsky.app/profile/${pdsAgent.did}`}
                 target="_blank"
                 rel="noreferrer"
-                style={{
-                  color: "inherit",
-                  textDecoration: "none",
-                }}
+                className="text-inherit no-underline"
               >
                 {profile ? (profile as any).value.displayName : ""}
               </a>
             </p>
           </div>
-          <Box>{children}</Box>
-        </Box>
-      </Box>
+          <div>{children}</div>
+        </div>
+      </div>
     </>
   );
 }

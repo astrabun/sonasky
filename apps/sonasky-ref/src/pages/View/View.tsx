@@ -1,15 +1,5 @@
 import { Link, useParams } from "react-router";
 import Layout from "../../layouts/View";
-import {
-  Button,
-  Collapse,
-  Container,
-  Divider,
-  Fade,
-  ListItem,
-  ListItemText,
-  Typography,
-} from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import { Client, CredentialManager } from "@atcute/client";
 import type {} from "@atcute/atproto";
@@ -86,7 +76,6 @@ function View() {
     void loadSonaRecords();
   }, [repoData]);
 
-  const transitionTime = 2000;
   const minLoadingTime = 1000;
 
   useEffect(() => {
@@ -222,83 +211,58 @@ function View() {
   return (
     <Layout>
       <div style={{ marginTop: "2rem" }} />
-      <Container maxWidth="lg">
-        <Collapse in={loading} timeout={{ enter: 0, exit: transitionTime }}>
-          <Typography variant="body1" gutterBottom>
-            {loadingText}
-          </Typography>
-        </Collapse>
+      <div className="mx-auto max-w-6xl px-4">
+        {loading && <p className="mb-2">{loadingText}</p>}
         {error ? (
           <>
             <p>An error occurred. Sorry!</p>
-            <Link to="/" style={{ color: "inherit" }}>
+            <Link to="/" className="text-inherit no-underline">
               Go home?
             </Link>
           </>
         ) : (
           <>
-            <Fade in={!loading} timeout={transitionTime}>
-              <div>
-                <a
-                  href={`https://bsky.app/profile/${handle}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    color: "inherit",
-                    textDecoration: "none",
-                  }}
-                >
-                  <Typography sx={{ typography: { sm: "h2", xs: "h4" } }}>@{handle}</Typography>
-                  <Typography variant="caption" gutterBottom sx={{ marginLeft: "2rem" }}>
-                    {did}
-                  </Typography>
-                  {altPds && (
-                    <>
-                      <Typography variant="caption" gutterBottom sx={{ marginLeft: "2rem" }}>
-                        PDS: {altPds}
-                      </Typography>
-                    </>
+            <div
+              className={`transition-opacity duration-[2000ms] ${loading ? "opacity-0" : "opacity-100"}`}
+            >
+              <a
+                href={`https://bsky.app/profile/${handle}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-inherit no-underline"
+              >
+                <p className="text-2xl sm:text-4xl">@{handle}</p>
+                <p className="ml-8 text-xs">{did}</p>
+                {altPds && <p className="ml-8 text-xs">PDS: {altPds}</p>}
+              </a>
+              <hr className="my-4 border-gray-300 dark:border-gray-700" />
+              {sonaRecords !== undefined && (
+                <>
+                  {sonaRecords === null ? (
+                    <p>No characters found</p>
+                  ) : (
+                    <p className="mb-2 text-2xl font-semibold">Characters</p>
                   )}
-                </a>
-                <Divider
-                  sx={{
-                    marginBottom: "1rem",
-                    marginTop: "1rem",
-                  }}
-                />
-                {sonaRecords !== undefined && (
-                  <>
-                    {sonaRecords === null ? (
-                      <Typography variant="body1">No characters found</Typography>
-                    ) : (
-                      <Typography variant="h4" gutterBottom>
-                        Characters
-                      </Typography>
-                    )}
-                    {sonaRecords?.map((record: any) => (
-                      <Link
-                        key={record.uri}
-                        to={`/profile/${did}/${record.uri.split("/").pop()}`}
-                        style={{
-                          color: "inherit",
-                          textDecoration: "none",
-                        }}
-                      >
-                        <ListItem component={Button} variant="outlined">
-                          <ListItemText
-                            primary={record.value.character?.name}
-                            secondary={`${record.uri.split("/").pop()}`}
-                          />
-                        </ListItem>
-                      </Link>
-                    ))}
-                  </>
-                )}
-              </div>
-            </Fade>
+                  {sonaRecords?.map((record: any) => (
+                    <Link
+                      key={record.uri}
+                      to={`/profile/${did}/${record.uri.split("/").pop()}`}
+                      className="text-inherit no-underline"
+                    >
+                      <div className="mb-2 rounded-md border border-gray-300 p-3 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800">
+                        <p className="font-medium">{record.value.character?.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {record.uri.split("/").pop()}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </>
+              )}
+            </div>
           </>
         )}
-      </Container>
+      </div>
     </Layout>
   );
 }
