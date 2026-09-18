@@ -40,4 +40,10 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     answer:
       "All SonaSky Users shows every post from a labeled account, newest first - no ranking. Species Latest is the same thing, just filtered to one species. SonaSky Trending ranks recent posts from labeled accounts by likes and reposts, weighted so newer posts don't need as much engagement to rank - Species Trending is that same ranking narrowed to one species. SonaSky Comet is different: instead of ranking by a post's total likes and reposts, it only counts engagement from other SonaSky users, and the post itself doesn't need a label - so it can surface posts from unlabeled accounts if enough SonaSky users are engaging with them.",
   },
+  {
+    id: "opt-out-algorithmic",
+    question: "Can I keep my posts out of the SonaSky feeds?",
+    answer:
+      "Yes. Bluesky has a setting that asks apps to leave your posts out of algorithmic recommendations, meant to stop a post from going viral on something like Discover. Turning it on writes a record to your account (app.bsky.actor.contentVisibilityDeclaration) that any app can check. SonaSky Feeds checks it too: if you've turned it on, your posts are left out of every SonaSky feed, including All SonaSky Users and the per-species feeds, not just Trending and Comet.",
+  },
 ];
