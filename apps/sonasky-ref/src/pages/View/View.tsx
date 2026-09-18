@@ -42,6 +42,29 @@ function View() {
   const [minLoadingTimePassed, setMinLoadingTimePassed] = useState<boolean>(false);
 
   const [repoData, setRepoData] = useState<any>();
+  const [profile, setProfile] = useState<any>();
+  const loadProfile = useCallback(async () => {
+    if (did && !did.startsWith(UNKNOWN_ERROR)) {
+      await rpc
+        .get("com.atproto.repo.getRecord", {
+          params: {
+            collection: "app.bsky.actor.profile",
+            repo: did as ActorIdentifier,
+            rkey: "self",
+          },
+        })
+        .then((response) => {
+          setProfile((response.data as any).value);
+        })
+        .catch(() => {
+          // Profile record may not exist
+        });
+    }
+  }, [did, rpc]);
+  useEffect(() => {
+    void loadProfile();
+  }, [loadProfile]);
+
   const [sonaRecords, setSonaRecords] = useState<any>();
   const loadSonaRecords = useCallback(async () => {
     if (did) {
@@ -225,16 +248,47 @@ function View() {
             <div
               className={`transition-opacity duration-[2000ms] ${loading ? "opacity-0" : "opacity-100"}`}
             >
-              <a
-                href={`https://bsky.app/profile/${handle}`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-inherit no-underline"
-              >
-                <p className="text-2xl sm:text-4xl">@{handle}</p>
-                <p className="ml-8 text-xs">{did}</p>
-                {altPds && <p className="ml-8 text-xs">PDS: {altPds}</p>}
-              </a>
+              <div className="flex items-center gap-4">
+                {profile?.avatar?.ref?.$link && (
+                  <a
+                    href={`https://bsky.app/profile/${handle}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-inherit no-underline"
+                  >
+                    <img
+                      src={`https://cdn.bsky.app/img/avatar_thumbnail/plain/${did}/${profile.avatar.ref.$link}@jpeg`}
+                      alt=""
+                      className="h-16 w-16 rounded-full sm:h-20 sm:w-20"
+                    />
+                  </a>
+                )}
+                <div>
+                  {profile?.displayName && (
+                    <a
+                      href={`https://bsky.app/profile/${handle}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-inherit no-underline"
+                    >
+                      <p className="text-xl font-semibold sm:text-2xl">{profile.displayName}</p>
+                    </a>
+                  )}
+                  <a
+                    href={`https://bsky.app/profile/${handle}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-inherit no-underline"
+                  >
+                    <p className="text-2xl sm:text-4xl">@{handle}</p>
+                    <p className="ml-8 text-xs">{did}</p>
+                  </a>
+                </div>
+              </div>
+              {profile?.description && (
+                <p className="mt-2 whitespace-pre-wrap">{profile.description}</p>
+              )}
+              {altPds && <p className="ml-8 text-xs">PDS: {altPds}</p>}
               <hr className="my-4 border-gray-300 dark:border-gray-700" />
               {sonaRecords !== undefined && (
                 <>

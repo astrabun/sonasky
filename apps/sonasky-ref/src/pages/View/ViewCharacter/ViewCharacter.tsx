@@ -7,6 +7,7 @@ import { Chip } from "../../../components/ui/Chip";
 import { FormControlLabel } from "../../../components/ui/Checkbox";
 import { Menu, MenuItem } from "../../../components/ui/Menu";
 import { Switch } from "../../../components/ui/Switch";
+import { Spinner } from "../../../components/ui/Spinner";
 import { Tooltip } from "../../../components/ui/Tooltip";
 import { Client, CredentialManager } from "@atcute/client";
 import type {} from "@atcute/atproto";
@@ -60,6 +61,8 @@ export function ViewCharacter() {
   const [altRefSheetImage, setAltRefSheetImage] = useState<string>("");
   const [altAltText, setAltAltText] = useState<string>("Alt Ref Sheet");
   const [showAltRef, setShowAltRef] = useState<boolean>(false);
+  const [refSheetImageLoaded, setRefSheetImageLoaded] = useState<boolean>(false);
+  const [altRefSheetImageLoaded, setAltRefSheetImageLoaded] = useState<boolean>(false);
 
   const [copyColorClicked, setCopyColorClicked] = useState<boolean>(false);
   const [nsfwBlurred, setNsfwBlurred] = useState<boolean>(false);
@@ -165,6 +168,7 @@ export function ViewCharacter() {
           const img = images[imageIndex] ?? images[0];
           if (img) {
             setAltText(images[imageIndex]?.alt || images[0]?.alt || "Ref Sheet");
+            setRefSheetImageLoaded(false);
             setRefSheetImage(
               `https://cdn.bsky.app/img/feed_fullsize/plain/${img.did}/${img.cid}@jpeg`,
             );
@@ -180,6 +184,7 @@ export function ViewCharacter() {
           const img = images[imageIndex] ?? images[0];
           if (img) {
             setAltAltText(images[imageIndex]?.alt || images[0]?.alt || "Alt Ref Sheet");
+            setAltRefSheetImageLoaded(false);
             setAltRefSheetImage(
               `https://cdn.bsky.app/img/feed_fullsize/plain/${img.did}/${img.cid}@jpeg`,
             );
@@ -408,11 +413,17 @@ export function ViewCharacter() {
           {!showAltRef && refSheetImage && (
             <div className="mb-4">
               <p className="text-xl">Ref Sheet</p>
+              {!refSheetImageLoaded && (
+                <div className="flex h-32 items-center justify-center">
+                  <Spinner size={32} />
+                </div>
+              )}
               <img
                 src={`${refSheetImage}`}
                 alt={altText}
-                className="max-w-full cursor-pointer"
+                className={`max-w-full cursor-pointer ${refSheetImageLoaded ? "" : "hidden"}`}
                 onClick={() => window.open(getBlueskyLink(character.refSheet), "_blank")}
+                onLoad={() => setRefSheetImageLoaded(true)}
               />
               {character.refSheetCredit && (
                 <p className="text-xs">Credit: {character.refSheetCredit}</p>
@@ -422,11 +433,17 @@ export function ViewCharacter() {
           {showAltRef && altRefSheetImage && (
             <div className="mb-4">
               <p className="text-xl">Alt Ref Sheet</p>
+              {!altRefSheetImageLoaded && (
+                <div className="flex h-32 items-center justify-center">
+                  <Spinner size={32} />
+                </div>
+              )}
               <img
                 src={`${altRefSheetImage}`}
                 alt={altAltText}
-                className="max-w-full cursor-pointer"
+                className={`max-w-full cursor-pointer ${altRefSheetImageLoaded ? "" : "hidden"}`}
                 onClick={() => window.open(getBlueskyLink(character.altRef), "_blank")}
+                onLoad={() => setAltRefSheetImageLoaded(true)}
               />
               {character.altRefCredit && (
                 <p className="text-xs">Credit: {character.altRefCredit}</p>
