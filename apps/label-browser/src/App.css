@@ -177,6 +177,17 @@ a:visited {
   }
 }
 
+.exact-match {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: fit-content;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
 .suggestions {
   position: absolute;
   top: calc(100% + 4px);

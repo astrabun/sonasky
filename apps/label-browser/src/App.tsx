@@ -12,6 +12,7 @@ import { useUniqueLikerCount } from "./hooks/useUniqueLikerCount";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import {
   arrayCodec,
+  boolCodec,
   stringCodec,
   useUrlSyncedState,
   type UrlCodec,
@@ -35,7 +36,8 @@ function App() {
   const allLabels = useMemo(() => getAllLabels({ localesToObject: true }), []);
 
   // Optional feed links (bsky.app custom feeds). Preference persisted locally.
-  const [showFeeds, setShowFeeds] = useLocalStorage("showFeeds", false);
+  // const [showFeeds, setShowFeeds] = useLocalStorage("showFeeds", false);
+  const showFeeds = true; // These have been rolled out, we can just show them now.
   const globalFeeds = useMemo(() => getGlobalFeeds(), []);
   const labelFeedsMap = useMemo(() => getLabelFeedsMap(), []);
 
@@ -114,9 +116,19 @@ function App() {
   };
 
   const [persistedSearch, setPersistedSearch] = useUrlSyncedState("search", "", stringCodec(""));
-  const [search, setSearch] = useState(persistedSearch);
+  // A URL `search` param must win over a stale value from localStorage, but
+  // persistedSearch only picks that up in an effect (after this component's
+  // first render), so seed this local echo straight from the URL too rather
+  // than from persistedSearch, which lags a render behind.
+  const [search, setSearch] = useState(
+    () => new URLSearchParams(window.location.search).get("search") ?? persistedSearch,
+  );
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debouncedSearch = useDebounce(search);
+  const [exactSearch, setExactSearch] = useUrlSyncedState("exactSearch", false, boolCodec);
+  // Deep-link only: jumps straight to one label by its stable id (e.g. "red-panda"),
+  // unaffected by locale/display-name text and always an exact match.
+  const [idFilter, setIdFilter] = useUrlSyncedState("id", "", stringCodec(""));
 
   // Only push to localStorage/the URL once typing settles, not on every keystroke.
   useEffect(() => {
@@ -138,10 +150,16 @@ function App() {
   }, [labels, preferredLocale, realmFilter, categoryFilter]);
 
   const filteredLabels = useMemo(() => {
+    const trimmedId = idFilter.trim();
+    if (trimmedId) {
+      return namedLabels.filter(({ label }) => label.id === trimmedId);
+    }
     const query = debouncedSearch.trim().toLowerCase();
     if (!query) return namedLabels;
-    return namedLabels.filter(({ name }) => name.toLowerCase().includes(query));
-  }, [namedLabels, debouncedSearch]);
+    return namedLabels.filter(({ name }) =>
+      exactSearch ? name.toLowerCase() === query : name.toLowerCase().includes(query),
+    );
+  }, [namedLabels, debouncedSearch, exactSearch, idFilter]);
 
   const suggestions = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -164,6 +182,8 @@ function App() {
     setSortBy("default");
     setSearch("");
     setPersistedSearch("");
+    setExactSearch(false);
+    setIdFilter("");
   };
 
   const sortedLabels = useMemo(() => {
@@ -278,14 +298,14 @@ function App() {
           <button type="button" onClick={resetFilters}>
             Reset filters
           </button>
-          <label style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+          {/* <label style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
             <input
               type="checkbox"
               checked={showFeeds}
               onChange={(e) => setShowFeeds(e.target.checked)}
             />
             Show feeds
-          </label>
+          </label> */}
         </div>
         <div className="search">
           <input
@@ -313,6 +333,14 @@ function App() {
               ))}
             </ul>
           )}
+          <label className="exact-match">
+            <input
+              type="checkbox"
+              checked={exactSearch}
+              onChange={(e) => setExactSearch(e.target.checked)}
+            />
+            Exact match
+          </label>
         </div>
 
         <div className="category-filter" ref={categoryDropdownRef}>

@@ -335,7 +335,7 @@ function View() {
                     return (
                       <a
                         key={`${label.src}:${label.val}`}
-                        href={`https://sonasky.app/?search=${encodeURIComponent(label.val)}`}
+                        href={`https://sonasky.app/?id=${encodeURIComponent(label.val)}`}
                         target="_blank"
                         rel="noreferrer"
                         className="text-inherit no-underline hover:opacity-80"
