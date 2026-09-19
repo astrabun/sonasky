@@ -19,7 +19,16 @@ export const HANDLE_RESOLVER_URL: string =
 
 export const PDS_COLLECTION_NS = "app.sonasky.ref";
 
+export const ASSET_COLLECTION_NS = "app.sonasky.ref.asset";
+
+export const ALLOWED_ASSET_MIME_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+
+export const MAX_ASSET_SIZE_BYTES = 5_000_000;
+
 export const LABELER_DIDS: string[] = [SONASKY_DID, SONASKY_POKEMON_DID];
+
+// Bluesky's official moderation service (moderation.bsky.app), for the report-to-labeler feature.
+export const BSKY_LABELER_DID = "did:plc:ar7c4by46qjdydhdevvrndac";
 
 export const FLAGS = {
   SHOW_FEEDBACK_FORM_ALERT: false,

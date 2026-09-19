@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Header from "../../assets/partials/Header";
 import { AuthProvider } from "../../auth/auth-provider";
 import { clientId } from "../../App";
@@ -6,12 +6,26 @@ import { ENV, FLAGS, PLC_DIRECTORY_URL } from "../../const";
 import { handleResolver } from "../../helpers/handleResolver";
 import InnerDashLayout from "./innerDash";
 import { latestVersion } from "../../changelog";
-import { Link } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { Alert, AlertTitle } from "../../components/ui/Alert";
 import { AnchorButton } from "../../components/ui/Button";
 
 interface LayoutProps {
   children?: React.ReactNode;
+}
+
+function RedirectAfterSignIn() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const redirect = searchParams.get("redirect");
+    if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
+      void navigate(redirect, { replace: true });
+    }
+  }, [searchParams, navigate]);
+
+  return null;
 }
 
 function Layout(props: LayoutProps) {
@@ -25,6 +39,7 @@ function Layout(props: LayoutProps) {
         handleResolver={handleResolver as any}
         allowHttp={ENV === "development" || ENV === "test"}
       >
+        <RedirectAfterSignIn />
         <Header hideNavigation />
         <div className="mx-auto w-full max-w-6xl px-4">
           <main className="flex-1">
@@ -35,13 +50,17 @@ function Layout(props: LayoutProps) {
                   <p>
                     I'm looking for feedback on the SonaSky REF project. If you have any
                     thoughts/feature requests/bug reports/positive feedback/etc, please{" "}
-                    <a href="/feedback" target="_blank" className="text-inherit">
+                    <a
+                      href="https://forms.sonasky.app/f/000-sonasky-open-feedback"
+                      target="_blank"
+                      className="text-inherit"
+                    >
                       click here
                     </a>{" "}
                     to fill out a feedback form!
                   </p>
                   <AnchorButton
-                    href="/feedback"
+                    href="https://forms.sonasky.app/f/000-sonasky-open-feedback"
                     target="_blank"
                     className="mt-4"
                     variant="contained"

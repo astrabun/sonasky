@@ -3,7 +3,7 @@
   "client_name": "SonaSkyREF",
   "client_uri": "https://ref.sonasky.app",
   "redirect_uris": ["https://ref.sonasky.app/dashboard"],
-  "scope": "atproto repo:app.sonasky.ref",
+  "scope": "atproto repo:app.sonasky.ref repo:app.sonasky.ref.asset blob:image/* rpc:com.atproto.moderation.createReport?aud=*",
   "grant_types": ["authorization_code", "refresh_token"],
   "response_types": ["code"],
   "token_endpoint_auth_method": "none",

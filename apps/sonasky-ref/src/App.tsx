@@ -8,6 +8,7 @@ import ManageData from "./pages/Dashboard/ManageData";
 import View from "./pages/View";
 import ViewCharacter from "./pages/View/ViewCharacter";
 import NotFound from "./pages/NotFound";
+import Leaving from "./pages/Leaving";
 import Logout from "./pages/Logout";
 
 import { ENV, HANDLE_RESOLVER_URL, PLC_DIRECTORY_URL } from "./const";
@@ -28,7 +29,8 @@ export const clientId =
             }),
           }).toString(),
         }).href,
-        scope: "atproto repo:app.sonasky.ref",
+        scope:
+          "atproto repo:app.sonasky.ref repo:app.sonasky.ref.asset blob:image/* rpc:com.atproto.moderation.createReport?aud=*",
       })}`
     : `https://ref.sonasky.app/client_metadata.json`;
 
@@ -57,6 +59,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
+          <Route path="/leaving" element={<Leaving />} />
           <Route
             path="/logout"
             element={

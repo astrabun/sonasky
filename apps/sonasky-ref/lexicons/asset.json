@@ -1,0 +1,33 @@
+{
+  "lexicon": 1,
+  "id": "app.sonasky.ref.asset",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A standalone image asset uploaded directly to the user's repo, for use as a character ref sheet when no existing Bluesky post is available.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["image", "createdAt"],
+        "properties": {
+          "image": {
+            "type": "blob",
+            "accept": ["image/png", "image/jpeg", "image/webp", "image/gif"],
+            "maxSize": 5000000,
+            "description": "The uploaded image blob."
+          },
+          "alt": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Alt text for the image."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Timestamp when the asset was uploaded."
+          }
+        }
+      }
+    }
+  }
+}
