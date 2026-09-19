@@ -127,9 +127,11 @@ const changelogData = [
       `Add the ability to report an uploaded ref sheet image, right from the character view page, to Bluesky Moderation Services (must be signed in).`,
       `You may be asked to sign out and back in once to grant the new upload/report permissions.`,
       `Character descriptions now support markdown links. Links to sites other than Bluesky/SonaSky show a leaving-site warning before you navigate.`,
+      `Character descriptions now have a "Formatted" editor alongside the raw "Source" markdown view, with a toolbar for bold, italic, strikethrough, underline, headings, quotes, lists, checklists, tables, links, and dividers.`,
+      `Better markdown support for tables, task list checkboxes, and --- dividers in character descriptions.`,
     ],
     date: dayjs(`2026-09-19`),
-    version: "1.4.7",
+    version: "1.5.0",
   },
 ];
 

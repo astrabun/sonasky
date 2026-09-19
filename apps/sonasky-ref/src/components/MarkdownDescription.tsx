@@ -1,5 +1,6 @@
 import DOMPurify from "dompurify";
 import { marked } from "marked";
+import { MARKDOWN_TABLE_PROSE_CLASS } from "../helpers/markdownProseClass";
 import { isTrustedLinkDomain } from "../helpers/trustedLinks";
 
 const ALLOWED_TAGS = [
@@ -14,6 +15,7 @@ const ALLOWED_TAGS = [
   "h4",
   "h5",
   "h6",
+  "hr",
   "input",
   "li",
   "ol",
@@ -77,7 +79,7 @@ export function MarkdownDescription({ content }: Props) {
   return (
     <div
       dangerouslySetInnerHTML={{ __html: html }}
-      className="prose prose-sm dark:prose-invert max-w-none [&_input[type=checkbox]]:mr-1"
+      className={`prose prose-sm dark:prose-invert max-w-none [&_input[type=checkbox]]:mr-1 ${MARKDOWN_TABLE_PROSE_CLASS}`}
     />
   );
 }

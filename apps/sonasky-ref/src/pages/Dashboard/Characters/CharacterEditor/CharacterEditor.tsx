@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { DescriptionEditor } from "./DescriptionEditor";
 import LinksDialog from "./LinksDialog";
 import { useNavigate, useParams } from "react-router";
 import Layout from "../../../../layouts/Dashboard";
@@ -988,15 +989,14 @@ function CharacterEditor(props: CharacterEditorProps) {
               label="NSFW"
               className="mb-3"
             />
-            <TextField
+            <DescriptionEditor
               label="Description"
-              name="description"
-              value={character.description}
-              onChange={handleChange}
-              multiline
-              rows={4}
+              value={character.description ?? ""}
+              onChange={(value) =>
+                setCharacter((prev) => (prev ? { ...prev, description: value } : undefined))
+              }
               maxLength={2560}
-              helperText="Supports markdown: **bold**, *italic*, ~~strikethrough~~, <u>underline</u>, # Heading, tables, - [ ] checklists, [links](url). Links to sites other than Bluesky/SonaSky will show a warning."
+              helperText="Supports markdown: **bold**, *italic*, ~~strikethrough~~, <u>underline</u>, # Heading, tables, - [ ] checklists, [links](url), --- divider. Links to sites other than Bluesky/SonaSky will show a warning."
             />
             <Button type="submit" variant="contained" color="primary">
               {editMode ? "Save Changes" : "Create Character"}
