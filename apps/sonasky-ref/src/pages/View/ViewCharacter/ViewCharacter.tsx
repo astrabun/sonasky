@@ -12,14 +12,14 @@ import { Tooltip } from "../../../components/ui/Tooltip";
 import { Client, CredentialManager } from "@atcute/client";
 import type {} from "@atcute/atproto";
 import type { ActorIdentifier } from "@atcute/lexicons";
-import { ASSET_COLLECTION_NS, HANDLE_RESOLVER_URL } from "../../../const";
+import { ASSET_COLLECTION_NS, ENV, HANDLE_RESOLVER_URL, PLC_DIRECTORY_URL } from "../../../const";
 import {
   type CharacterLink,
   LINK_TYPE_LABELS,
   validateCharacterLink,
 } from "../../../types/characterLinks";
 import NotFound from "../../NotFound";
-import { ArrowLeft, ChevronDown, ExternalLink } from "lucide-react";
+import { ArrowLeft, ChevronDown, ExternalLink, Flag } from "lucide-react";
 import {
   exportAco,
   exportCss,
@@ -29,6 +29,17 @@ import {
 } from "../../../helpers/colorExport";
 import { contrastColor } from "../../../helpers/contrastColor";
 import { getPds } from "../../../helpers/getPds";
+import { handleResolver } from "../../../helpers/handleResolver";
+import { clientId } from "../../../App";
+import { useOAuth } from "../../../auth/oauth/use-oauth";
+import { useCredentialAuth } from "../../../auth/credential/use-credential-auth";
+import { IconButton } from "../../../components/ui/IconButton";
+import { ReportAssetDialog } from "./ReportAssetDialog";
+
+interface AssetRef {
+  uri: string;
+  cid: string;
+}
 
 function getUriCollection(atUri: string): string {
   return atUri.split("/")[3] ?? "";
@@ -72,6 +83,19 @@ export function ViewCharacter() {
   const [copyColorClicked, setCopyColorClicked] = useState<boolean>(false);
   const [nsfwBlurred, setNsfwBlurred] = useState<boolean>(false);
   const [nsfwFadingOut, setNsfwFadingOut] = useState<boolean>(false);
+  const [refSheetAssetRef, setRefSheetAssetRef] = useState<AssetRef | undefined>();
+  const [altRefAssetRef, setAltRefAssetRef] = useState<AssetRef | undefined>();
+  const [reportTarget, setReportTarget] = useState<AssetRef | undefined>();
+
+  const { agent: credentialAgent } = useCredentialAuth();
+  const { agent: oauthAgent, isInitializing: oauthInitializing } = useOAuth({
+    allowHttp: ENV === "development" || ENV === "test",
+    clientId,
+    handleResolver: handleResolver as any,
+    plcDirectoryUrl: PLC_DIRECTORY_URL,
+  });
+  const reportAgent = oauthAgent ?? credentialAgent;
+  const canReport = !oauthInitializing && Boolean(reportAgent);
 
   const handleGetPds = async () => {
     if (blueskyHandleOrDID) {
@@ -132,7 +156,9 @@ export function ViewCharacter() {
   );
 
   const resolveAssetImage = useCallback(
-    async (atUri: string): Promise<{ cid: string; did: string; alt: string }[]> => {
+    async (
+      atUri: string,
+    ): Promise<{ cid: string; did: string; alt: string; recordRef?: AssetRef }[]> => {
       const [, , did, , assetRkey] = atUri.split("/");
       const { data } = await rpc.get("com.atproto.repo.getRecord", {
         params: {
@@ -141,15 +167,19 @@ export function ViewCharacter() {
           rkey: assetRkey,
         },
       });
-      const { value } = data as any;
+      const { value, cid: recordCid } = data as any;
       const cid = value?.image?.ref?.$link;
-      return cid ? [{ alt: value.alt ?? "", cid, did }] : [];
+      return cid
+        ? [{ alt: value.alt ?? "", cid, did, recordRef: { cid: recordCid, uri: atUri } }]
+        : [];
     },
     [rpc],
   );
 
   const resolveRefImages = useCallback(
-    async (atUri: string): Promise<{ cid: string; did: string; alt: string }[]> => {
+    async (
+      atUri: string,
+    ): Promise<{ cid: string; did: string; alt: string; recordRef?: AssetRef }[]> => {
       if (getUriCollection(atUri) === ASSET_COLLECTION_NS) {
         return resolveAssetImage(atUri);
       }
@@ -214,6 +244,7 @@ export function ViewCharacter() {
             setAltText(images[imageIndex]?.alt || images[0]?.alt || "Ref Sheet");
             setRefSheetImageLoaded(false);
             setRefSheetImage(buildImageUrl(character.refSheet, img.did, img.cid, "fullsize"));
+            setRefSheetAssetRef(img.recordRef);
           }
         } catch {
           // Silently skip if post is inaccessible
@@ -228,6 +259,7 @@ export function ViewCharacter() {
             setAltAltText(images[imageIndex]?.alt || images[0]?.alt || "Alt Ref Sheet");
             setAltRefSheetImageLoaded(false);
             setAltRefSheetImage(buildImageUrl(character.altRef, img.did, img.cid, "fullsize"));
+            setAltRefAssetRef(img.recordRef);
           }
         } catch {
           // Silently skip if post is inaccessible
@@ -302,6 +334,15 @@ export function ViewCharacter() {
   const getBlueskyLink = (atUri: string): string => {
     const [, , did, , rkey] = atUri.split("/");
     return `https://bsky.app/profile/${did}/post/${rkey}`;
+  };
+
+  const handleReportClick = (assetRef: AssetRef) => {
+    if (canReport) {
+      setReportTarget(assetRef);
+      return;
+    }
+    const redirect = `${globalThis.location.pathname}${globalThis.location.search}`;
+    void navigate(`/dashboard?redirect=${encodeURIComponent(redirect)}`);
   };
 
   const validLinks = (character.links ?? []).filter(validateCharacterLink);
@@ -452,7 +493,16 @@ export function ViewCharacter() {
           )}
           {!showAltRef && refSheetImage && (
             <div className="mb-4">
-              <p className="text-xl">Ref Sheet</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xl">Ref Sheet</p>
+                {refSheetAssetRef && (
+                  <Tooltip title={canReport ? "Report this image" : "Sign in to report this image"}>
+                    <IconButton size="small" onClick={() => handleReportClick(refSheetAssetRef)}>
+                      <Flag size={16} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </div>
               {!refSheetImageLoaded && (
                 <div className="flex h-32 items-center justify-center">
                   <Spinner size={32} />
@@ -476,7 +526,16 @@ export function ViewCharacter() {
           )}
           {showAltRef && altRefSheetImage && (
             <div className="mb-4">
-              <p className="text-xl">Alt Ref Sheet</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xl">Alt Ref Sheet</p>
+                {altRefAssetRef && (
+                  <Tooltip title={canReport ? "Report this image" : "Sign in to report this image"}>
+                    <IconButton size="small" onClick={() => handleReportClick(altRefAssetRef)}>
+                      <Flag size={16} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </div>
               {!altRefSheetImageLoaded && (
                 <div className="flex h-32 items-center justify-center">
                   <Spinner size={32} />
@@ -530,6 +589,14 @@ export function ViewCharacter() {
             </div>
           </div>
         </div>
+      )}
+      {reportTarget && reportAgent && (
+        <ReportAssetDialog
+          open={Boolean(reportTarget)}
+          onClose={() => setReportTarget(undefined)}
+          assetRef={reportTarget}
+          pdsAgent={reportAgent}
+        />
       )}
     </Layout>
   );

@@ -28,7 +28,8 @@ export const clientId =
             }),
           }).toString(),
         }).href,
-        scope: "atproto repo:app.sonasky.ref repo:app.sonasky.ref.asset blob:image/*",
+        scope:
+          "atproto repo:app.sonasky.ref repo:app.sonasky.ref.asset blob:image/* rpc:com.atproto.moderation.createReport?aud=*",
       })}`
     : `https://ref.sonasky.app/client_metadata.json`;
 
