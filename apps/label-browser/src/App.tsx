@@ -216,6 +216,10 @@ function App() {
           <h1>SonaSky Label Browser</h1>
           <p>
             Find your species! &middot; <a href="/faq">FAQ</a> &middot;{" "}
+            <a href="https://ref.sonasky.app" target="_blank" rel="noopener noreferrer">
+              Create/Manage Ref Sheet
+            </a>{" "}
+            &middot;{" "}
             <a href="https://forms.sonasky.app/f/000-sonasky-open-feedback" target="_blank">
               Feedback
             </a>
