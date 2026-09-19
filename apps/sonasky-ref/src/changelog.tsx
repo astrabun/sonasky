@@ -120,6 +120,13 @@ const changelogData = [
     date: dayjs(`2026-09-18`),
     version: "1.4.6",
   },
+  {
+    changes: [
+      `Character descriptions now support markdown links. Links to sites other than Bluesky/SonaSky show a leaving-site warning before you navigate.`,
+    ],
+    date: dayjs(`2026-09-19`),
+    version: "1.4.7",
+  },
 ];
 
 // Get latest version by the highest semver version

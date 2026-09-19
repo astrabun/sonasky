@@ -996,7 +996,7 @@ function CharacterEditor(props: CharacterEditorProps) {
               multiline
               rows={4}
               maxLength={2560}
-              helperText="Supports markdown: **bold**, *italic*, ~~strikethrough~~, <u>underline</u>, # Heading, tables, - [ ] checklists"
+              helperText="Supports markdown: **bold**, *italic*, ~~strikethrough~~, <u>underline</u>, # Heading, tables, - [ ] checklists, [links](url). Links to sites other than Bluesky/SonaSky will show a warning."
             />
             <Button type="submit" variant="contained" color="primary">
               {editMode ? "Save Changes" : "Create Character"}
