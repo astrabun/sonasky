@@ -20,7 +20,7 @@
             "format": "datetime",
             "description": "Timestamp when the actor modified the record."
           },
-          "characterProperties": {
+          "character": {
             "type": "unknown",
             "description": "Character details."
           }

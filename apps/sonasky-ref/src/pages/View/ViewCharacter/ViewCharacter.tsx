@@ -12,7 +12,7 @@ import { Tooltip } from "../../../components/ui/Tooltip";
 import { Client, CredentialManager } from "@atcute/client";
 import type {} from "@atcute/atproto";
 import type { ActorIdentifier } from "@atcute/lexicons";
-import { HANDLE_RESOLVER_URL } from "../../../const";
+import { ASSET_COLLECTION_NS, HANDLE_RESOLVER_URL } from "../../../const";
 import {
   type CharacterLink,
   LINK_TYPE_LABELS,
@@ -30,6 +30,10 @@ import {
 import { contrastColor } from "../../../helpers/contrastColor";
 import { getPds } from "../../../helpers/getPds";
 
+function getUriCollection(atUri: string): string {
+  return atUri.split("/")[3] ?? "";
+}
+
 function Item({ className, children }: { className?: string; children?: React.ReactNode }) {
   return (
     <div
@@ -43,6 +47,7 @@ function Item({ className, children }: { className?: string; children?: React.Re
 export function ViewCharacter() {
   const manager = new CredentialManager({ service: HANDLE_RESOLVER_URL });
   const [rpc, setRpc] = useState<Client>(new Client({ handler: manager }));
+  const [resolvedPdsUrl, setResolvedPdsUrl] = useState<string>(HANDLE_RESOLVER_URL);
   const { blueskyHandleOrDID, rkey } = useParams<{
     blueskyHandleOrDID: string;
     rkey: string;
@@ -76,6 +81,7 @@ export function ViewCharacter() {
           handler: new CredentialManager({ service: pds }),
         });
         setRpc(newRpc);
+        setResolvedPdsUrl(pds);
       }
       setPdsResolved(true);
     }
@@ -125,6 +131,44 @@ export function ViewCharacter() {
     [rpc],
   );
 
+  const resolveAssetImage = useCallback(
+    async (atUri: string): Promise<{ cid: string; did: string; alt: string }[]> => {
+      const [, , did, , assetRkey] = atUri.split("/");
+      const { data } = await rpc.get("com.atproto.repo.getRecord", {
+        params: {
+          collection: ASSET_COLLECTION_NS,
+          repo: did as ActorIdentifier,
+          rkey: assetRkey,
+        },
+      });
+      const { value } = data as any;
+      const cid = value?.image?.ref?.$link;
+      return cid ? [{ alt: value.alt ?? "", cid, did }] : [];
+    },
+    [rpc],
+  );
+
+  const resolveRefImages = useCallback(
+    async (atUri: string): Promise<{ cid: string; did: string; alt: string }[]> => {
+      if (getUriCollection(atUri) === ASSET_COLLECTION_NS) {
+        return resolveAssetImage(atUri);
+      }
+      return resolvePostImages(atUri);
+    },
+    [resolveAssetImage, resolvePostImages],
+  );
+
+  const buildImageUrl = useCallback(
+    (atUri: string, did: string, cid: string, size: "thumbnail" | "fullsize"): string => {
+      if (getUriCollection(atUri) === ASSET_COLLECTION_NS) {
+        return `${resolvedPdsUrl}/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`;
+      }
+      const variant = size === "thumbnail" ? "feed_thumbnail" : "feed_fullsize";
+      return `https://cdn.bsky.app/img/${variant}/plain/${did}/${cid}@jpeg`;
+    },
+    [resolvedPdsUrl],
+  );
+
   const loadCharacter = useCallback(async () => {
     try {
       const sonaRecords = await rpc.get("com.atproto.repo.listRecords", {
@@ -163,15 +207,13 @@ export function ViewCharacter() {
     const loadImages = async () => {
       if (character.refSheet?.startsWith("at://")) {
         try {
-          const images = await resolvePostImages(character.refSheet);
+          const images = await resolveRefImages(character.refSheet);
           const imageIndex = character.refSheetImageIndex ?? 0;
           const img = images[imageIndex] ?? images[0];
           if (img) {
             setAltText(images[imageIndex]?.alt || images[0]?.alt || "Ref Sheet");
             setRefSheetImageLoaded(false);
-            setRefSheetImage(
-              `https://cdn.bsky.app/img/feed_fullsize/plain/${img.did}/${img.cid}@jpeg`,
-            );
+            setRefSheetImage(buildImageUrl(character.refSheet, img.did, img.cid, "fullsize"));
           }
         } catch {
           // Silently skip if post is inaccessible
@@ -179,15 +221,13 @@ export function ViewCharacter() {
       }
       if (character.altRef?.startsWith("at://")) {
         try {
-          const images = await resolvePostImages(character.altRef);
+          const images = await resolveRefImages(character.altRef);
           const imageIndex = character.altRefImageIndex ?? 0;
           const img = images[imageIndex] ?? images[0];
           if (img) {
             setAltAltText(images[imageIndex]?.alt || images[0]?.alt || "Alt Ref Sheet");
             setAltRefSheetImageLoaded(false);
-            setAltRefSheetImage(
-              `https://cdn.bsky.app/img/feed_fullsize/plain/${img.did}/${img.cid}@jpeg`,
-            );
+            setAltRefSheetImage(buildImageUrl(character.altRef, img.did, img.cid, "fullsize"));
           }
         } catch {
           // Silently skip if post is inaccessible
@@ -197,7 +237,7 @@ export function ViewCharacter() {
     };
 
     void loadImages();
-  }, [character, resolvePostImages]);
+  }, [character, resolveRefImages, buildImageUrl]);
 
   useEffect(() => {
     if (!character?.nsfw) {
@@ -421,8 +461,12 @@ export function ViewCharacter() {
               <img
                 src={`${refSheetImage}`}
                 alt={altText}
-                className={`max-w-full cursor-pointer ${refSheetImageLoaded ? "" : "hidden"}`}
-                onClick={() => window.open(getBlueskyLink(character.refSheet), "_blank")}
+                className={`max-w-full ${getUriCollection(character.refSheet) === ASSET_COLLECTION_NS ? "" : "cursor-pointer"} ${refSheetImageLoaded ? "" : "hidden"}`}
+                onClick={
+                  getUriCollection(character.refSheet) === ASSET_COLLECTION_NS
+                    ? undefined
+                    : () => window.open(getBlueskyLink(character.refSheet), "_blank")
+                }
                 onLoad={() => setRefSheetImageLoaded(true)}
               />
               {character.refSheetCredit && (
@@ -441,8 +485,12 @@ export function ViewCharacter() {
               <img
                 src={`${altRefSheetImage}`}
                 alt={altAltText}
-                className={`max-w-full cursor-pointer ${altRefSheetImageLoaded ? "" : "hidden"}`}
-                onClick={() => window.open(getBlueskyLink(character.altRef), "_blank")}
+                className={`max-w-full ${getUriCollection(character.altRef) === ASSET_COLLECTION_NS ? "" : "cursor-pointer"} ${altRefSheetImageLoaded ? "" : "hidden"}`}
+                onClick={
+                  getUriCollection(character.altRef) === ASSET_COLLECTION_NS
+                    ? undefined
+                    : () => window.open(getBlueskyLink(character.altRef), "_blank")
+                }
                 onLoad={() => setAltRefSheetImageLoaded(true)}
               />
               {character.altRefCredit && (

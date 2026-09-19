@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "gen:lexicons": "lex build --lexicons ./lexicons --out ./src/lexicon --clear && pnpm exec oxfmt src/lexicon"
   },
   "dependencies": {
     "@atcute/atproto": "^3.1.12",
@@ -18,7 +19,7 @@
     "@atproto/api": "^0.18.21",
     "@atproto/common": "^0.5.16",
     "@atproto/common-web": "^0.4.21",
-    "@atproto/lexicon": "^0.6.2",
+    "@atproto/lex": "^0.3.11",
     "@atproto/oauth-client": "^0.5.14",
     "@atproto/oauth-client-browser": "^0.3.42",
     "@headlessui/react": "^2.2.9",

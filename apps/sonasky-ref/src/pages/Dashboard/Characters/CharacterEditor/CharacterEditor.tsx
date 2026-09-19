@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import LinksDialog from "./LinksDialog";
 import { useNavigate, useParams } from "react-router";
 import Layout from "../../../../layouts/Dashboard";
@@ -15,8 +15,13 @@ import { TextField } from "../../../../components/ui/TextField";
 import { Tooltip } from "../../../../components/ui/Tooltip";
 import { type Character, CharacterTypeKeys, validateCharacter } from "../../../../types/Character";
 import { useAuthContext } from "../../../../auth/auth-provider";
-import { PDS_COLLECTION_NS } from "../../../../const";
-import * as SonaskyRef from "../../../../lexicon/types/app/sonasky/ref";
+import {
+  ALLOWED_ASSET_MIME_TYPES,
+  ASSET_COLLECTION_NS,
+  PDS_COLLECTION_NS,
+} from "../../../../const";
+import { validateAssetFile } from "../../../../helpers/validateAssetFile";
+import * as SonaskyRef from "../../../../lexicon/app/sonasky/ref";
 import { TID } from "@atproto/common-web";
 import { ColorPicker, useColor } from "react-color-palette";
 import { ExternalLink, X } from "lucide-react";
@@ -27,6 +32,12 @@ import "react-color-palette/css";
 
 interface CharacterEditorProps {
   editMode?: boolean;
+}
+
+type RefMode = "post" | "upload";
+
+function getUriCollection(atUri: string): string {
+  return atUri.split("/")[3] ?? "";
 }
 
 function CharacterEditor(props: CharacterEditorProps) {
@@ -64,6 +75,13 @@ function CharacterEditor(props: CharacterEditorProps) {
   const [editingColorIndex, setEditingColorIndex] = useState<number | undefined>();
   const [refSheetImages, setRefSheetImages] = useState<{ cid: string; did: string }[]>([]);
   const [altRefImages, setAltRefImages] = useState<{ cid: string; did: string }[]>([]);
+  const [refSheetMode, setRefSheetMode] = useState<RefMode>("post");
+  const [altRefMode, setAltRefMode] = useState<RefMode>("post");
+  const [refSheetPreviewUrl, setRefSheetPreviewUrl] = useState<string>("");
+  const [altRefPreviewUrl, setAltRefPreviewUrl] = useState<string>("");
+  const [refSheetAltText, setRefSheetAltText] = useState<string>("");
+  const [altRefAltText, setAltRefAltText] = useState<string>("");
+  const initialCharacterRef = useRef<Character | undefined>(undefined);
 
   const fetchPostImages = useCallback(
     async (atUri: string): Promise<{ cid: string; did: string }[]> => {
@@ -106,6 +124,33 @@ function CharacterEditor(props: CharacterEditorProps) {
     [pdsAgent],
   );
 
+  const loadAsset = useCallback(
+    async (atUri: string): Promise<{ previewUrl: string; alt: string }> => {
+      try {
+        const [, , did, , assetRkey] = atUri.split("/");
+        const record = await pdsAgent.com.atproto.repo.getRecord({
+          collection: ASSET_COLLECTION_NS,
+          repo: did,
+          rkey: assetRkey,
+        });
+        const value = record.data.value as any;
+        const cid = value.image?.ref?.toString();
+        const alt = typeof value.alt === "string" ? value.alt : "";
+        if (!cid) {
+          return { alt, previewUrl: "" };
+        }
+        const blob = await pdsAgent.com.atproto.sync.getBlob({ did, cid });
+        return {
+          alt,
+          previewUrl: URL.createObjectURL(new Blob([new Uint8Array(blob.data)])),
+        };
+      } catch {
+        return { alt: "", previewUrl: "" };
+      }
+    },
+    [pdsAgent],
+  );
+
   const loadCharacter = useCallback(async () => {
     try {
       const record = await pdsAgent.com.atproto.repo.getRecord({
@@ -115,17 +160,32 @@ function CharacterEditor(props: CharacterEditorProps) {
       });
       const char = (record.data.value as any).character;
       setCharacter(char);
+      initialCharacterRef.current = char;
       setCreatedAt((record.data.value as any).createdAt);
       if (char.refSheet?.startsWith("at://")) {
-        setRefSheetImages(await fetchPostImages(char.refSheet));
+        if (getUriCollection(char.refSheet) === ASSET_COLLECTION_NS) {
+          setRefSheetMode("upload");
+          const asset = await loadAsset(char.refSheet);
+          setRefSheetPreviewUrl(asset.previewUrl);
+          setRefSheetAltText(asset.alt);
+        } else {
+          setRefSheetImages(await fetchPostImages(char.refSheet));
+        }
       }
       if (char.altRef?.startsWith("at://")) {
-        setAltRefImages(await fetchPostImages(char.altRef));
+        if (getUriCollection(char.altRef) === ASSET_COLLECTION_NS) {
+          setAltRefMode("upload");
+          const asset = await loadAsset(char.altRef);
+          setAltRefPreviewUrl(asset.previewUrl);
+          setAltRefAltText(asset.alt);
+        } else {
+          setAltRefImages(await fetchPostImages(char.altRef));
+        }
       }
     } catch (error) {
       console.error("Failed to load character", error);
     }
-  }, [pdsAgent, rkey, fetchPostImages]);
+  }, [pdsAgent, rkey, fetchPostImages, loadAsset]);
 
   useEffect(() => {
     // LoadCharacter(); // only do this if editMode
@@ -182,6 +242,104 @@ function CharacterEditor(props: CharacterEditorProps) {
     );
   };
 
+  const handleAssetUpload = async (field: "refSheet" | "altRef", file: File | undefined) => {
+    if (!file) {
+      return;
+    }
+    const { status, message } = validateAssetFile(file);
+    if (!status) {
+      setValidationMessage(message);
+      return;
+    }
+    setValidationMessage("");
+    const objectUrl = URL.createObjectURL(file);
+    if (field === "refSheet") {
+      setRefSheetPreviewUrl(objectUrl);
+    } else {
+      setAltRefPreviewUrl(objectUrl);
+    }
+    try {
+      const { data: blobData } = await pdsAgent.com.atproto.repo.uploadBlob(file);
+      const assetRkey = TID.nextStr();
+      const nowTs = new Date().toISOString();
+      await pdsAgent.com.atproto.repo.putRecord({
+        collection: ASSET_COLLECTION_NS,
+        record: {
+          $type: ASSET_COLLECTION_NS,
+          alt: field === "refSheet" ? refSheetAltText : altRefAltText,
+          createdAt: nowTs,
+          image: blobData.blob,
+        },
+        repo: pdsAgent.assertDid,
+        rkey: assetRkey,
+        validate: false,
+      });
+      const atUri = `at://${pdsAgent.assertDid}/${ASSET_COLLECTION_NS}/${assetRkey}`;
+      const indexKey = field === "refSheet" ? "refSheetImageIndex" : "altRefImageIndex";
+      setCharacter((prev) => (prev ? { ...prev, [field]: atUri, [indexKey]: 0 } : undefined));
+      if (field === "refSheet") {
+        setRefSheetImages([]);
+      } else {
+        setAltRefImages([]);
+      }
+    } catch (error) {
+      console.error(`Failed to upload image for ${field}`, error);
+      setValidationMessage("Failed to upload image. Please try again.");
+    }
+  };
+
+  const cleanupOrphanedAsset = async (oldUri: string | undefined, newUri: string | undefined) => {
+    if (!oldUri || oldUri === newUri) {
+      return;
+    }
+    if (getUriCollection(oldUri) !== ASSET_COLLECTION_NS) {
+      return;
+    }
+    const [, , did, , assetRkey] = oldUri.split("/");
+    if (did !== pdsAgent.assertDid) {
+      return;
+    }
+    try {
+      await pdsAgent.com.atproto.repo.deleteRecord({
+        collection: ASSET_COLLECTION_NS,
+        repo: pdsAgent.assertDid,
+        rkey: assetRkey,
+      });
+    } catch (error) {
+      console.error("Failed to delete orphaned asset record", error);
+    }
+  };
+
+  const syncAssetAlt = async (atUri: string | undefined, altText: string) => {
+    if (!atUri || getUriCollection(atUri) !== ASSET_COLLECTION_NS) {
+      return;
+    }
+    const [, , did, , assetRkey] = atUri.split("/");
+    if (did !== pdsAgent.assertDid) {
+      return;
+    }
+    try {
+      const record = await pdsAgent.com.atproto.repo.getRecord({
+        collection: ASSET_COLLECTION_NS,
+        repo: did,
+        rkey: assetRkey,
+      });
+      const value = record.data.value as any;
+      if (value.alt === altText) {
+        return;
+      }
+      await pdsAgent.com.atproto.repo.putRecord({
+        collection: ASSET_COLLECTION_NS,
+        record: { ...value, alt: altText },
+        repo: pdsAgent.assertDid,
+        rkey: assetRkey,
+        validate: false,
+      });
+    } catch (error) {
+      console.error("Failed to update asset alt text", error);
+    }
+  };
+
   const handleSubmitNew = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!character) {
@@ -209,7 +367,7 @@ function CharacterEditor(props: CharacterEditorProps) {
           createdAt: nowTs,
           modifiedAt: nowTs,
         };
-        const extraValidation = SonaskyRef.validateRecord(record);
+        const extraValidation = SonaskyRef.$safeValidate(record);
         if (!extraValidation.success) {
           console.error("Failed to validate SonaSky REF record", extraValidation);
           setValidationMessage("Failed to validate SonaSky REF record");
@@ -222,6 +380,8 @@ function CharacterEditor(props: CharacterEditorProps) {
           rkey,
           validate: false,
         });
+        await syncAssetAlt(prunedChar.refSheet, refSheetAltText);
+        await syncAssetAlt(prunedChar.altRef, altRefAltText);
         void navigate("/dashboard/characters"); // Navigate to the character list
       } catch (error) {
         console.error("Failed to add new SonaSky REF record", error);
@@ -254,7 +414,7 @@ function CharacterEditor(props: CharacterEditorProps) {
           createdAt,
           modifiedAt: new Date().toISOString(),
         };
-        const extraValidation = SonaskyRef.validateRecord(record);
+        const extraValidation = SonaskyRef.$safeValidate(record);
         if (!extraValidation.success) {
           console.error("Failed to validate SonaSky REF record", extraValidation);
           setValidationMessage("Failed to validate SonaSky REF record");
@@ -267,6 +427,10 @@ function CharacterEditor(props: CharacterEditorProps) {
           rkey: rkey as string,
           validate: false,
         });
+        await cleanupOrphanedAsset(initialCharacterRef.current?.refSheet, prunedChar.refSheet);
+        await cleanupOrphanedAsset(initialCharacterRef.current?.altRef, prunedChar.altRef);
+        await syncAssetAlt(prunedChar.refSheet, refSheetAltText);
+        await syncAssetAlt(prunedChar.altRef, altRefAltText);
         void navigate("/dashboard/characters"); // Navigate to the character list
       } catch (error) {
         console.error("Failed to update SonaSky REF record", error);
@@ -396,6 +560,8 @@ function CharacterEditor(props: CharacterEditorProps) {
         repo: pdsAgent.assertDid,
         rkey: rkey as string,
       });
+      await cleanupOrphanedAsset(character?.refSheet, undefined);
+      await cleanupOrphanedAsset(character?.altRef, undefined);
       void navigate("/dashboard/characters"); // Navigate to the character list
     } catch (error) {
       console.error("Failed to delete character", error);
@@ -536,54 +702,102 @@ function CharacterEditor(props: CharacterEditorProps) {
               className="mb-3"
             />
             <div>
-              <div className="flex items-center">
-                <TextField
-                  label="Ref Sheet Post on Bluesky (URL)"
-                  name="refSheet"
-                  value={character.refSheet}
-                  onChange={handleChange}
-                  className="flex-1"
-                />
-                {character.refSheet?.startsWith("at://") && (
-                  <AnchorIconButton
-                    href={getBlueskyLink(character.refSheet)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-2 mt-6"
-                  >
-                    <ExternalLink size={20} />
-                  </AnchorIconButton>
-                )}
+              <div className="mb-2 flex gap-2">
+                <Button
+                  type="button"
+                  variant={refSheetMode === "post" ? "contained" : "outlined"}
+                  size="small"
+                  onClick={() => setRefSheetMode("post")}
+                >
+                  Link a Bluesky Post
+                </Button>
+                <Button
+                  type="button"
+                  variant={refSheetMode === "upload" ? "contained" : "outlined"}
+                  size="small"
+                  onClick={() => setRefSheetMode("upload")}
+                >
+                  Upload an Image
+                </Button>
               </div>
-              {refSheetImages.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {refSheetImages.map(({ cid, did }, index) => {
-                    const isSelected = (character.refSheetImageIndex ?? 0) === index;
-                    return (
-                      <div
-                        key={`${did}/${cid}`}
-                        className={`h-20 w-20 cursor-pointer overflow-hidden rounded border-[3px] ${
-                          isSelected ? "border-blue-600" : "border-transparent"
-                        }`}
-                        onClick={() =>
-                          setCharacter((prev) =>
-                            prev
-                              ? {
-                                  ...prev,
-                                  refSheetImageIndex: index,
-                                }
-                              : undefined,
-                          )
-                        }
+              {refSheetMode === "post" ? (
+                <>
+                  <div className="flex items-center">
+                    <TextField
+                      label="Ref Sheet Post on Bluesky (URL)"
+                      name="refSheet"
+                      value={character.refSheet}
+                      onChange={handleChange}
+                      className="flex-1"
+                    />
+                    {character.refSheet?.startsWith("at://") && (
+                      <AnchorIconButton
+                        href={getBlueskyLink(character.refSheet)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-2 mt-6"
                       >
-                        <img
-                          src={`https://cdn.bsky.app/img/feed_thumbnail/plain/${did}/${cid}@jpeg`}
-                          alt={`Image ${index + 1}`}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    );
-                  })}
+                        <ExternalLink size={20} />
+                      </AnchorIconButton>
+                    )}
+                  </div>
+                  {refSheetImages.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {refSheetImages.map(({ cid, did }, index) => {
+                        const isSelected = (character.refSheetImageIndex ?? 0) === index;
+                        return (
+                          <div
+                            key={`${did}/${cid}`}
+                            className={`h-20 w-20 cursor-pointer overflow-hidden rounded border-[3px] ${
+                              isSelected ? "border-blue-600" : "border-transparent"
+                            }`}
+                            onClick={() =>
+                              setCharacter((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      refSheetImageIndex: index,
+                                    }
+                                  : undefined,
+                              )
+                            }
+                          >
+                            <img
+                              src={`https://cdn.bsky.app/img/feed_thumbnail/plain/${did}/${cid}@jpeg`}
+                              alt={`Image ${index + 1}`}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div>
+                  <input
+                    type="file"
+                    accept={ALLOWED_ASSET_MIME_TYPES.join(",")}
+                    onChange={(e) => void handleAssetUpload("refSheet", e.target.files?.[0])}
+                  />
+                  {refSheetPreviewUrl && (
+                    <div className="mt-2 h-32 w-32 overflow-hidden rounded border">
+                      <img
+                        src={refSheetPreviewUrl}
+                        alt="Ref sheet preview"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <TextField
+                    label="Alt Text (optional)"
+                    name="refSheetAltText"
+                    value={refSheetAltText}
+                    onChange={(e) => setRefSheetAltText(e.target.value)}
+                    maxLength={2000}
+                    className="mt-2"
+                    helperText="Describes the image for screen readers and accessibility tools"
+                  />
                 </div>
               )}
               <TextField
@@ -596,54 +810,102 @@ function CharacterEditor(props: CharacterEditorProps) {
               />
             </div>
             <div>
-              <div className="flex items-center">
-                <TextField
-                  label="Alt Ref Post on Bluesky (URL)"
-                  name="altRef"
-                  value={character.altRef}
-                  onChange={handleChange}
-                  className="flex-1"
-                />
-                {character.altRef?.startsWith("at://") && (
-                  <AnchorIconButton
-                    href={getBlueskyLink(character.altRef)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-2 mt-6"
-                  >
-                    <ExternalLink size={20} />
-                  </AnchorIconButton>
-                )}
+              <div className="mb-2 flex gap-2">
+                <Button
+                  type="button"
+                  variant={altRefMode === "post" ? "contained" : "outlined"}
+                  size="small"
+                  onClick={() => setAltRefMode("post")}
+                >
+                  Link a Bluesky Post
+                </Button>
+                <Button
+                  type="button"
+                  variant={altRefMode === "upload" ? "contained" : "outlined"}
+                  size="small"
+                  onClick={() => setAltRefMode("upload")}
+                >
+                  Upload an Image
+                </Button>
               </div>
-              {altRefImages.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {altRefImages.map(({ cid, did }, index) => {
-                    const isSelected = (character.altRefImageIndex ?? 0) === index;
-                    return (
-                      <div
-                        key={`${did}/${cid}`}
-                        className={`h-20 w-20 cursor-pointer overflow-hidden rounded border-[3px] ${
-                          isSelected ? "border-blue-600" : "border-transparent"
-                        }`}
-                        onClick={() =>
-                          setCharacter((prev) =>
-                            prev
-                              ? {
-                                  ...prev,
-                                  altRefImageIndex: index,
-                                }
-                              : undefined,
-                          )
-                        }
+              {altRefMode === "post" ? (
+                <>
+                  <div className="flex items-center">
+                    <TextField
+                      label="Alt Ref Post on Bluesky (URL)"
+                      name="altRef"
+                      value={character.altRef}
+                      onChange={handleChange}
+                      className="flex-1"
+                    />
+                    {character.altRef?.startsWith("at://") && (
+                      <AnchorIconButton
+                        href={getBlueskyLink(character.altRef)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-2 mt-6"
                       >
-                        <img
-                          src={`https://cdn.bsky.app/img/feed_thumbnail/plain/${did}/${cid}@jpeg`}
-                          alt={`Image ${index + 1}`}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    );
-                  })}
+                        <ExternalLink size={20} />
+                      </AnchorIconButton>
+                    )}
+                  </div>
+                  {altRefImages.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {altRefImages.map(({ cid, did }, index) => {
+                        const isSelected = (character.altRefImageIndex ?? 0) === index;
+                        return (
+                          <div
+                            key={`${did}/${cid}`}
+                            className={`h-20 w-20 cursor-pointer overflow-hidden rounded border-[3px] ${
+                              isSelected ? "border-blue-600" : "border-transparent"
+                            }`}
+                            onClick={() =>
+                              setCharacter((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      altRefImageIndex: index,
+                                    }
+                                  : undefined,
+                              )
+                            }
+                          >
+                            <img
+                              src={`https://cdn.bsky.app/img/feed_thumbnail/plain/${did}/${cid}@jpeg`}
+                              alt={`Image ${index + 1}`}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div>
+                  <input
+                    type="file"
+                    accept={ALLOWED_ASSET_MIME_TYPES.join(",")}
+                    onChange={(e) => void handleAssetUpload("altRef", e.target.files?.[0])}
+                  />
+                  {altRefPreviewUrl && (
+                    <div className="mt-2 h-32 w-32 overflow-hidden rounded border">
+                      <img
+                        src={altRefPreviewUrl}
+                        alt="Alt ref sheet preview"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <TextField
+                    label="Alt Text (optional)"
+                    name="altRefAltText"
+                    value={altRefAltText}
+                    onChange={(e) => setAltRefAltText(e.target.value)}
+                    maxLength={2000}
+                    className="mt-2"
+                    helperText="Describes the image for screen readers and accessibility tools"
+                  />
                 </div>
               )}
               <TextField
