@@ -122,6 +122,10 @@ const changelogData = [
   },
   {
     changes: [
+      `Add the ability to upload a ref sheet image directly, for characters that don't have an existing Bluesky post to reference. Look for the "Upload an Image" option next to Ref Sheet / Alt Ref on the character editor.`,
+      `Uploaded ref sheet images support alt text for accessibility.`,
+      `Add the ability to report an uploaded ref sheet image, right from the character view page, to Bluesky Moderation Services (must be signed in).`,
+      `You may be asked to sign out and back in once to grant the new upload/report permissions.`,
       `Character descriptions now support markdown links. Links to sites other than Bluesky/SonaSky show a leaving-site warning before you navigate.`,
     ],
     date: dayjs(`2026-09-19`),
