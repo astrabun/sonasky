@@ -142,7 +142,7 @@ const changelogData = [
       `Bugfix: various fixes for loading ref sheet images.`,
     ],
     date: dayjs(`2026-09-20`),
-    version: "1.5.1",
+    version: "1.6.0",
   },
 ];
 
