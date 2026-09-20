@@ -62,6 +62,7 @@ interface GalleryProps {
 type GalleryTab = "all" | "sfw" | "nsfw";
 
 const NSFW_REVEAL_KEY_PREFIX = "gallery-nsfw-reveal:";
+const GALLERY_PAGE_SIZE = 10;
 
 export function Gallery({
   rpc,
@@ -80,6 +81,7 @@ export function Gallery({
   const [showFilters, setShowFilters] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [selectedArtists, setSelectedArtists] = useState<string[]>([]);
+  const [visibleCount, setVisibleCount] = useState(GALLERY_PAGE_SIZE);
 
   const getRecord = useCallback<GetRecordFn>(
     (params) =>
@@ -206,9 +208,12 @@ export function Gallery({
 
   useEffect(() => {
     setLightboxIndex(undefined);
+    setVisibleCount(GALLERY_PAGE_SIZE);
   }, [activeTab, searchText, selectedArtists]);
 
   const filtersActive = searchText !== "" || selectedArtists.length > 0;
+  const visibleEntries = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
 
   if (!loaded || entries.length === 0) {
     return null;
@@ -323,7 +328,7 @@ export function Gallery({
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-            {filtered.map((entry, index) => {
+            {visibleEntries.map((entry, index) => {
               const thumbUrl = buildImageUrl(
                 resolvedPdsUrl,
                 entry.recordUri,
@@ -360,6 +365,20 @@ export function Gallery({
                 </button>
               );
             })}
+          </div>
+        )}
+        {hasMore && (
+          <div className="mt-3 flex justify-center">
+            <Button
+              type="button"
+              variant="outlined"
+              size="small"
+              onClick={() =>
+                setVisibleCount((count) => Math.min(count + GALLERY_PAGE_SIZE, filtered.length))
+              }
+            >
+              Load more
+            </Button>
           </div>
         )}
       </Accordion>

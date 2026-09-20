@@ -144,6 +144,13 @@ const changelogData = [
     date: dayjs(`2026-09-20`),
     version: "1.6.0",
   },
+  {
+    changes: [
+      `Performance: Character art galleries now load in batches of 10 with a "Load more" button, instead of loading every image at once.`,
+    ],
+    date: dayjs(`2026-09-20`),
+    version: "1.6.1",
+  },
 ];
 
 // Get latest version by the highest semver version
