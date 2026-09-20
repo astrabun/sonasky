@@ -5,3 +5,4 @@
 export * as asset from "./ref/asset.js";
 export * from "./ref.defs.js";
 export { main as default } from "./ref.defs.js";
+export * as galleryImage from "./ref/galleryImage.js";

@@ -14,6 +14,11 @@ import type {} from "@atcute/atproto";
 import type { ActorIdentifier } from "@atcute/lexicons";
 import { ASSET_COLLECTION_NS, ENV, HANDLE_RESOLVER_URL, PLC_DIRECTORY_URL } from "../../../const";
 import {
+  buildImageUrl as buildImageUrlHelper,
+  getUriCollection,
+  resolveRefImages as resolveRefImagesHelper,
+} from "../../../helpers/resolveImageSource";
+import {
   type CharacterLink,
   LINK_TYPE_LABELS,
   validateCharacterLink,
@@ -35,14 +40,11 @@ import { useOAuth } from "../../../auth/oauth/use-oauth";
 import { useCredentialAuth } from "../../../auth/credential/use-credential-auth";
 import { IconButton } from "../../../components/ui/IconButton";
 import { ReportAssetDialog } from "./ReportAssetDialog";
+import { Gallery } from "./Gallery/Gallery";
 
 interface AssetRef {
   uri: string;
   cid: string;
-}
-
-function getUriCollection(atUri: string): string {
-  return atUri.split("/")[3] ?? "";
 }
 
 function Item({ className, children }: { className?: string; children?: React.ReactNode }) {
@@ -115,87 +117,22 @@ export function ViewCharacter() {
     void handleGetPds();
   }, [blueskyHandleOrDID]);
 
-  const resolvePostImages = useCallback(
-    async (atUri: string): Promise<{ cid: string; did: string; alt: string }[]> => {
-      const [, , did, , postRkey] = atUri.split("/");
-      const { data } = await rpc.get("com.atproto.repo.getRecord", {
-        params: {
-          collection: "app.bsky.feed.post",
-          repo: did as ActorIdentifier,
-          rkey: postRkey,
-        },
-      });
-      const { value } = data as any;
-      const { embed } = value;
-      if (embed?.$type === "app.bsky.embed.images" && embed.images) {
-        return embed.images.map((img: any) => ({
-          alt: img.alt ?? "",
-          cid: img.image.ref.$link,
-          did,
-        }));
-      }
-      if (embed?.$type === "app.bsky.embed.record" && embed.record?.uri) {
-        return resolvePostImages(embed.record.uri);
-      }
-      if (embed?.$type === "app.bsky.embed.recordWithMedia") {
-        const ownImages: { alt: string; cid: string; did: string }[] = embed.media?.images
-          ? embed.media.images.map((img: any) => ({
-              alt: img.alt ?? "",
-              cid: img.image.ref.$link,
-              did,
-            }))
-          : [];
-        const quotedImages = embed.record?.record?.uri
-          ? await resolvePostImages(embed.record.record.uri)
-          : [];
-        return [...ownImages, ...quotedImages];
-      }
-      return [];
-    },
-    [rpc],
-  );
-
-  const resolveAssetImage = useCallback(
-    async (
-      atUri: string,
-    ): Promise<{ cid: string; did: string; alt: string; recordRef?: AssetRef }[]> => {
-      const [, , did, , assetRkey] = atUri.split("/");
-      const { data } = await rpc.get("com.atproto.repo.getRecord", {
-        params: {
-          collection: ASSET_COLLECTION_NS,
-          repo: did as ActorIdentifier,
-          rkey: assetRkey,
-        },
-      });
-      const { value, cid: recordCid } = data as any;
-      const cid = value?.image?.ref?.$link;
-      return cid
-        ? [{ alt: value.alt ?? "", cid, did, recordRef: { cid: recordCid, uri: atUri } }]
-        : [];
-    },
+  const getRecord = useCallback(
+    (params: { collection: string; repo: string; rkey: string }) =>
+      rpc.get("com.atproto.repo.getRecord", {
+        params: { ...params, repo: params.repo as ActorIdentifier } as any,
+      }) as Promise<{ data: { value: any; cid?: string } }>,
     [rpc],
   );
 
   const resolveRefImages = useCallback(
-    async (
-      atUri: string,
-    ): Promise<{ cid: string; did: string; alt: string; recordRef?: AssetRef }[]> => {
-      if (getUriCollection(atUri) === ASSET_COLLECTION_NS) {
-        return resolveAssetImage(atUri);
-      }
-      return resolvePostImages(atUri);
-    },
-    [resolveAssetImage, resolvePostImages],
+    (atUri: string) => resolveRefImagesHelper(getRecord, atUri),
+    [getRecord],
   );
 
   const buildImageUrl = useCallback(
-    (atUri: string, did: string, cid: string, size: "thumbnail" | "fullsize"): string => {
-      if (getUriCollection(atUri) === ASSET_COLLECTION_NS) {
-        return `${resolvedPdsUrl}/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`;
-      }
-      const variant = size === "thumbnail" ? "feed_thumbnail" : "feed_fullsize";
-      return `https://cdn.bsky.app/img/${variant}/plain/${did}/${cid}@jpeg`;
-    },
+    (atUri: string, did: string, cid: string, size: "thumbnail" | "fullsize"): string =>
+      buildImageUrlHelper(resolvedPdsUrl, atUri, did, cid, size),
     [resolvedPdsUrl],
   );
 
@@ -517,6 +454,11 @@ export function ViewCharacter() {
                     ? undefined
                     : () => window.open(getBlueskyLink(character.refSheet), "_blank")
                 }
+                ref={(el) => {
+                  if (el?.complete) {
+                    setRefSheetImageLoaded(true);
+                  }
+                }}
                 onLoad={() => setRefSheetImageLoaded(true)}
               />
               {character.refSheetCredit && (
@@ -550,12 +492,27 @@ export function ViewCharacter() {
                     ? undefined
                     : () => window.open(getBlueskyLink(character.altRef), "_blank")
                 }
+                ref={(el) => {
+                  if (el?.complete) {
+                    setAltRefSheetImageLoaded(true);
+                  }
+                }}
                 onLoad={() => setAltRefSheetImageLoaded(true)}
               />
               {character.altRefCredit && (
                 <p className="text-xs">Credit: {character.altRefCredit}</p>
               )}
             </div>
+          )}
+          {rkey && (
+            <Gallery
+              rpc={rpc}
+              resolvedPdsUrl={resolvedPdsUrl}
+              blueskyHandleOrDID={blueskyHandleOrDID ?? ""}
+              characterRkey={rkey}
+              canReport={canReport}
+              onReportClick={handleReportClick}
+            />
           )}
         </div>
       </div>
