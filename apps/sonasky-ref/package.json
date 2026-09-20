@@ -52,7 +52,8 @@
     "react-router": "^7.15.0",
     "semver": "^7.8.0",
     "swetrix": "^4.6.1",
-    "tiptap-markdown": "^0.9.0"
+    "tiptap-markdown": "^0.9.0",
+    "yet-another-react-lightbox": "^3.32.2"
   },
   "devDependencies": {
     "@sonasky/tsconfig": "workspace:*",

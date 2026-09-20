@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { DescriptionEditor } from "./DescriptionEditor";
 import LinksDialog from "./LinksDialog";
+import { GalleryEditor } from "./GalleryEditor";
 import { useNavigate, useParams } from "react-router";
 import Layout from "../../../../layouts/Dashboard";
 import { Button } from "../../../../components/ui/Button";
@@ -19,6 +20,7 @@ import { useAuthContext } from "../../../../auth/auth-provider";
 import {
   ALLOWED_ASSET_MIME_TYPES,
   ASSET_COLLECTION_NS,
+  GALLERY_COLLECTION_NS,
   PDS_COLLECTION_NS,
 } from "../../../../const";
 import { validateAssetFile } from "../../../../helpers/validateAssetFile";
@@ -563,6 +565,19 @@ function CharacterEditor(props: CharacterEditorProps) {
       });
       await cleanupOrphanedAsset(character?.refSheet, undefined);
       await cleanupOrphanedAsset(character?.altRef, undefined);
+      const { data } = await pdsAgent.com.atproto.repo.listRecords({
+        collection: GALLERY_COLLECTION_NS,
+        repo: pdsAgent.assertDid,
+      });
+      const galleryRecords = data.records.filter((rec: any) => rec.value.characterRkey === rkey);
+      for (const rec of galleryRecords) {
+        await pdsAgent.com.atproto.repo.deleteRecord({
+          collection: GALLERY_COLLECTION_NS,
+          repo: pdsAgent.assertDid,
+          rkey: rec.uri.split("/").pop() as string,
+        });
+        await cleanupOrphanedAsset((rec.value as any).source, undefined);
+      }
       void navigate("/dashboard/characters"); // Navigate to the character list
     } catch (error) {
       console.error("Failed to delete character", error);
@@ -1010,6 +1025,11 @@ function CharacterEditor(props: CharacterEditorProps) {
             )}
             {validationMessage && <p className="text-sm text-red-600">{validationMessage}</p>}
           </form>
+          {editMode && rkey && (
+            <div className="mt-6 border-t border-gray-200 pt-6 dark:border-gray-700">
+              <GalleryEditor pdsAgent={pdsAgent} characterRkey={rkey} />
+            </div>
+          )}
           <LinksDialog
             open={linksDialogOpen}
             onClose={() => setLinksDialogOpen(false)}

@@ -20,7 +20,7 @@ const maxWidthClasses = {
 
 export function Dialog({ open, onClose, maxWidth = "sm", children }: DialogProps) {
   return (
-    <HeadlessDialog open={open} onClose={onClose} className="relative z-50">
+    <HeadlessDialog open={open} onClose={onClose} className="relative z-[10000]">
       <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
       <div className="fixed inset-0 flex w-screen items-center justify-center p-4">
         <DialogPanel

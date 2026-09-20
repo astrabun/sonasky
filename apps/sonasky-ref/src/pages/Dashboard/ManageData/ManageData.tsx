@@ -10,7 +10,8 @@ import {
 import { Spinner } from "../../../components/ui/Spinner";
 import { useCallback, useEffect, useState } from "react";
 import { useAuthContext } from "../../../auth/auth-provider";
-import { PDS_COLLECTION_NS } from "../../../const";
+import { ASSET_COLLECTION_NS, GALLERY_COLLECTION_NS, PDS_COLLECTION_NS } from "../../../const";
+import { getUriCollection } from "../../../helpers/resolveImageSource";
 
 export function ManageData() {
   const { pdsAgent } = useAuthContext();
@@ -42,20 +43,42 @@ export function ManageData() {
     setNoDataDialogOpen(false);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     setOperationRunning(true);
     if (sonaRecords.length === 0) {
       setOperationRunning(false);
       setOpen(false);
       setNoDataDialogOpen(true);
     } else {
-      sonaRecords.forEach(async (rec: { uri: string }) => {
+      for (const rec of sonaRecords) {
         await pdsAgent.com.atproto.repo.deleteRecord({
           collection: PDS_COLLECTION_NS,
           repo: pdsAgent.assertDid,
           rkey: rec.uri.split("/").pop() as string,
         });
+      }
+      const { data: galleryData } = await pdsAgent.com.atproto.repo.listRecords({
+        collection: GALLERY_COLLECTION_NS,
+        repo: pdsAgent.assertDid,
       });
+      for (const rec of galleryData.records) {
+        await pdsAgent.com.atproto.repo.deleteRecord({
+          collection: GALLERY_COLLECTION_NS,
+          repo: pdsAgent.assertDid,
+          rkey: rec.uri.split("/").pop() as string,
+        });
+        const source = (rec.value as any).source as string;
+        if (getUriCollection(source) === ASSET_COLLECTION_NS) {
+          const [, , assetDid, , assetRkey] = source.split("/");
+          if (assetDid === pdsAgent.assertDid) {
+            await pdsAgent.com.atproto.repo.deleteRecord({
+              collection: ASSET_COLLECTION_NS,
+              repo: pdsAgent.assertDid,
+              rkey: assetRkey,
+            });
+          }
+        }
+      }
       setTimeout(() => {
         location.reload(); // Reload page
       }, 1000);
@@ -88,7 +111,7 @@ export function ManageData() {
               Cancel
             </Button>
             <Button
-              onClick={handleDelete}
+              onClick={() => void handleDelete()}
               color="error"
               disabled={operationRunning}
               startIcon={operationRunning ? <Spinner size={20} /> : undefined}

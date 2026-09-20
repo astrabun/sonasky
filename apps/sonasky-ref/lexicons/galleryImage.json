@@ -1,0 +1,58 @@
+{
+  "lexicon": 1,
+  "id": "app.sonasky.ref.galleryImage",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "An additional art piece of a character, sourced from a Bluesky post or an uploaded asset.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["characterRkey", "source", "artist", "createdAt"],
+        "properties": {
+          "characterRkey": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "The rkey of the app.sonasky.ref character record this image belongs to."
+          },
+          "source": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI of the source Bluesky post or app.sonasky.ref.asset record containing the image."
+          },
+          "sourceImageIndex": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0,
+            "description": "Index of the image within the source record's image array."
+          },
+          "artist": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "Credit for the artist who created this piece."
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Optional title for the piece."
+          },
+          "alt": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Alt text for the image."
+          },
+          "nsfw": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether this image is NSFW."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Timestamp when the gallery image was added."
+          }
+        }
+      }
+    }
+  }
+}
