@@ -133,6 +133,17 @@ const changelogData = [
     date: dayjs(`2026-09-19`),
     version: "1.5.0",
   },
+  {
+    changes: [
+      `Add character art galleries! Attach extra artwork to a character beyond the ref sheet, either by linking a Bluesky post or uploading an image directly, with support for a title, artist credit, and alt text on each entry.`,
+      `Manage Data page overhaul: characters, gallery entries, and uploaded assets are now listed with thumbnail previews, and each can be deleted individually with a confirmation dialog. Assets still in use by a character or gallery entry are flagged before you delete them.`,
+      `Improved mobile layout for the dashboard sidebar/navigation.`,
+      `Added a live user count to the homepage.`,
+      `Bugfix: various fixes for loading ref sheet images.`,
+    ],
+    date: dayjs(`2026-09-20`),
+    version: "1.5.1",
+  },
 ];
 
 // Get latest version by the highest semver version
