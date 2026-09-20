@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sonasky-ref-og-data",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-08",
+  "observability": { "enabled": true },
+  "vars": {
+    // The sonasky-ref Cloudflare Pages project's own *.pages.dev hostname -
+    // fetched directly (not via the custom domain) so this Worker's own
+    // route below doesn't intercept its own origin request.
+    "ORIGIN_HOST": "sonasky-ref.pages.dev",
+    "HANDLE_RESOLVER_URL": "https://bsky.social",
+  },
+  // Runs in front of the sonasky-ref Pages project for character-page URLs
+  // only - Worker routes take precedence over a Pages custom domain on the
+  // same zone.
+  "routes": [{ "pattern": "ref.sonasky.app/profile/*", "zone_name": "sonasky.app" }],
+}
