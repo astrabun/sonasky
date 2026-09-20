@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import Layout from "../../layouts/Home";
 import { Button } from "../../components/ui/Button";
+import { Chip } from "../../components/ui/Chip";
 import { AtpAgent, type AppBskyActorDefs } from "@atproto/api";
 import { PDS_COLLECTION_NS, RELAY_URL } from "../../const";
 
@@ -208,11 +209,26 @@ function Home() {
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
             Enter a Bluesky handle to view the user's character(s)/info.
           </p>
-          {userCount !== null && (
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {userCount.toLocaleString()} {userCount === 1 ? "user" : "users"} on Sonasky Ref
-            </p>
-          )}
+          <div
+            className={`mt-3 transition-all duration-700 ease-out ${
+              userCount !== null ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"
+            }`}
+          >
+            <Chip
+              icon={
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                </span>
+              }
+              label={
+                userCount !== null
+                  ? `${userCount.toLocaleString()} ${userCount === 1 ? "user" : "users"} on Sonasky Ref`
+                  : ""
+              }
+              colorClassName="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+            />
+          </div>
         </div>
       </div>
     </Layout>
