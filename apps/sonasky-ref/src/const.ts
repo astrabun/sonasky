@@ -17,6 +17,8 @@ export const HANDLE_RESOLVER_URL: string =
   //   (ENV === 'development' ? 'http://localhost:2584' : 'https://bsky.social')
   "https://bsky.social";
 
+export const RELAY_URL = "https://bsky.network";
+
 export const PDS_COLLECTION_NS = "app.sonasky.ref";
 
 export const ASSET_COLLECTION_NS = "app.sonasky.ref.asset";

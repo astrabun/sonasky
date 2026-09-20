@@ -3,17 +3,42 @@ import { useNavigate } from "react-router";
 import Layout from "../../layouts/Home";
 import { Button } from "../../components/ui/Button";
 import { AtpAgent, type AppBskyActorDefs } from "@atproto/api";
+import { PDS_COLLECTION_NS, RELAY_URL } from "../../const";
 
 const publicAgent = new AtpAgent({ service: "https://public.api.bsky.app" });
 
 const SEARCH_DEBOUNCE_MS = 300;
 const SEARCH_RESULT_LIMIT = 8;
+const USER_COUNT_PAGE_LIMIT = 1000;
+
+interface ListReposByCollectionResponse {
+  cursor?: string;
+  repos: { did: string }[];
+}
+
+// AtpAgent attaches an `atproto-accept-labelers` header that the relay's CORS
+// policy rejects, so this endpoint is called with a plain fetch instead.
+async function listReposByCollectionPage(
+  collection: string,
+  cursor: string | undefined,
+  signal: AbortSignal,
+): Promise<ListReposByCollectionResponse> {
+  const url = new URL("/xrpc/com.atproto.sync.listReposByCollection", RELAY_URL);
+  url.searchParams.set("collection", collection);
+  url.searchParams.set("limit", String(USER_COUNT_PAGE_LIMIT));
+  if (cursor) url.searchParams.set("cursor", cursor);
+
+  const response = await fetch(url, { signal });
+  if (!response.ok) throw new Error(`listReposByCollection failed: ${response.status}`);
+  return (await response.json()) as ListReposByCollectionResponse;
+}
 
 function Home() {
   const [handle, setHandle] = useState("");
   const [options, setOptions] = useState<AppBskyActorDefs.ProfileViewBasic[]>([]);
   const [loading, setLoading] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [userCount, setUserCount] = useState<number | null>(null);
   const navigate = useNavigate();
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -26,6 +51,29 @@ function Home() {
     },
     [],
   );
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const countUsers = async () => {
+      let cursor: string | undefined;
+      let count = 0;
+      do {
+        const data = await listReposByCollectionPage(PDS_COLLECTION_NS, cursor, controller.signal);
+        count += data.repos.length;
+        cursor = data.cursor;
+      } while (cursor);
+      setUserCount(count);
+    };
+
+    countUsers().catch((error: unknown) => {
+      if (!(error instanceof DOMException && error.name === "AbortError")) {
+        setUserCount(null);
+      }
+    });
+
+    return () => controller.abort();
+  }, []);
 
   const searchHandles = (query: string) => {
     clearTimeout(debounceRef.current);
@@ -160,6 +208,11 @@ function Home() {
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
             Enter a Bluesky handle to view the user's character(s)/info.
           </p>
+          {userCount !== null && (
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {userCount.toLocaleString()} {userCount === 1 ? "user" : "users"} on Sonasky Ref
+            </p>
+          )}
         </div>
       </div>
     </Layout>
