@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
+import { Menu, X } from "lucide-react";
 import { useAuthContext } from "../../auth/auth-provider";
 import { buttonClassName } from "../../components/ui/Button";
 
@@ -39,6 +40,12 @@ function InnerDashLayout(props: LayoutProps) {
   }, [pdsAgent]);
 
   const location = useLocation();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
+
   const navItems =
     sonaRecords !== undefined
       ? [
@@ -59,44 +66,58 @@ function InnerDashLayout(props: LayoutProps) {
           { name: "Logout", onclick: signOut },
         ];
 
+  const navLinks = navItems.map((item, idx) => {
+    if (item.path) {
+      return (
+        <Link
+          key={item.path}
+          to={item.path}
+          className={buttonClassName({
+            variant: location.pathname === item.path ? "contained" : "outlined",
+            fullWidth: true,
+            className: "mb-2.5 justify-start",
+          })}
+        >
+          {item.name}
+        </Link>
+      );
+    }
+    if (item.onclick) {
+      return (
+        <button
+          key={idx}
+          onClick={item.onclick}
+          className={buttonClassName({
+            variant: location.pathname === item.path ? "contained" : "outlined",
+            fullWidth: true,
+            className: "mb-2.5 justify-start",
+          })}
+        >
+          {item.name}
+        </button>
+      );
+    }
+    return <></>;
+  });
+
   return (
     <>
-      <div className="flex">
-        <div className="w-[200px] p-4">
-          <h6 className="mb-2 text-lg font-semibold">SonaSky REF</h6>
-          {navItems.map((item, idx) => {
-            if (item.path) {
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={buttonClassName({
-                    variant: location.pathname === item.path ? "contained" : "outlined",
-                    fullWidth: true,
-                    className: "mb-2.5 justify-start",
-                  })}
-                >
-                  {item.name}
-                </Link>
-              );
-            }
-            if (item.onclick) {
-              return (
-                <button
-                  key={idx}
-                  onClick={item.onclick}
-                  className={buttonClassName({
-                    variant: location.pathname === item.path ? "contained" : "outlined",
-                    fullWidth: true,
-                    className: "mb-2.5 justify-start",
-                  })}
-                >
-                  {item.name}
-                </button>
-              );
-            }
-            return <></>;
-          })}
+      <div className="flex flex-col md:flex-row">
+        <div className="flex items-center justify-between p-4 pb-0 md:hidden">
+          <h6 className="text-lg font-semibold">SonaSky REF</h6>
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen((open) => !open)}
+            aria-expanded={mobileNavOpen}
+            aria-label="Toggle navigation menu"
+            className={buttonClassName({ variant: "outlined" })}
+          >
+            {mobileNavOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
+        <div className={`w-full p-4 md:block md:w-[200px] ${mobileNavOpen ? "block" : "hidden"}`}>
+          <h6 className="mb-2 hidden text-lg font-semibold md:block">SonaSky REF</h6>
+          {navLinks}
         </div>
         <div className="flex-1 p-4">
           <div>
