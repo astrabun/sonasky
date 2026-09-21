@@ -1,8 +1,11 @@
 import { createServer, type Server } from "node:http";
 import { config } from "../config.ts";
+import { cursors } from "./routes/cursors.ts";
 import { describeFeedGenerator } from "./routes/describeFeedGenerator.ts";
 import { didDoc } from "./routes/didDoc.ts";
 import { getFeedSkeleton } from "./routes/getFeedSkeleton.ts";
+import { postFeeds } from "./routes/postFeeds.ts";
+import { rankHistory } from "./routes/rankHistory.ts";
 import { sendError } from "./json.ts";
 
 /** Starts the XRPC HTTP server. Resolves once it is listening. */
@@ -35,6 +38,12 @@ export function startHttpServer(): Promise<Server> {
         return done(describeFeedGenerator(res));
       case "/xrpc/app.bsky.feed.getFeedSkeleton":
         return done(getFeedSkeleton(res, url.searchParams));
+      case "/debug/postFeeds":
+        return done(postFeeds(res, url.searchParams));
+      case "/debug/cursors":
+        return done(cursors(res));
+      case "/debug/rankHistory":
+        return done(rankHistory(res, url.searchParams));
       case "/health":
         res.writeHead(200, { "content-type": "text/plain" }).end("ok");
         return;

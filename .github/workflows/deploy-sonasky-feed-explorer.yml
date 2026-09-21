@@ -1,0 +1,60 @@
+name: Deploy SonaSky Feed Explorer
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "apps/sonasky-feed-explorer/**"
+      - "packages/tsconfig/**"
+      - ".github/workflows/deploy-sonasky-feed-explorer.yml"
+  pull_request:
+    paths:
+      - "apps/sonasky-feed-explorer/**"
+      - "packages/tsconfig/**"
+      - ".github/workflows/deploy-sonasky-feed-explorer.yml"
+
+concurrency:
+  group: deploy-sonasky-feed-explorer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm -F @sonasky/app-sonasky-feed-explorer build
+        env:
+          VITE_FEED_GENERATOR_URL: https://feeds.sonasky.app
+
+      # PRs only validate the bundle; pushes to main deploy for real. This
+      # Worker holds the /debug/explorer route on sonasky.app in front of the
+      # label-browser Pages project, so it deploys independently of it.
+      - name: Validate bundle (PR)
+        if: github.event_name == 'pull_request'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/sonasky-feed-explorer
+          command: deploy --dry-run
+
+      - name: Deploy (main)
+        if: github.event_name == 'push'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/sonasky-feed-explorer
+          command: deploy

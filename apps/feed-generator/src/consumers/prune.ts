@@ -20,6 +20,16 @@ const prune = async (): Promise<void> => {
       `Pruned ${interactions.numDeletedRows} interactions older than ${config.postRetentionDays}d`,
     );
   }
+
+  const rankSnapshots = await db
+    .deleteFrom("feed_rank_snapshot")
+    .where("snapshotted_at", "<", cutoff)
+    .executeTakeFirst();
+  if (rankSnapshots.numDeletedRows) {
+    console.log(
+      `Pruned ${rankSnapshots.numDeletedRows} rank snapshots older than ${config.postRetentionDays}d`,
+    );
+  }
 };
 
 /** Starts an hourly job deleting posts older than the retention window. */

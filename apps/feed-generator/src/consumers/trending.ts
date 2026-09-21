@@ -1,7 +1,8 @@
 import { config } from "../config.ts";
 import { db } from "../db/index.ts";
+import { servedRkey } from "../feeds.ts";
 import { redis } from "../utils/redis.ts";
-import { GRAVITY, type HydratedPost, hydratePosts, rebuildZset } from "./ranking.ts";
+import { GRAVITY, type HydratedPost, hydratePosts, rebuildZset, snapshotRanks } from "./ranking.ts";
 
 /** How recent a post must be to be eligible for the trending feed. */
 const WINDOW_HOURS = 24;
@@ -91,16 +92,20 @@ const refresh = async (): Promise<void> => {
     })
     .filter((s): s is ScoredPost => s !== null);
 
-  await rebuildZset(
-    trendingZsetKey(),
-    scored.map((s) => [s.score, s.uri]),
-  );
+  const globalEntries: [number, string][] = scored.map((s) => [s.score, s.uri]);
+  await rebuildZset(trendingZsetKey(), globalEntries);
+  const globalRkey = servedRkey("trending", null);
+  if (globalRkey) await snapshotRanks(globalRkey, globalEntries);
   console.log(`trending: ranked ${scored.length} posts`);
 
   if (!config.perSpeciesTrending) return;
 
   const byLabel = await bySpecies(scored);
-  for (const [label, entries] of byLabel) await rebuildZset(trendingZsetKey(label), entries);
+  for (const [label, entries] of byLabel) {
+    await rebuildZset(trendingZsetKey(label), entries);
+    const rkey = servedRkey("trending", label);
+    if (rkey) await snapshotRanks(rkey, entries);
+  }
 
   // Drop per-species sets for labels that no longer have any ranked post.
   const live = new Set([...byLabel.keys()].map((l) => trendingZsetKey(l)));

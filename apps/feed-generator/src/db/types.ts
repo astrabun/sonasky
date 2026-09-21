@@ -41,6 +41,16 @@ export interface InteractionTable {
   indexed_at: number;
 }
 
+export interface FeedRankSnapshotTable {
+  /** app.bsky.feed.generator record key of the feed this rank was observed in. */
+  feed_rkey: string;
+  post_uri: string;
+  /** 0-indexed rank within the feed at `snapshotted_at`. */
+  rank: number;
+  /** ms epoch the trending/interacted refresh job took this snapshot. */
+  snapshotted_at: number;
+}
+
 export interface OptOutTable {
   /**
    * DID of an account whose `app.bsky.actor.contentVisibilityDeclaration` record
@@ -56,4 +66,5 @@ export interface Database {
   post: PostTable;
   interaction: InteractionTable;
   opt_out: OptOutTable;
+  feed_rank_snapshot: FeedRankSnapshotTable;
 }

@@ -26,11 +26,12 @@ One process runs eight things:
 2. **Post stream consumer** - reads the main `app.bsky.feed.post` Jetstream firehose and
    stores every post whose author is a currently-labeled account. Cursor in Redis
    (`feeds:jetstream:cursor`). Only posts seen after an account is known to be labeled are
-   captured (no historical backfill).
+   captured, and only as far back as the cursor - a fresh Redis defaults to "now" (no
+   historical backfill) unless seeded, see below.
 3. **Interaction stream consumer** - reads the `app.bsky.feed.like` and
    `app.bsky.feed.repost` Jetstream firehoses and stores every like/repost whose author is a
    currently-labeled account (row dropped when the like/repost is undone). Cursor in Redis
-   (`feeds:jetstream:interactions:cursor`). Same "no historical backfill" caveat.
+   (`feeds:jetstream:interactions:cursor`). Same cursor-seeding caveat.
 4. **Content-visibility consumer** - reads the
    `app.bsky.actor.contentVisibilityDeclaration` Jetstream firehose and keeps the `opt_out`
    table / in-memory DID set in sync with each account's
@@ -83,6 +84,26 @@ so no organic post is dropped or duplicated across pages. At least one organic s
 kept (pins beyond `limit - 1` are ignored).
 
 The plan for having this here is mainly if I want to pin a feedback/announcement post.
+
+## Backfilling a local dev copy
+
+By default, a fresh local instance (empty Redis) only tails Jetstream from the moment it
+starts - `account_label` catches up in full from Ozone automatically, but `post`/`interaction`
+start empty. To match prod's last N hours instead:
+
+```
+pnpm feed-generator:backfill-jetstream-cursor            # seeds a 24h-ago cursor in Redis
+pnpm feed-generator:backfill-content-visibility           # optional: seed opt_out too
+pnpm feed-generator:start                                 # replays from the seeded cursor, then tails live
+```
+
+[`src/scripts/backfillJetstreamCursor.ts`](./src/scripts/backfillJetstreamCursor.ts) just
+rewinds the `feeds:jetstream:cursor` / `feeds:jetstream:interactions:cursor` Redis keys to N
+hours ago (`--hours=`, default 24) - the actual replay is done by the normal post/interaction
+stream consumers reading that cursor on next boot, the same code path as live tailing. It
+refuses to touch a non-local-looking `REDIS_URL` without confirmation, and won't overwrite an
+existing cursor unless passed `--force`. How far back it can actually reach depends on how
+much history your Jetstream endpoint retains (commonly on the order of a day).
 
 ## Data store
 

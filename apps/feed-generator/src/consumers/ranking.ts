@@ -1,3 +1,4 @@
+import { db } from "../db/index.ts";
 import { redis } from "../utils/redis.ts";
 
 const GET_POSTS_URL = "https://public.api.bsky.app/xrpc/app.bsky.feed.getPosts";
@@ -55,6 +56,35 @@ export const hydratePosts = async (uris: string[]): Promise<Map<string, Hydrated
     }
   }
   return byUri;
+};
+
+/**
+ * Records each entry's rank (by score, descending) into `feed_rank_snapshot`
+ * for this refresh cycle - lets a trending/interacted post's rank be plotted
+ * over time later, since the Redis zset itself only holds the current state.
+ */
+export const snapshotRanks = async (
+  feedRkey: string,
+  entries: [number, string][],
+): Promise<void> => {
+  if (entries.length === 0) return;
+  const snapshottedAt = Date.now();
+  const rows = [...entries]
+    .sort(([a], [b]) => b - a)
+    .map(([, uri], rank) => ({
+      feed_rkey: feedRkey,
+      post_uri: uri,
+      rank,
+      snapshotted_at: snapshottedAt,
+    }));
+
+  for (let i = 0; i < rows.length; i += 1000) {
+    await db
+      .insertInto("feed_rank_snapshot")
+      .values(rows.slice(i, i + 1000))
+      .onConflict((oc) => oc.columns(["feed_rkey", "post_uri", "snapshotted_at"]).doNothing())
+      .execute();
+  }
 };
 
 /** Replaces `key` with a sorted set of `[score, uri]` entries via an atomic swap. */
