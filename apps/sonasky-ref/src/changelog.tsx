@@ -151,6 +151,13 @@ const changelogData = [
     date: dayjs(`2026-09-20`),
     version: "1.6.1",
   },
+  {
+    changes: [
+      `Bugfix: profile and character pages failed to load for accounts hosted on a PDS other than bsky.social when visited via a did:plc URL (e.g. after clicking "Back" from a character page). The app now resolves the account's actual PDS before querying it, instead of assuming bsky.social.`,
+    ],
+    date: dayjs(`2026-09-20`),
+    version: "1.6.2",
+  },
 ];
 
 // Get latest version by the highest semver version

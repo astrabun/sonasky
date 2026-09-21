@@ -44,6 +44,7 @@ function View() {
   const [error, setError] = useState<boolean>(false);
   const [altPds, setAltPds] = useState<string>(HANDLE_RESOLVER_URL);
   const [rpc, setRpc] = useState<Client>(new Client({ handler: manager }));
+  const [pdsResolved, setPdsResolved] = useState<boolean>(false);
 
   const handleGetPds = async () => {
     if (did) {
@@ -55,6 +56,7 @@ function View() {
         });
         setRpc(newRpc);
       }
+      setPdsResolved(true);
     }
   };
 
@@ -64,10 +66,9 @@ function View() {
 
   const [minLoadingTimePassed, setMinLoadingTimePassed] = useState<boolean>(false);
 
-  const [repoData, setRepoData] = useState<any>();
   const [profile, setProfile] = useState<any>();
   const loadProfile = useCallback(async () => {
-    if (did && !did.startsWith(UNKNOWN_ERROR)) {
+    if (pdsResolved && did && !did.startsWith(UNKNOWN_ERROR)) {
       await rpc
         .get("com.atproto.repo.getRecord", {
           params: {
@@ -83,7 +84,7 @@ function View() {
           // Profile record may not exist
         });
     }
-  }, [did, rpc]);
+  }, [pdsResolved, did, rpc]);
   useEffect(() => {
     void loadProfile();
   }, [loadProfile]);
@@ -106,7 +107,7 @@ function View() {
 
   const [sonaRecords, setSonaRecords] = useState<any>();
   const loadSonaRecords = useCallback(async () => {
-    if (did) {
+    if (pdsResolved && did && handle && !handle.startsWith(UNKNOWN_ERROR)) {
       await rpc
         .get("com.atproto.repo.listRecords", {
           params: {
@@ -115,7 +116,10 @@ function View() {
           },
         })
         .then((response) => {
-          const { records } = response.data as any;
+          const records = (response.data as any)?.records;
+          if (!records) {
+            return;
+          }
           const sorted = [...records].sort((a: any, b: any) => {
             const ai = a.value?.character?.displayIndex;
             const bi = b.value?.character?.displayIndex;
@@ -131,12 +135,15 @@ function View() {
             return ai - bi;
           });
           setSonaRecords(sorted);
+        })
+        .catch(() => {
+          // Fires before rpc is updated to the correct PDS; rpc/pdsResolved change triggers retry
         });
     }
-  }, [repoData]);
+  }, [pdsResolved, did, handle, rpc]);
   useEffect(() => {
     void loadSonaRecords();
-  }, [repoData]);
+  }, [loadSonaRecords]);
 
   const minLoadingTime = 1000;
 
@@ -159,34 +166,11 @@ function View() {
 
   useEffect(() => {
     if (lookupMode === "did") {
-      if (blueskyHandleOrDID?.startsWith("did:web:")) {
-        /* For did:web, we already have the DID. Handle/repoData resolved
-                in the second effect once handleGetPds updates rpc to the correct PDS. */
-        setDid(blueskyHandleOrDID);
-      } else {
-        rpc
-          .get("com.atproto.repo.describeRepo", {
-            params: {
-              repo: (blueskyHandleOrDID ?? "") as ActorIdentifier,
-            },
-          })
-          .then((response) => {
-            const { data } = response;
-            if (data) {
-              setHandle((data as any).handle);
-              setDid((data as any).did);
-            } else {
-              setHandle(UNKNOWN_ERROR);
-              setDid(UNKNOWN_ERROR);
-            }
-            if (minLoadingTimePassed) {
-              setLoading(false);
-            }
-          })
-          .catch((error) => {
-            handleLookupError(error);
-          });
-      }
+      /* We already have the DID from the URL. Handle/repoData are resolved
+              in the second effect below, once handleGetPds updates rpc to the
+              account's actual PDS (describeRepo is PDS-hosted, so it can't be
+              called against the default entryway for arbitrary accounts). */
+      setDid(blueskyHandleOrDID);
     } else {
       rpc
         .get("com.atproto.identity.resolveHandle", {
@@ -218,18 +202,7 @@ function View() {
     if (error) {
       return;
     }
-    if (did?.startsWith("did:plc:")) {
-      void rpc
-        .get("com.atproto.repo.describeRepo", {
-          params: {
-            repo: (blueskyHandleOrDID ?? "") as Handle,
-          },
-        })
-        .then((response) => {
-          const { data } = response;
-          setRepoData(data);
-        });
-    } else if (did?.startsWith("did:web:") && !handle) {
+    if (pdsResolved && did && !did.startsWith(UNKNOWN_ERROR) && !handle) {
       void rpc
         .get("com.atproto.repo.describeRepo", {
           params: { repo: did as ActorIdentifier },
@@ -237,21 +210,22 @@ function View() {
         .then((response) => {
           const { data } = response;
           if (data) {
-            setRepoData(data);
             setHandle((data as any).handle);
+          } else {
+            handleLookupError(new Error("describeRepo returned no data"));
           }
         })
-        .catch(() => {
-          // Fires before rpc is updated to the correct PDS; rpc change triggers retry
+        .catch((error) => {
+          handleLookupError(error);
         });
     }
-  }, [handle, did, rpc]);
+  }, [handle, did, rpc, pdsResolved]);
 
   useEffect(() => {
-    if (minLoadingTimePassed && did?.startsWith("did:web:") && handle && handle !== UNKNOWN_ERROR) {
+    if (minLoadingTimePassed && lookupMode === "did" && handle && handle !== UNKNOWN_ERROR) {
       setLoading(false);
     }
-  }, [did, handle, minLoadingTimePassed]);
+  }, [lookupMode, handle, minLoadingTimePassed]);
 
   useEffect(() => {
     if (loading) {
