@@ -68,7 +68,7 @@ function View() {
 
   const [profile, setProfile] = useState<any>();
   const loadProfile = useCallback(async () => {
-    if (did && !did.startsWith(UNKNOWN_ERROR)) {
+    if (pdsResolved && did && !did.startsWith(UNKNOWN_ERROR)) {
       await rpc
         .get("com.atproto.repo.getRecord", {
           params: {
@@ -84,7 +84,7 @@ function View() {
           // Profile record may not exist
         });
     }
-  }, [did, rpc]);
+  }, [pdsResolved, did, rpc]);
   useEffect(() => {
     void loadProfile();
   }, [loadProfile]);
@@ -107,7 +107,7 @@ function View() {
 
   const [sonaRecords, setSonaRecords] = useState<any>();
   const loadSonaRecords = useCallback(async () => {
-    if (did && handle && !handle.startsWith(UNKNOWN_ERROR)) {
+    if (pdsResolved && did && handle && !handle.startsWith(UNKNOWN_ERROR)) {
       await rpc
         .get("com.atproto.repo.listRecords", {
           params: {
@@ -116,7 +116,10 @@ function View() {
           },
         })
         .then((response) => {
-          const { records } = response.data as any;
+          const records = (response.data as any)?.records;
+          if (!records) {
+            return;
+          }
           const sorted = [...records].sort((a: any, b: any) => {
             const ai = a.value?.character?.displayIndex;
             const bi = b.value?.character?.displayIndex;
@@ -132,9 +135,12 @@ function View() {
             return ai - bi;
           });
           setSonaRecords(sorted);
+        })
+        .catch(() => {
+          // Fires before rpc is updated to the correct PDS; rpc/pdsResolved change triggers retry
         });
     }
-  }, [did, handle, rpc]);
+  }, [pdsResolved, did, handle, rpc]);
   useEffect(() => {
     void loadSonaRecords();
   }, [loadSonaRecords]);
