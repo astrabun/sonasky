@@ -31,11 +31,11 @@ export interface PinnedPost {
 type FeedKind = "all" | "species" | "trending" | "interacted" | "custom";
 
 export const pinnedPosts: PinnedPost[] = [
-  {
-    uri: "at://did:plc:2qawvcwumvgxmed6iy6pmt6l/app.bsky.feed.post/3mvsfmc3zok2n",
-    feeds: ["interacted", "trending", "all"],
-    position: 0,
-  },
+  // {
+  //   uri: "at://did:plc:2qawvcwumvgxmed6iy6pmt6l/app.bsky.feed.post/3mvsfmc3zok2n",
+  //   feeds: ["interacted", "trending", "all"],
+  //   position: 0,
+  // },
   // {
   //   uri: "at://did:plc:nkleu4mgtlxpsfwkdm6otsqu/app.bsky.feed.post/3mutboyzfcc2q",
   //   feeds: ["*"],
