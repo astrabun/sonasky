@@ -69,9 +69,7 @@ export function ViewCharacter() {
   const [character, setCharacter] = useState<any>();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
-  const [pdsResolved, setPdsResolved] = useState<boolean>(
-    !blueskyHandleOrDID?.startsWith("did:web:"),
-  );
+  const [pdsResolved, setPdsResolved] = useState<boolean>(!blueskyHandleOrDID?.startsWith("did:"));
   const [loadingText, setLoadingText] = useState<string>("Loading.");
   const transitionTime = 2000;
   const [refSheetImage, setRefSheetImage] = useState<string>("");
