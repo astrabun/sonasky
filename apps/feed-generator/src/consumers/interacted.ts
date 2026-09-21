@@ -1,6 +1,7 @@
 import { db } from "../db/index.ts";
+import { servedRkey } from "../feeds.ts";
 import { optedOutDids } from "../optedOutDids.ts";
-import { GRAVITY, hydratePosts, rebuildZset } from "./ranking.ts";
+import { GRAVITY, hydratePosts, rebuildZset, snapshotRanks } from "./ranking.ts";
 
 /** How recent a like/repost must be to keep its post eligible. */
 const WINDOW_HOURS = 24;
@@ -56,6 +57,8 @@ const refresh = async (): Promise<void> => {
   });
 
   await rebuildZset(interactedZsetKey(), entries);
+  const rkey = servedRkey("interacted", null);
+  if (rkey) await snapshotRanks(rkey, entries);
   console.log(`interacted: ranked ${entries.length} posts`);
 };
 

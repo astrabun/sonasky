@@ -132,3 +132,11 @@ export function feedForUri(feed: string): ServedFeed | null {
   const rkey = feed.split("/").pop();
   return (rkey && rkeyToFeed.get(rkey)) || null;
 }
+
+/** The rkey of the served "trending"/"interacted" feed for a label (null = global), if any. */
+export function servedRkey(
+  kind: "trending" | "interacted",
+  labelId: string | null,
+): string | undefined {
+  return servedFeeds.find((f) => f.kind === kind && f.labelId === labelId)?.rkey;
+}

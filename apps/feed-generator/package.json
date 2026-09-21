@@ -9,6 +9,7 @@
     "start": "dotenvx run -- tsx src/index.ts",
     "migrate": "dotenvx run -- tsx src/db/migrate.ts",
     "backfill-content-visibility": "dotenvx run -- tsx src/scripts/backfillContentVisibility.ts",
+    "backfill-jetstream-cursor": "dotenvx run -- tsx src/scripts/backfillJetstreamCursor.ts",
     "publish-feeds": "dotenvx run -- tsx src/scripts/publishFeeds.ts",
     "publish-feeds:test": "dotenvx run -- tsx src/scripts/publishFeeds.ts -- --dest=test",
     "unpublish-feeds": "dotenvx run -- tsx src/scripts/unpublishFeeds.ts",

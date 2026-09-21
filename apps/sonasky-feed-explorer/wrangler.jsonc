@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sonasky-feed-explorer",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-08",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+  },
+  "observability": { "enabled": true },
+  // Runs in front of the label-browser Pages project (sonasky.app) for this
+  // one path - Worker routes take precedence over a Pages custom domain on
+  // the same zone.
+  "routes": [{ "pattern": "sonasky.app/debug/explorer*", "zone_name": "sonasky.app" }],
+}
