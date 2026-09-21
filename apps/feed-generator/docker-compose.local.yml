@@ -1,0 +1,25 @@
+# Local dev only. docker-compose.yml is written for the self-contained prod
+# stack, where feed-generator itself also runs in a container on the same
+# internal network, so postgres/redis aren't published to the host. This
+# file publishes them to loopback only, so a locally-run
+# `pnpm feed-generator:start`/`:migrate` (not in Docker) can reach them via
+# localhost.
+#
+# NOT named docker-compose.override.yml on purpose: that filename is
+# auto-merged by a bare `docker compose up` with no `-f`, which would apply
+# it on prod too, publishing ports that may already be bound to something
+# else there (this broke prod once - see incident 2026-09-21). Always pass
+# it explicitly:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d postgres redis
+#
+# Plain `docker compose up ...` (no -f flags, as prod's Ansible deploy runs
+# it) only ever reads docker-compose.yml and never touches this file.
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    ports:
+      - "127.0.0.1:6379:6379"

@@ -85,6 +85,23 @@ kept (pins beyond `limit - 1` are ignored).
 
 The plan for having this here is mainly if I want to pin a feedback/announcement post.
 
+## Running locally (not in Docker)
+
+`docker-compose.yml` is written for the self-contained prod stack, where feed-generator itself
+also runs in a container on the same internal network, so it doesn't publish Postgres/Redis to
+the host. Running feed-generator itself locally (`pnpm feed-generator:start`, not in Docker)
+needs those ports published - `docker-compose.local.yml` does that (loopback only):
+
+```
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d postgres redis
+pnpm feed-generator:migrate
+pnpm feed-generator:start
+```
+
+Always pass `-f docker-compose.local.yml` explicitly like this - it is **not** named
+`docker-compose.override.yml` on purpose, so a bare `docker compose up` (as prod's deploy runs
+it) never picks it up automatically.
+
 ## Backfilling a local dev copy
 
 By default, a fresh local instance (empty Redis) only tails Jetstream from the moment it
