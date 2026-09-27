@@ -30,6 +30,16 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
 
 function SignIn({ returnTo }: { returnTo: string }) {
   const [handle, setHandle] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  // Coming back via the back button can restore this page from bfcache with the
+  // button still disabled; re-enable it.
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) setSubmitting(false);
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
   const params = new URLSearchParams(window.location.search);
   const authError = params.get("auth_error");
   const hint = params.get("hint");
@@ -63,7 +73,10 @@ function SignIn({ returnTo }: { returnTo: string }) {
         className="flex gap-2"
         onSubmit={(e) => {
           e.preventDefault();
-          if (handle.trim()) window.location.href = loginHref(handle, returnTo);
+          // Guard against double-submits: each one starts a new sign-in on the server.
+          if (submitting || !handle.trim()) return;
+          setSubmitting(true);
+          window.location.href = loginHref(handle, returnTo);
         }}
       >
         <div className="w-full">
@@ -87,10 +100,11 @@ function SignIn({ returnTo }: { returnTo: string }) {
           ) : null}
         </div>
         <button
-          className="shrink-0 rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500"
+          className="shrink-0 rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-60"
           type="submit"
+          disabled={submitting}
         >
-          Sign in
+          {submitting ? "Signing in..." : "Sign in"}
         </button>
       </form>
     </div>
@@ -153,13 +167,15 @@ export default function App() {
     }
     setForm(null);
     setFormError(null);
-    void getForm(openId).then((res) => {
-      if ("ok" in res && res.ok === false) {
-        setFormError(res);
-      } else {
-        setForm(res as FormDetailDTO);
-      }
-    });
+    void getForm(openId)
+      .then((res) => {
+        if ("ok" in res && res.ok === false) {
+          setFormError(res);
+        } else {
+          setForm(res as FormDetailDTO);
+        }
+      })
+      .catch(() => setFormError({ ok: false, code: "form-load-failed" }));
     // Re-fetch once auth settles/changes: a closed non-public form's details
     // are only included in the response once the caller is signed in.
   }, [openId, loading, me?.authenticated]);
@@ -197,7 +213,10 @@ export default function App() {
             <div className="space-y-4">
               <div>
                 <h1 className="text-xl font-bold text-neutral-900 dark:text-neutral-50">
-                  {formError.title ?? "Form not found"}
+                  {formError.title ??
+                    (formError.code === "form-load-failed"
+                      ? "Couldn't load form"
+                      : "Form not found")}
                 </h1>
                 {formError.description ? (
                   <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
@@ -208,7 +227,9 @@ export default function App() {
               <p className="rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
                 {formError.code === "form-inactive"
                   ? "This form is closed and no longer accepting responses."
-                  : "This form doesn't exist."}
+                  : formError.code === "form-load-failed"
+                    ? "This form couldn't be loaded. Refresh the page to try again."
+                    : "This form doesn't exist."}
               </p>
               {formError.postFormDetails ? (
                 <MarkdownContent content={formError.postFormDetails} />

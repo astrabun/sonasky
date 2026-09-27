@@ -104,17 +104,22 @@ export function clientMetadata(env: AppEnv): OAuthClientOptions["clientMetadata"
   };
 }
 
-let cached: { key: string; client: OAuthClient } | undefined;
+let cachedKey: { raw: string; key: Key } | undefined;
 
+async function getSigningKey(raw: string): Promise<Key> {
+  if (cachedKey?.raw !== raw) cachedKey = { raw, key: await loadSigningKey(raw) };
+  return cachedKey.key;
+}
+
+/**
+ * Build a fresh client per request.
+ */
 export async function getOAuthClient(env: AppEnv): Promise<OAuthClient> {
-  const cacheKey = `${env.PUBLIC_URL}|${isConfidential(env) ? "c" : "p"}`;
-  if (cached && cached.key === cacheKey) return cached.client;
-
   const keyset = isConfidential(env)
-    ? [await loadSigningKey(env.OAUTH_PRIVATE_KEY as string)]
+    ? [await getSigningKey(env.OAUTH_PRIVATE_KEY as string)]
     : undefined;
 
-  const client = new OAuthClient({
+  return new OAuthClient({
     clientMetadata: clientMetadata(env),
     keyset,
     responseMode: "query",
@@ -125,9 +130,6 @@ export async function getOAuthClient(env: AppEnv): Promise<OAuthClient> {
     sessionStore: makeSessionStore(env.SSKYFORM_OAUTH_SESSION),
     runtimeImplementation,
   });
-
-  cached = { key: cacheKey, client };
-  return client;
 }
 
 export { OAUTH_SCOPE };

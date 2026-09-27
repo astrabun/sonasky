@@ -52,7 +52,8 @@ export interface ArchivedFormSummary extends FormSummary {
  */
 export interface FormUnavailable {
   ok: false;
-  code: "form-not-found" | "form-inactive";
+  /** `form-load-failed` is client-only: the request itself failed (network / 5xx). */
+  code: "form-not-found" | "form-inactive" | "form-load-failed";
   title?: string;
   description?: string;
   postFormDetails?: string;
