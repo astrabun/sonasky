@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  background-color: #fafafa;
+  color: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #0a0a0a;
+    color: #ededed;
+  }
+}
+
+/* WYSIWYG editor content (tiptap). */
+.apollo-prose {
+  line-height: 1.6;
+}
+.apollo-prose:focus {
+  outline: none;
+}
+.apollo-prose h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0.75em 0 0.4em;
+}
+.apollo-prose h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0.75em 0 0.4em;
+}
+.apollo-prose h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0.75em 0 0.4em;
+}
+.apollo-prose p {
+  margin: 0 0 0.75em;
+}
+.apollo-prose ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin: 0 0 0.75em;
+}
+.apollo-prose ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+  margin: 0 0 0.75em;
+}
+.apollo-prose blockquote {
+  border-left: 3px solid #a3a3a3;
+  padding-left: 0.75rem;
+  color: #737373;
+}
+.apollo-prose a {
+  color: #0284c7;
+  text-decoration: underline;
+}
+.apollo-prose code {
+  background: rgb(163 163 163 / 0.2);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.apollo-prose hr {
+  border: 0;
+  border-top: 1px solid #d4d4d4;
+  margin: 1rem 0;
+}
+.apollo-prose table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.apollo-prose th,
+.apollo-prose td {
+  border: 1px solid #d4d4d4;
+  padding: 4px 8px;
+}
+.apollo-prose ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.25rem;
+}
+.apollo-prose ul[data-type="taskList"] li {
+  display: flex;
+  gap: 0.5rem;
+}

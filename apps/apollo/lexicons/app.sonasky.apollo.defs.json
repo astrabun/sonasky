@@ -1,0 +1,262 @@
+{
+  "lexicon": 1,
+  "id": "app.sonasky.apollo.defs",
+  "description": "Documentation only. Shared definitions: page/post content and the block union used by the no-code page builder. Media references are rkeys of app.sonasky.apollo.media in the same repo.",
+  "defs": {
+    "content": {
+      "type": "object",
+      "required": ["title", "format", "createdAt", "updatedAt"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 3000
+        },
+        "format": {
+          "type": "string",
+          "knownValues": ["blocks", "markdown", "html"]
+        },
+        "blocks": {
+          "type": "array",
+          "maxLength": 128,
+          "description": "For format=blocks.",
+          "items": {
+            "type": "union",
+            "refs": [
+              "#heading",
+              "#text",
+              "#image",
+              "#buttons",
+              "#gallery",
+              "#bskyPost",
+              "#bskyProfile",
+              "#starterPack",
+              "#event",
+              "#divider",
+              "#spacer"
+            ]
+          }
+        },
+        "body": {
+          "type": "string",
+          "maxLength": 65536,
+          "description": "Markdown or HTML source, for format=markdown / format=html."
+        },
+        "layout": {
+          "type": "string",
+          "description": "Layout rkey."
+        },
+        "styles": {
+          "type": "array",
+          "maxLength": 8,
+          "items": {
+            "type": "string"
+          }
+        },
+        "scripts": {
+          "type": "array",
+          "maxLength": 8,
+          "items": {
+            "type": "string"
+          }
+        },
+        "ogImage": {
+          "type": "string",
+          "description": "Media rkey."
+        },
+        "labels": {
+          "type": "union",
+          "refs": ["com.atproto.label.defs#selfLabels"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "datetime"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "datetime"
+        }
+      }
+    },
+    "heading": {
+      "type": "object",
+      "required": ["text", "level"],
+      "properties": {
+        "text": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        }
+      }
+    },
+    "text": {
+      "type": "object",
+      "required": ["markdown"],
+      "properties": {
+        "markdown": {
+          "type": "string",
+          "maxLength": 8192
+        }
+      }
+    },
+    "image": {
+      "type": "object",
+      "required": ["media"],
+      "properties": {
+        "media": {
+          "type": "string"
+        },
+        "alt": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "caption": {
+          "type": "string",
+          "maxLength": 3000
+        },
+        "size": {
+          "type": "string",
+          "knownValues": ["small", "medium", "full"]
+        },
+        "noAlt": {
+          "type": "boolean",
+          "description": "Carried over from a media record uploaded with an explicit \"no description\" choice."
+        }
+      },
+      "description": "alt is required unless noAlt is true."
+    },
+    "buttons": {
+      "type": "object",
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "maxLength": 32,
+          "items": {
+            "type": "object",
+            "required": ["label", "url"],
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "url": {
+                "type": "string",
+                "maxLength": 2048
+              }
+            }
+          }
+        }
+      }
+    },
+    "gallery": {
+      "type": "object",
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "maxLength": 24,
+          "items": {
+            "type": "object",
+            "description": "alt is required unless noAlt is true.",
+            "required": ["media"],
+            "properties": {
+              "media": {
+                "type": "string"
+              },
+              "alt": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "noAlt": {
+                "type": "boolean",
+                "description": "Carried over from a media record uploaded with an explicit \"no description\" choice."
+              }
+            }
+          }
+        }
+      }
+    },
+    "bskyPost": {
+      "type": "object",
+      "required": ["uri"],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        }
+      }
+    },
+    "bskyProfile": {
+      "type": "object",
+      "required": ["did"],
+      "properties": {
+        "did": {
+          "type": "string",
+          "format": "did"
+        }
+      }
+    },
+    "starterPack": {
+      "type": "object",
+      "required": ["uri"],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "required": ["name", "start"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "start": {
+          "type": "string",
+          "format": "datetime"
+        },
+        "end": {
+          "type": "string",
+          "format": "datetime"
+        },
+        "timezone": {
+          "type": "string",
+          "description": "IANA zone, e.g. America/New_York."
+        },
+        "location": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 2048
+        }
+      }
+    },
+    "divider": {
+      "type": "object",
+      "properties": {}
+    },
+    "spacer": {
+      "type": "object",
+      "required": ["size"],
+      "properties": {
+        "size": {
+          "type": "string",
+          "knownValues": ["small", "medium", "large"]
+        }
+      }
+    }
+  }
+}

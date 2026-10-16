@@ -40,6 +40,14 @@
     "forms:deploy": "pnpm -F @sonasky/app-forms deploy",
     "forms:typecheck": "pnpm -F @sonasky/app-forms typecheck",
     "forms:cf-typegen": "pnpm -F @sonasky/app-forms cf-typegen",
+    "apollo:dev": "pnpm -F @sonasky/app-apollo dev",
+    "apollo:dev:worker": "pnpm -F @sonasky/app-apollo dev:worker",
+    "apollo:build": "pnpm -F @sonasky/app-apollo build",
+    "apollo:deploy": "pnpm -F @sonasky/app-apollo run deploy",
+    "apollo:typecheck": "pnpm -F @sonasky/app-apollo typecheck",
+    "apollo:test": "pnpm -F @sonasky/app-apollo test",
+    "apollo:cf-typegen": "pnpm -F @sonasky/app-apollo cf-typegen",
+    "apollo-themes:test": "pnpm -F @sonasky/apollo-themes test",
     "prepare": "husky"
   },
   "devDependencies": {

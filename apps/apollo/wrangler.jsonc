@@ -1,0 +1,55 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sonasky-apollo",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-09-08",
+  "compatibility_flags": ["nodejs_compat"],
+  // One Worker answers two hostnames: PUBLIC_URL (editor, API, OAuth, viewer
+  // shell) and USERCONTENT_URL (rendered user sites only - a separate
+  // registrable domain so user JS never shares an origin or cookie scope with
+  // the editor). The Worker runs first for EVERY request so the SPA's static
+  // assets are never served on the usercontent host.
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true,
+  },
+  "observability": { "enabled": true },
+  // Create with `wrangler kv namespace create <NAME>` and paste the ids.
+  "kv_namespaces": [
+    {
+      "binding": "APOLLO_OAUTH_STATE",
+      "id": "5240644a4bd046c39cf3532300d25484",
+      "preview_id": "apollo-oauth-state-preview",
+    },
+    {
+      "binding": "APOLLO_OAUTH_SESSION",
+      "id": "dda70a903e114323a4943a26cc82d606",
+      "preview_id": "apollo-oauth-session-preview",
+    },
+    {
+      // Admin blocklist: key `block:<did>` -> reason. Checked on view + write.
+      "binding": "APOLLO_ADMIN",
+      "id": "681b30bb384f4a7e83c4779769eef8eb",
+      "preview_id": "apollo-admin-preview",
+    },
+  ],
+  "ratelimits": [
+    {
+      // Per-DID write budget for /api/* mutations.
+      "name": "WRITE_LIMITER",
+      "namespace_id": "4401",
+      "simple": { "limit": 60, "period": 60 },
+    },
+  ],
+  "vars": {
+    "PUBLIC_URL": "https://apollo.sonasky.app",
+    "USERCONTENT_URL": "https://usercontent.sitesky.app",
+    "HANDLE_RESOLVER_URL": "https://bsky.social",
+  },
+  "routes": [
+    { "pattern": "apollo.sonasky.app", "custom_domain": true },
+    { "pattern": "usercontent.sitesky.app", "custom_domain": true },
+  ],
+}

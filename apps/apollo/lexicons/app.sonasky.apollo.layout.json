@@ -1,0 +1,21 @@
+{
+  "lexicon": 1,
+  "id": "app.sonasky.apollo.layout",
+  "description": "Documentation only. An HTML template wrapping every page that uses it. Slots: {{content}} (required), {{nav}}, {{title}}, {{site.title}}. Sanitized like all author HTML.",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "any",
+      "record": {
+        "type": "object",
+        "required": ["name", "html", "createdAt", "updatedAt"],
+        "properties": {
+          "name": { "type": "string", "maxLength": 200 },
+          "html": { "type": "string", "maxLength": 32768 },
+          "createdAt": { "type": "string", "format": "datetime" },
+          "updatedAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}

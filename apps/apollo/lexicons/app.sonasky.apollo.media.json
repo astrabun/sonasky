@@ -1,0 +1,42 @@
+{
+  "lexicon": 1,
+  "id": "app.sonasky.apollo.media",
+  "description": "Documentation only. An uploaded image or video. Every blob Apollo uses has one of these, which keeps the blob referenced (not garbage-collected) and makes it reportable. Content is re-sniffed from magic bytes whenever it is served.",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["file", "alt", "createdAt"],
+        "properties": {
+          "file": {
+            "type": "blob",
+            "accept": [
+              "image/png",
+              "image/jpeg",
+              "image/gif",
+              "image/webp",
+              "image/avif",
+              "video/mp4",
+              "video/webm"
+            ],
+            "maxSize": 50000000
+          },
+          "alt": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Required (non-empty) unless noAlt is true."
+          },
+          "noAlt": {
+            "type": "boolean",
+            "description": "The uploader explicitly chose not to describe this file."
+          },
+          "width": { "type": "integer", "minimum": 1 },
+          "height": { "type": "integer", "minimum": 1 },
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}

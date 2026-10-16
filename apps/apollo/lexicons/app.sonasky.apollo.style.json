@@ -1,0 +1,111 @@
+{
+  "lexicon": 1,
+  "id": "app.sonasky.apollo.style",
+  "description": "Documentation only. A stylesheet: visual theme tokens (set by the no-code theme panel) and/or hand-written CSS. The site theme is the style named by app.sonasky.apollo#theme.",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "any",
+      "record": {
+        "type": "object",
+        "required": ["name", "createdAt", "updatedAt"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "tokens": {
+            "type": "ref",
+            "ref": "#tokens"
+          },
+          "basedOn": {
+            "type": "string",
+            "description": "Id of the @sonasky/apollo-themes theme these tokens were copied from (credit only; the tokens are the source of truth)."
+          },
+          "css": {
+            "type": "string",
+            "maxLength": 32768
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    },
+    "tokens": {
+      "type": "object",
+      "description": "Colors are #rrggbb. Defined by packages/apollo-themes (ThemeTokens).",
+      "required": [
+        "background",
+        "surface",
+        "text",
+        "muted",
+        "accent",
+        "accentText",
+        "fontBody",
+        "fontHeading",
+        "radius",
+        "width"
+      ],
+      "properties": {
+        "background": {
+          "type": "string"
+        },
+        "surface": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "muted": {
+          "type": "string"
+        },
+        "accent": {
+          "type": "string"
+        },
+        "accentText": {
+          "type": "string"
+        },
+        "link": {
+          "type": "string",
+          "description": "Link color; falls back to accent."
+        },
+        "fontBody": {
+          "type": "string",
+          "knownValues": ["sans", "serif", "mono", "rounded"]
+        },
+        "fontHeading": {
+          "type": "string",
+          "knownValues": ["sans", "serif", "mono", "rounded"]
+        },
+        "googleFonts": {
+          "type": "object",
+          "description": "Optional Google Fonts families shown in front of the built-in fonts; served through Apollo's font proxy.",
+          "properties": {
+            "body": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "heading": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        },
+        "radius": {
+          "type": "string",
+          "knownValues": ["none", "small", "medium", "large"]
+        },
+        "width": {
+          "type": "string",
+          "knownValues": ["narrow", "medium", "wide"]
+        }
+      }
+    }
+  }
+}

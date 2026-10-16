@@ -1,0 +1,23 @@
+{
+  "lexicon": 1,
+  "id": "app.sonasky.apollo.post",
+  "description": "Documentation only. A blog post of an Apollo site, served at /@actor/blog/<rkey>. The rkey is the post's URL slug. Has every field of app.sonasky.apollo.defs#content plus publishedAt and tags.",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "any",
+      "record": {
+        "type": "object",
+        "required": ["title", "format", "publishedAt", "createdAt", "updatedAt"],
+        "properties": {
+          "publishedAt": { "type": "string", "format": "datetime" },
+          "tags": {
+            "type": "array",
+            "maxLength": 16,
+            "items": { "type": "string", "maxLength": 64 }
+          }
+        }
+      }
+    }
+  }
+}
