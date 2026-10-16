@@ -12,6 +12,17 @@ const QUESTIONS: { q: string; a: ReactNode }[] = [
     ),
   },
   {
+    q: "Is there a shortcut to someone's site?",
+    a: (
+      <>
+        Yes! On someone's Bluesky profile, change the <strong>b</strong> in <code>bsky.app</code> to{" "}
+        <strong>site</strong>. So <code>bsky.app/profile/alice.bsky.social</code> becomes{" "}
+        <code>sitesky.app/profile/alice.bsky.social</code>, which takes you to their Apollo site (if
+        they've made one).
+      </>
+    ),
+  },
+  {
     q: "Who can see my site?",
     a: (
       <>
