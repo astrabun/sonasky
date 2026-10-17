@@ -7,11 +7,13 @@ import type {
   PreviewResponse,
   PutResponse,
   ReportRequest,
+  RingLookupResponse,
+  RingsResponse,
   SiteBundle,
   StatsResponse,
 } from "../shared/dto.ts";
 import type { SlugCollection } from "../shared/nsid.ts";
-import type { SiteRecord } from "../shared/records.ts";
+import type { RingRecord, SiteRecord } from "../shared/records.ts";
 
 /** A failed API call, carrying the server's user-facing message when there is one. */
 export class ApiFailure extends Error {
@@ -96,6 +98,23 @@ export const api = {
   updateMediaAlt: (rkey: string, alt: string) =>
     call<PutResponse>(`/api/media/${encodeURIComponent(rkey)}`, json("PUT", { alt })),
   preview: (req: PreviewRequest) => call<PreviewResponse>("/api/preview", json("POST", req)),
+  rings: () => call<RingsResponse>("/api/rings"),
+  putRing: (
+    slug: string,
+    record: Omit<RingRecord, "$type" | "updatedAt" | "createdAt"> & {
+      createdAt?: string;
+    },
+  ) => call<PutResponse>(`/api/rings/${encodeURIComponent(slug)}`, json("PUT", record)),
+  deleteRing: (slug: string) =>
+    call<{ ok: true }>(`/api/rings/${encodeURIComponent(slug)}`, { method: "DELETE" }),
+  lookupRing: (uri: string) =>
+    call<RingLookupResponse>(`/api/rings/lookup?ring=${encodeURIComponent(uri)}`),
+  joinRing: (uri: string) =>
+    call<PutResponse>("/api/ring-memberships", json("POST", { ring: uri })),
+  leaveRing: (uri: string) =>
+    call<{ ok: true }>(`/api/ring-memberships?ring=${encodeURIComponent(uri)}`, {
+      method: "DELETE",
+    }),
   report: (req: ReportRequest) => call<{ ok: true }>("/api/report", json("POST", req)),
 };
 

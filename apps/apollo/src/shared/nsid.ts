@@ -8,6 +8,10 @@ export const NSID_STYLE = "app.sonasky.apollo.style";
 export const NSID_SCRIPT = "app.sonasky.apollo.script";
 export const NSID_LAYOUT = "app.sonasky.apollo.layout";
 export const NSID_MEDIA = "app.sonasky.apollo.media";
+/** A webring, in its owner's repo. rkey is a slug. */
+export const NSID_RING = "app.sonasky.apollo.ring";
+/** A site's side of a ring membership, in the member's repo. rkey derived from the ring uri. */
+export const NSID_RING_MEMBER = "app.sonasky.apollo.ringMember";
 /** Shared defs (block union). Not a collection. */
 export const NSID_DEFS = "app.sonasky.apollo.defs";
 
@@ -22,6 +26,8 @@ export const APOLLO_COLLECTIONS = [
   NSID_STYLE,
   NSID_SCRIPT,
   NSID_MEDIA,
+  NSID_RING,
+  NSID_RING_MEMBER,
 ] as const;
 
 export type ApolloCollection = (typeof APOLLO_COLLECTIONS)[number];

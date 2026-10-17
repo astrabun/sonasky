@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useState } from "react";
 import { Sun } from "lucide-react";
-import { BrowserRouter, Link, Navigate, Route, Routes } from "react-router";
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router";
 import { logout } from "./api.ts";
 import { useAuth } from "./auth.tsx";
 import { SignIn } from "./components/SignIn.tsx";
@@ -16,6 +16,7 @@ const Dashboard = lazy(() =>
 );
 
 function ReauthNotice() {
+  const { pathname, search } = useLocation();
   return (
     <Card className="mx-auto max-w-md space-y-3">
       <h1 className="text-lg font-semibold">Please sign in again</h1>
@@ -23,7 +24,22 @@ function ReauthNotice() {
         Apollo needs updated permission to edit your site (for example, if you last signed in only
         to send a report).
       </p>
-      <SignIn returnTo="/edit" />
+      <SignIn returnTo={pathname.startsWith("/edit") ? `${pathname}${search}` : "/edit"} />
+    </Card>
+  );
+}
+
+/** Signed out under /edit: invite links get a sign-in prompt, everything else goes home. */
+function SignedOutEdit() {
+  const { pathname, search } = useLocation();
+  if (!pathname.startsWith("/edit/rings/join")) return <Navigate to="/" replace />;
+  return (
+    <Card className="mx-auto max-w-md space-y-3">
+      <h1 className="text-lg font-semibold">You've been invited to a ring</h1>
+      <p className="text-sm text-neutral-600 dark:text-neutral-300">
+        Sign in with your Bluesky account to see the invite.
+      </p>
+      <SignIn returnTo={`${pathname}${search}`} />
     </Card>
   );
 }
@@ -95,7 +111,7 @@ export default function App() {
                   ) : signedIn ? (
                     <ReauthNotice />
                   ) : (
-                    <Navigate to="/" replace />
+                    <SignedOutEdit />
                   )
                 }
               />

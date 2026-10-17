@@ -53,9 +53,29 @@ byte caps in `src/shared/limits.ts`).
 - `app.sonasky.apollo.script` / `<slug>`: JavaScript
 - `app.sonasky.apollo.layout` / `<slug>`: HTML templates with `{{content}}` etc.
 - `app.sonasky.apollo.media` / TID: an uploaded blob + alt text
+- `app.sonasky.apollo.ring` / `<slug>`: a webring (name, index page content, ordered member DIDs).
+  Lives in the owner's repo; owning one doesn't need a site
+- `app.sonasky.apollo.ringMember` / `<hash of ring uri>`: a site's acceptance of a ring invite
 
 References between records are same-repo rkeys only. Records stay small (<=100 KB JSON, <=64 KB page
 body, <=32 KB CSS/JS/layout). Use more pages rather than bigger ones.
+
+## Rings
+
+A ring (webring) is two-sided: the owner's `ring` record lists a site, and the site's own repo has
+a `ringMember` record pointing back at the ring. Only then is the site a member
+(`src/worker/rings.ts`). Members' sites always render **Previous · Ring · Next** in the footer,
+appended even after custom layouts, since showing it is the point of membership.
+
+- The ring page is `/@owner/ring/<slug>`, rendered on the usercontent host like any site. It shows
+  the owner's content, the members and a random-site button.
+- Prev/next/random are redirects (`/@owner/ring/<slug>/{prev,next,random}`). Site renders never
+  need the whole roster.
+- The roster (members that have accepted, have a site and aren't blocked or taken down) is rebuilt
+  from the repos and cached for 5 minutes, keyed to the ring record's cid.
+- Invites are found through the [Constellation](https://constellation.microcosm.blue) backlink
+  index (`.members[].did` on ring records). Every hit is re-checked against the real record.
+  Owners can also send an invite link (`/edit/rings/join?ring=<at-uri>`).
 
 ## Themes
 

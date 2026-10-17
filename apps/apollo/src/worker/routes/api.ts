@@ -18,8 +18,12 @@ import type {
   MeResponse,
   PreviewRequest,
   PreviewResponse,
+  OwnedRing,
   PutResponse,
   ReportRequest,
+  RingLookupResponse,
+  RingRef,
+  RingsResponse,
   SiteBundle,
   StatsResponse,
 } from "../../shared/dto.ts";
@@ -31,6 +35,8 @@ import {
   NSID_MEDIA,
   NSID_PAGE,
   NSID_POST,
+  NSID_RING,
+  NSID_RING_MEMBER,
   NSID_SCRIPT,
   NSID_SITE,
   NSID_STYLE,
@@ -43,6 +49,8 @@ import type {
   MediaRecord,
   PageRecord,
   PostRecord,
+  RingMemberRecord,
+  RingRecord,
   ScriptRecord,
   SiteRecord,
   StyleRecord,
@@ -50,16 +58,32 @@ import type {
 import { isSlug, RESERVED_PAGE_SLUGS } from "../../shared/slug.ts";
 import { origin, type AppEnv } from "../env.ts";
 import { discoverSite } from "../discover.ts";
+import { resolveActor } from "../atproto/identity.ts";
 import { isBlocked } from "../moderation.ts";
+import {
+  forgetRoster,
+  loadRing,
+  mapLimit,
+  memberDids,
+  membershipRkey,
+  ringPageUrl,
+  ringRef,
+  ringRoster,
+  ringsListing,
+  siteRings,
+} from "../rings.ts";
 import { getSessionAgent, type SessionAgent } from "../oauth/session.ts";
 import { renderSiteDocument } from "../render/document.ts";
 import { getStats } from "../stats.ts";
 import { ALLOWED_MEDIA, sniffMime } from "../validate/media.ts";
 import {
   SLUG_VALIDATORS,
+  parseRingUri,
   validateLayout,
   validatePage,
   validatePost,
+  validateRing,
+  validateRingMember,
   validateSite,
   validateStyle,
   ValidationError,
@@ -267,7 +291,9 @@ apiRoutes.put("/api/site", requireSession, requireSameOrigin, requireEditor, asy
 apiRoutes.delete("/api/site", requireSession, requireSameOrigin, requireEditor, async (c) => {
   const { agent } = c.get("session");
   const targets: { collection: string; rkey: string }[] = [];
-  for (const collection of [...SLUG_COLLECTIONS, NSID_MEDIA]) {
+  // Ring memberships go with the site (a ring needs a site to link to); rings
+  // this account owns are kept.
+  for (const collection of [...SLUG_COLLECTIONS, NSID_MEDIA, NSID_RING_MEMBER]) {
     for (const e of await listAll(agent, collection, 2000))
       targets.push({ collection, rkey: e.rkey });
   }
@@ -458,13 +484,235 @@ apiRoutes.post("/api/preview", requireSession, requireSameOrigin, requireEditor,
       ? { kind: "post" as const, slug: t.slug, record: validatePost(t.record) }
       : { kind: "page" as const, slug: t.slug, record: validatePage(t.record) };
 
-  const handle = await handleOf(agent, did);
+  const [handle, identity] = await Promise.all([
+    handleOf(agent, did),
+    resolveActor(did, c.env.HANDLE_RESOLVER_URL ?? "https://bsky.social"),
+  ]);
+  const rings = identity ? await siteRings(c.env, identity.pds, did) : [];
   const html = await renderSiteDocument(
-    { did, actor: handle ?? did, site, target, styles, layout, scripts: [] },
+    { did, actor: handle ?? did, site, target, styles, layout, scripts: [], rings },
     { publicOrigin: origin(c.env.PUBLIC_URL), usercontentOrigin: origin(c.env.USERCONTENT_URL) },
   );
   return c.json<PreviewResponse>({ ok: true, html });
 });
+
+// Rings
+
+const isRingMember = (v: unknown): v is RingMemberRecord =>
+  (v as RingMemberRecord | null)?.$type === NSID_RING_MEMBER &&
+  typeof (v as RingMemberRecord).ring === "string";
+
+function ringFromQuery(c: Ctx): { did: string; slug: string; uri: string } {
+  const uri = c.req.query("ring");
+  const ref = parseRingUri(uri);
+  if (!ref) throw new ValidationError("ring", "That isn't a valid ring link.");
+  return { ...ref, uri: uri as string };
+}
+
+async function hasOwnSite(agent: Agent): Promise<boolean> {
+  return (await getOwn<SiteRecord>(agent, NSID_SITE, SITE_RKEY)) !== null;
+}
+
+/** Everything the Rings screen needs: owned rings, memberships and invites. */
+apiRoutes.get("/api/rings", requireSession, requireEditor, async (c) => {
+  const { agent, did } = c.get("session");
+  const resolverUrl = c.env.HANDLE_RESOLVER_URL ?? "https://bsky.social";
+  const [hasSite, ownedEntries, memberEntries, styles, listing] = await Promise.all([
+    hasOwnSite(agent),
+    listAll<RingRecord>(agent, NSID_RING, LIMITS.ringsPerAccount),
+    listAll<RingMemberRecord>(agent, NSID_RING_MEMBER, LIMITS.ringsPerSite * 2),
+    listAll<StyleRecord>(agent, NSID_STYLE, LIMITS.stylesPerSite),
+    ringsListing(did).catch((err) => {
+      console.warn("ring invites lookup failed", err);
+      return null;
+    }),
+  ]);
+  const self = await resolveActor(did, resolverUrl);
+
+  const owned = await Promise.all(
+    ownedEntries.map(async (entry): Promise<OwnedRing> => {
+      const uri = `at://${did}/${NSID_RING}/${entry.rkey}`;
+      const ring = self ? await loadRing(c.env, did, entry.rkey, self) : null;
+      const listed = new Set(ring ? (await ringRoster(c.env, ring)).map((m) => m.did) : []);
+      const members = await mapLimit(memberDids(entry.value), 6, async (memberDid) => {
+        const identity = await resolveActor(memberDid, resolverUrl).catch(() => null);
+        return {
+          did: memberDid,
+          ...(identity?.handle ? { handle: identity.handle } : {}),
+          status: listed.has(memberDid) ? ("accepted" as const) : ("pending" as const),
+        };
+      });
+      return { entry, uri, url: ringPageUrl(c.env, self?.handle ?? did, entry.rkey), members };
+    }),
+  );
+
+  const memberships = (
+    await Promise.all(
+      memberEntries
+        .filter((e) => isRingMember(e.value))
+        .map(async (e) => {
+          const ref = parseRingUri(e.value.ring);
+          if (!ref) return null;
+          const ring = await loadRing(c.env, ref.did, ref.slug).catch(() => null);
+          if (!ring) {
+            return {
+              uri: e.value.ring,
+              name: "A ring that no longer exists",
+              url: "",
+              ownerDid: ref.did,
+              active: false,
+            };
+          }
+          return { ...ringRef(c.env, ring), active: memberDids(ring.entry.value).includes(did) };
+        }),
+    )
+  ).filter((m): m is RingRef & { active: boolean } => m !== null);
+
+  const joined = new Set(memberships.map((m) => m.uri));
+  const invites = (
+    await Promise.all(
+      (listing ?? []).map(async ({ ownerDid, slug }) => {
+        const ring = await loadRing(c.env, ownerDid, slug).catch(() => null);
+        if (!ring || joined.has(ring.uri) || !memberDids(ring.entry.value).includes(did)) {
+          return null;
+        }
+        return ringRef(c.env, ring);
+      }),
+    )
+  ).filter((r): r is RingRef => r !== null);
+
+  return c.json<RingsResponse>({
+    did,
+    hasSite,
+    owned,
+    memberships,
+    invites,
+    styles: styles.map((s) => ({
+      rkey: s.rkey,
+      name: s.value.name,
+      ...(s.value.tokens ? { tokens: s.value.tokens } : {}),
+      ...(s.value.basedOn ? { basedOn: s.value.basedOn } : {}),
+    })),
+    invitesOk: listing !== null,
+  });
+});
+
+apiRoutes.put("/api/rings/:slug", requireSession, requireSameOrigin, requireEditor, async (c) => {
+  const { agent } = c.get("session");
+  const slug = c.req.param("slug");
+  if (!isSlug(slug)) {
+    return fail(c, 400, {
+      error: "invalid",
+      field: "slug",
+      message: "Use lowercase letters, numbers and dashes (up to 64 characters).",
+    });
+  }
+  const record = validateRing(await c.req.json());
+  if (!(await getOwn(agent, NSID_RING, slug))) {
+    const count = (await listAll(agent, NSID_RING, LIMITS.ringsPerAccount + 1)).length;
+    if (count >= LIMITS.ringsPerAccount) {
+      return fail(c, 409, {
+        error: "limit",
+        message: `You can own up to ${LIMITS.ringsPerAccount} rings.`,
+      });
+    }
+  }
+  return c.json<PutResponse>(await put(agent, NSID_RING, slug, record));
+});
+
+apiRoutes.delete(
+  "/api/rings/:slug",
+  requireSession,
+  requireSameOrigin,
+  requireEditor,
+  async (c) => {
+    const { agent, did } = c.get("session");
+    const slug = c.req.param("slug");
+    if (!isSlug(slug)) return fail(c, 404, { error: "not_found" });
+    await agent.com.atproto.repo.deleteRecord({ repo: did, collection: NSID_RING, rkey: slug });
+    return c.json({ ok: true });
+  },
+);
+
+/** A ring as seen by someone following an invite link. */
+apiRoutes.get("/api/rings/lookup", requireSession, requireEditor, async (c) => {
+  const { agent, did } = c.get("session");
+  const ref = ringFromQuery(c);
+  const ring = await loadRing(c.env, ref.did, ref.slug);
+  if (!ring) return fail(c, 404, { error: "not_found", message: "This ring doesn't exist." });
+  const [membership, hasSite] = await Promise.all([
+    getOwn<RingMemberRecord>(agent, NSID_RING_MEMBER, await membershipRkey(ring.uri)),
+    hasOwnSite(agent),
+  ]);
+  return c.json<RingLookupResponse>({
+    ring: ringRef(c.env, ring),
+    invited: memberDids(ring.entry.value).includes(did),
+    joined: membership?.value.ring === ring.uri,
+    hasSite,
+  });
+});
+
+/** Accept an invite: write this account's side of the membership. */
+apiRoutes.post(
+  "/api/ring-memberships",
+  requireSession,
+  requireSameOrigin,
+  requireEditor,
+  async (c) => {
+    const { agent, did } = c.get("session");
+    const body = (await c.req.json()) as { ring?: unknown };
+    const ref = parseRingUri(body.ring);
+    if (!ref) throw new ValidationError("ring", "That isn't a valid ring link.");
+    if (!(await hasOwnSite(agent))) {
+      return fail(c, 409, {
+        error: "invalid",
+        field: "site",
+        message: "Make your site first - rings link sites together.",
+      });
+    }
+    const ring = await loadRing(c.env, ref.did, ref.slug);
+    if (!ring) return fail(c, 404, { error: "not_found", message: "This ring doesn't exist." });
+    if (!memberDids(ring.entry.value).includes(did)) {
+      return fail(c, 403, {
+        error: "invalid",
+        field: "ring",
+        message: "You haven't been invited to this ring. Ask its owner to add your site.",
+      });
+    }
+    const rkey = await membershipRkey(ring.uri);
+    if (!(await getOwn(agent, NSID_RING_MEMBER, rkey))) {
+      const count = (await listAll(agent, NSID_RING_MEMBER, LIMITS.ringsPerSite + 1)).length;
+      if (count >= LIMITS.ringsPerSite) {
+        return fail(c, 409, {
+          error: "limit",
+          message: `A site can be in up to ${LIMITS.ringsPerSite} rings.`,
+        });
+      }
+    }
+    const record = validateRingMember({ ring: ring.uri, createdAt: new Date().toISOString() });
+    const res = await put(agent, NSID_RING_MEMBER, rkey, record);
+    await forgetRoster(ring.uri);
+    return c.json<PutResponse>(res);
+  },
+);
+
+apiRoutes.delete(
+  "/api/ring-memberships",
+  requireSession,
+  requireSameOrigin,
+  requireEditor,
+  async (c) => {
+    const { agent, did } = c.get("session");
+    const ref = ringFromQuery(c);
+    await agent.com.atproto.repo.deleteRecord({
+      repo: did,
+      collection: NSID_RING_MEMBER,
+      rkey: await membershipRkey(ref.uri),
+    });
+    await forgetRoster(ref.uri);
+    return c.json({ ok: true });
+  },
+);
 
 // Reporting (any signed-in session, including report-only sign-ins)
 

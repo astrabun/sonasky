@@ -5,6 +5,8 @@
  *   /@:actor/:slug       a page
  *   /@:actor/blog        blog index
  *   /@:actor/blog/:slug  a blog post
+ *   /@:actor/ring/:slug  a ring's index page
+ *   /@:actor/ring/:slug/{prev,next,random}  ring navigation (redirects)
  *
  * Returns a small shell: Apollo's top bar (attribution + Report) and a
  * sandboxed iframe pointing at the usercontent origin, plus server-rendered
@@ -15,13 +17,14 @@
 import { Hono, type Context } from "hono";
 import { NSID_SITE, SITE_RKEY } from "../../shared/nsid.ts";
 import { isSlug } from "../../shared/slug.ts";
-import { isDid, isHandle, resolveActor } from "../atproto/identity.ts";
+import { isDid, isHandle, resolveActor, type ResolvedIdentity } from "../atproto/identity.ts";
 import { origin, type AppEnv } from "../env.ts";
 import { checkModeration } from "../moderation.ts";
 import { SECURITY_HEADERS, shellCsp } from "../render/csp.ts";
 import { esc } from "../render/escape.ts";
 import { icon } from "../render/icons.ts";
 import { BASE_STYLES, notFoundPage, staticPage, unavailablePage } from "../render/pages.ts";
+import { loadRing, neighbor, randomMember, ringPageUrl, ringRoster } from "../rings.ts";
 import { loadSite, type TargetSpec } from "../site-loader.ts";
 
 type Ctx = Context<{ Bindings: AppEnv }>;
@@ -59,25 +62,9 @@ async function renderShell(c: Ctx, rawActor: string, spec: TargetSpec): Promise<
   const publicOrigin = origin(c.env.PUBLIC_URL);
   const ucOrigin = origin(c.env.USERCONTENT_URL);
 
-  let actorInput: string;
-  try {
-    actorInput = decodeURIComponent(rawActor).replace(/^@/, "");
-  } catch {
-    return notFoundPage();
-  }
-  const identity = await resolveActor(
-    actorInput,
-    c.env.HANDLE_RESOLVER_URL ?? "https://bsky.social",
-  );
-  if (!identity) return notFoundPage("We couldn't find that account.");
-
-  // DID URLs are kept as-is (they never change, even if the handle does).
-  // Handle URLs are normalized to the verified, lowercased handle.
-  const actor = isDid(actorInput) ? identity.did : (identity.handle ?? identity.did);
-  if (actorInput !== actor) {
-    const qs = new URL(c.req.url).search;
-    return c.redirect(`${publicOrigin}/@${actor}${pathFor(spec)}${qs}`, 301);
-  }
+  const resolved = await resolveViewerActor(c, rawActor, pathFor(spec));
+  if (resolved instanceof Response) return resolved;
+  const { identity, actor } = resolved;
 
   const loaded = await loadSite(identity.pds, identity.did, spec);
   if (!loaded) {
@@ -160,34 +147,160 @@ async function renderShell(c: Ctx, rawActor: string, spec: TargetSpec): Promise<
   if (ogImage) {
     meta.push(["property", "og:image", ogImage], ["name", "twitter:image", ogImage]);
   }
-  const metaTags = meta
+  return shellResponse({
+    title: fullTitle,
+    barTitle: site.title,
+    meta,
+    canonical,
+    favicon,
+    frameSrc,
+    reportHref: `/report?${reportParams.toString()}`,
+    identity,
+    ucOrigin,
+  });
+}
+
+/** Apollo's top bar + the sandboxed iframe, with OG tags. Shared by sites and ring pages. */
+function shellResponse(opts: {
+  title: string;
+  barTitle: string;
+  meta: [string, string, string][];
+  canonical: string;
+  favicon: string;
+  frameSrc: string;
+  reportHref: string;
+  identity: { did: string; handle?: string };
+  ucOrigin: string;
+}): Response {
+  const { identity } = opts;
+  const metaTags = opts.meta
     .filter(([, , value]) => value)
     .map(([attr, key, value]) => `<meta ${attr}="${esc(key)}" content="${esc(value)}">`)
     .join("");
 
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(
-    fullTitle,
-  )}</title>${metaTags}<link rel="canonical" href="${esc(canonical)}"><link rel="icon" href="${esc(
-    favicon,
+    opts.title,
+  )}</title>${metaTags}<link rel="canonical" href="${esc(opts.canonical)}"><link rel="icon" href="${esc(
+    opts.favicon,
   )}"><style>${SHELL_STYLES}</style></head><body><div class="bar"><a href="/" title="SonaSky Apollo" class="home">${icon("sun")} Apollo</a><span class="title">${esc(
-    site.title,
+    opts.barTitle,
   )} <a href="${esc(`https://bsky.app/profile/${identity.did}`)}">@${esc(identity.handle ?? identity.did)}</a></span><a href="${esc(
-    `/report?${reportParams.toString()}`,
+    opts.reportHref,
   )}">Report</a></div><iframe id="apollo-site" title="${esc(
-    site.title,
+    opts.barTitle,
   )}" sandbox="allow-scripts" referrerpolicy="no-referrer" src="${esc(
-    frameSrc,
+    opts.frameSrc,
   )}"></iframe><script src="/_apollo/shell.js"></script></body></html>`;
 
   return new Response(html, {
     headers: {
       "content-type": "text/html; charset=utf-8",
-      "content-security-policy": shellCsp(ucOrigin, identity.did),
+      "content-security-policy": shellCsp(opts.ucOrigin, identity.did),
       "cache-control": "public, max-age=30",
       ...SECURITY_HEADERS,
     },
   });
 }
+
+/** Resolve `rawActor`, redirecting handle URLs to their normalized form. */
+async function resolveViewerActor(
+  c: Ctx,
+  rawActor: string,
+  path: string,
+): Promise<{ identity: ResolvedIdentity; actor: string } | Response> {
+  let actorInput: string;
+  try {
+    actorInput = decodeURIComponent(rawActor).replace(/^@/, "");
+  } catch {
+    return notFoundPage();
+  }
+  const identity = await resolveActor(
+    actorInput,
+    c.env.HANDLE_RESOLVER_URL ?? "https://bsky.social",
+  );
+  if (!identity) return notFoundPage("We couldn't find that account.");
+  // DID URLs are kept as-is (they never change, even if the handle does).
+  // Handle URLs are normalized to the verified, lowercased handle.
+  const actor = isDid(actorInput) ? identity.did : (identity.handle ?? identity.did);
+  if (actorInput !== actor) {
+    const qs = new URL(c.req.url).search;
+    return c.redirect(`${origin(c.env.PUBLIC_URL)}/@${actor}${path}${qs}`, 301);
+  }
+  return { identity, actor };
+}
+
+async function renderRingShell(c: Ctx, rawActor: string, slug: string): Promise<Response> {
+  const resolved = await resolveViewerActor(c, rawActor, `/ring/${slug}`);
+  if (resolved instanceof Response) return resolved;
+  const { identity, actor } = resolved;
+  const ucOrigin = origin(c.env.USERCONTENT_URL);
+
+  const ring = await loadRing(c.env, identity.did, slug, identity);
+  if (!ring) return notFoundPage("This ring doesn't exist.");
+  const verdict = await checkModeration(c.env, identity.did, identity.pds);
+  if (verdict.kind === "unavailable") return unavailablePage();
+
+  const name = ring.entry.value.name;
+  const title = `${name} · Webring`;
+  const description = ring.entry.value.description ?? `A webring of Apollo sites.`;
+  const canonical = ringPageUrl(c.env, actor, slug);
+  const v = await version([ring.entry.cid]);
+  const frameSrc = `${ucOrigin}/r/${identity.did}/ring/${slug}?${new URLSearchParams({ a: actor, v }).toString()}`;
+  const reportParams = new URLSearchParams({ uri: ring.entry.uri, cid: ring.entry.cid });
+
+  return shellResponse({
+    title,
+    barTitle: title,
+    meta: [
+      ["name", "description", description],
+      ["property", "og:type", "website"],
+      ["property", "og:title", title],
+      ["property", "og:description", description],
+      ["property", "og:url", canonical],
+      ["name", "twitter:card", "summary"],
+      ["name", "twitter:title", title],
+      ["name", "twitter:description", description],
+    ],
+    canonical,
+    favicon: "/sonasky_favicon.png",
+    frameSrc,
+    reportHref: `/report?${reportParams.toString()}`,
+    identity,
+    ucOrigin,
+  });
+}
+
+/** Ring navigation: send the visitor to a member site, or back to the ring page. */
+async function ringRedirect(c: Ctx, move: "prev" | "next" | "random"): Promise<Response> {
+  const rawActor = c.req.param("actor") ?? "";
+  const slug = c.req.param("slug") ?? "";
+  if (!isSlug(slug)) return notFoundPage();
+  let actorInput: string;
+  try {
+    actorInput = decodeURIComponent(rawActor).replace(/^@/, "");
+  } catch {
+    return notFoundPage();
+  }
+  const ring =
+    isDid(actorInput) || isHandle(actorInput) ? await loadRing(c.env, actorInput, slug) : null;
+  if (!ring) return notFoundPage("This ring doesn't exist.");
+  const index = ringPageUrl(c.env, ring.owner.handle ?? ring.owner.did, slug);
+  const roster = await ringRoster(c.env, ring);
+  const target =
+    move === "random"
+      ? randomMember(roster, c.req.query("not"))
+      : neighbor(roster, c.req.query("from"), move);
+  return c.redirect(target?.url ?? index, 302);
+}
+
+viewerRoutes.get("/:actor{@[^/]+}/ring/:slug/prev", (c) => ringRedirect(c, "prev"));
+viewerRoutes.get("/:actor{@[^/]+}/ring/:slug/next", (c) => ringRedirect(c, "next"));
+viewerRoutes.get("/:actor{@[^/]+}/ring/:slug/random", (c) => ringRedirect(c, "random"));
+viewerRoutes.get("/:actor{@[^/]+}/ring/:slug", (c) => {
+  const slug = c.req.param("slug");
+  if (!isSlug(slug)) return notFoundPage();
+  return renderRingShell(c, c.req.param("actor"), slug);
+});
 
 viewerRoutes.get("/:actor{@[^/]+}/blog/:slug", (c) => {
   const slug = c.req.param("slug");

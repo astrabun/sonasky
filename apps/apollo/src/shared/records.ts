@@ -13,6 +13,8 @@ import type {
   NSID_MEDIA,
   NSID_PAGE,
   NSID_POST,
+  NSID_RING,
+  NSID_RING_MEMBER,
   NSID_SCRIPT,
   NSID_SITE,
   NSID_STYLE,
@@ -169,9 +171,8 @@ export type Block =
   | DividerBlock
   | SpacerBlock;
 export type BlockType = Block["$type"];
-// ---------------------------------------------------------------------------
+
 // Content records
-// ---------------------------------------------------------------------------
 
 interface ContentFields {
   title: string;
@@ -248,6 +249,42 @@ export interface MediaRecord {
   createdAt: string;
 }
 
+// Rings
+
+/** A site invited to a ring. No `$type`, so backlink indexes see `.members[].did`. */
+export interface RingMemberRef {
+  did: string;
+  addedAt: string;
+}
+
+/**
+ * A webring, in its owner's repo (rkey = slug). Owning a ring doesn't need a
+ * site. A member counts only when it is listed here AND its repo has a
+ * matching `RingMemberRecord` - the invite and the acceptance.
+ */
+export interface RingRecord {
+  $type: typeof NSID_RING;
+  name: string;
+  description?: string;
+  /** The ring index page's own content. */
+  format: "markdown" | "html";
+  body?: string;
+  /** Style rkey in the owner's repo; falls back to the owner's site theme. */
+  theme?: string;
+  /** Ring order: prev/next walk this list. */
+  members: RingMemberRef[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A site's acceptance of a ring invite. Its presence is the member's consent. */
+export interface RingMemberRecord {
+  $type: typeof NSID_RING_MEMBER;
+  /** at://<owner>/app.sonasky.apollo.ring/<slug> */
+  ring: string;
+  createdAt: string;
+}
+
 export type ApolloRecord =
   | SiteRecord
   | PageRecord
@@ -255,4 +292,6 @@ export type ApolloRecord =
   | StyleRecord
   | ScriptRecord
   | LayoutRecord
-  | MediaRecord;
+  | MediaRecord
+  | RingRecord
+  | RingMemberRecord;

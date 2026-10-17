@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  CircleDot,
   CircleQuestionMark,
   ExternalLink,
   FileText,
@@ -10,7 +11,7 @@ import {
   Wrench,
   type LucideIcon,
 } from "lucide-react";
-import { Navigate, NavLink, Route, Routes } from "react-router";
+import { Link, Navigate, NavLink, Route, Routes } from "react-router";
 import type { Entry, SiteBundle } from "../../shared/dto.ts";
 import type { SiteRecord } from "../../shared/records.ts";
 import { api, ApiFailure } from "../api.ts";
@@ -20,6 +21,7 @@ import { AdvancedPanel } from "./AdvancedPanel.tsx";
 import { EditorProvider, useEditorState } from "./context.tsx";
 import { MediaLibrary } from "./MediaLibrary.tsx";
 import { BlogPanel, PageEditorRoute, PagesPanel } from "./PagesPanel.tsx";
+import { RingsRoutes } from "./RingsPanel.tsx";
 import { SettingsPanel } from "./SettingsPanel.tsx";
 import { ThemePanel } from "./ThemePanel.tsx";
 import { Wizard } from "./Wizard.tsx";
@@ -29,6 +31,7 @@ const TABS: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/edit/blog", label: "Blog", icon: PenLine },
   { to: "/edit/theme", label: "Theme", icon: Palette },
   { to: "/edit/media", label: "Media", icon: Image },
+  { to: "/edit/rings", label: "Rings", icon: CircleDot },
   { to: "/edit/settings", label: "Settings", icon: Settings },
   { to: "/edit/advanced", label: "Advanced", icon: Wrench },
 ];
@@ -104,6 +107,7 @@ function Editor() {
           <Route path="media" element={<MediaPanel />} />
           <Route path="settings" element={<SettingsPanel />} />
           <Route path="advanced" element={<AdvancedPanel />} />
+          <Route path="rings/*" element={<RingsRoutes />} />
           <Route path="*" element={<Navigate to="/edit/pages" replace />} />
         </Routes>
       </div>
@@ -141,7 +145,25 @@ export function Dashboard({ onReauth }: { onReauth: () => void }) {
 
   if (error) return <Notice tone="error">{error}</Notice>;
   if (!bundle) return <Spinner label="Loading your site..." />;
-  if (!bundle.site) return <Wizard bundle={bundle} onDone={load} />;
+  if (!bundle.site) {
+    // Rings don't need a site, so they're reachable before the wizard.
+    return (
+      <Routes>
+        <Route
+          path="rings/*"
+          element={
+            <div className="mx-auto max-w-3xl space-y-4">
+              <Link to="/edit" className="text-sm text-sky-700 hover:underline dark:text-sky-400">
+                &larr; Make your site
+              </Link>
+              <RingsRoutes />
+            </div>
+          }
+        />
+        <Route path="*" element={<Wizard bundle={bundle} onDone={load} />} />
+      </Routes>
+    );
+  }
 
   return (
     <EditorProvider

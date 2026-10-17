@@ -26,6 +26,10 @@ export const LIMITS = {
   buttonsPerBlock: 32,
   galleryItems: 24,
   tagsPerPost: 16,
+  ringsPerAccount: 16,
+  ringMembers: 100,
+  /** Rings one site can belong to (each adds a footer nav). */
+  ringsPerSite: 8,
 
   titleBytes: 300,
   descriptionBytes: 3000,

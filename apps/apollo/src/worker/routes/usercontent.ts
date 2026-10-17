@@ -6,6 +6,7 @@
  *   GET /r/:did/page/:slug   rendered page   (iframe only)
  *   GET /r/:did/post/:slug   rendered post   (iframe only)
  *   GET /r/:did/blog         blog index      (iframe only)
+ *   GET /r/:did/ring/:slug   a ring's index page (iframe only)
  *   GET /s/:did/script/:rkey.js   a script record's source
  *   GET /m/:did/:rkey        a media record's blob, re-sniffed
  *   GET /_apollo/bootstrap.js     link interceptor injected into every page
@@ -13,8 +14,8 @@
  */
 
 import { Hono, type Context } from "hono";
-import { NSID_MEDIA, NSID_SCRIPT } from "../../shared/nsid.ts";
-import type { MediaRecord, ScriptRecord } from "../../shared/records.ts";
+import { NSID_MEDIA, NSID_SCRIPT, NSID_SITE, NSID_STYLE, SITE_RKEY } from "../../shared/nsid.ts";
+import type { MediaRecord, ScriptRecord, SiteRecord, StyleRecord } from "../../shared/records.ts";
 import { isSlug } from "../../shared/slug.ts";
 import { isDid, isHandle, resolveActor } from "../atproto/identity.ts";
 import { fetchBlob, getPublicRecord } from "../atproto/repo.ts";
@@ -22,7 +23,8 @@ import { origin, type AppEnv } from "../env.ts";
 import { fetchFontFile, googleFontsCss, GSTATIC_PATH_RE, parseFamilies } from "../fonts.ts";
 import { checkModeration } from "../moderation.ts";
 import { SECURITY_HEADERS, usercontentCsp } from "../render/csp.ts";
-import { renderSiteDocument } from "../render/document.ts";
+import { renderRingDocument, renderSiteDocument } from "../render/document.ts";
+import { loadRing, ringRoster, siteRings } from "../rings.ts";
 import { jsLiteral } from "../render/escape.ts";
 import { loadSite, toRenderInput, type TargetSpec } from "../site-loader.ts";
 import { ALLOWED_MEDIA, peekStream, SNIFF_BYTES, sniffMime } from "../validate/media.ts";
@@ -88,7 +90,8 @@ async function renderDoc(c: Ctx, did: string, spec: TargetSpec): Promise<Respons
       return plain(403, "This site has a content warning.");
     }
 
-    const html = await renderSiteDocument(toRenderInput(loaded, did, actor), {
+    const rings = await siteRings(c.env, identity.pds, did);
+    const html = await renderSiteDocument(toRenderInput(loaded, did, actor, rings), {
       publicOrigin,
       usercontentOrigin: origin(c.env.USERCONTENT_URL),
     });
@@ -119,6 +122,59 @@ usercontentRoutes.get("/r/:did/blog", (c) => {
   const did = c.req.param("did");
   if (!isDid(did)) return plain(404, "Not found");
   return renderDoc(c, did, { kind: "blog" });
+});
+
+usercontentRoutes.get("/r/:did/ring/:slug", (c) => {
+  const { did, slug } = c.req.param();
+  if (!isDid(did) || !isSlug(slug)) return plain(404, "Not found");
+  const publicOrigin = origin(c.env.PUBLIC_URL);
+  const actorParam = c.req.query("a");
+  const actor = actorParam && (isDid(actorParam) || isHandle(actorParam)) ? actorParam : did;
+  if (c.req.header("sec-fetch-dest") !== "iframe") {
+    return c.redirect(`${publicOrigin}/@${actor}/ring/${slug}`, 302);
+  }
+
+  return cached(c, async () => {
+    const ring = await loadRing(c.env, did, slug);
+    if (!ring) return plain(404, "Not found");
+    const verdict = await checkModeration(c.env, did, ring.owner.pds);
+    if (verdict.kind === "unavailable") return plain(451, "This ring is unavailable.");
+
+    // The ring's theme, else the owner's site theme, else Apollo's defaults.
+    const themeKey =
+      ring.entry.value.theme ??
+      (
+        await getPublicRecord<SiteRecord>(ring.owner.pds, did, NSID_SITE, SITE_RKEY).catch(
+          () => null,
+        )
+      )?.value.theme;
+    const [theme, members] = await Promise.all([
+      themeKey && isSlug(themeKey)
+        ? getPublicRecord<StyleRecord>(ring.owner.pds, did, NSID_STYLE, themeKey).catch(() => null)
+        : null,
+      ringRoster(c.env, ring),
+    ]);
+
+    const html = await renderRingDocument(
+      {
+        ownerDid: did,
+        ownerActor: actor,
+        slug,
+        ring: ring.entry.value,
+        styles: theme?.value?.$type === NSID_STYLE ? [theme.value] : [],
+        members,
+      },
+      { publicOrigin, usercontentOrigin: origin(c.env.USERCONTENT_URL) },
+    );
+    return new Response(html, {
+      headers: {
+        "content-type": "text/html; charset=utf-8",
+        "content-security-policy": usercontentCsp(origin(c.env.USERCONTENT_URL), publicOrigin, did),
+        "cache-control": `public, max-age=${DOC_TTL_SECONDS}`,
+        ...SECURITY_HEADERS,
+      },
+    });
+  });
 });
 
 usercontentRoutes.get("/s/:did/script/:file", (c) => {

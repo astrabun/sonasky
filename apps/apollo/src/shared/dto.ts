@@ -6,7 +6,9 @@ import type {
   MediaRecord,
   PageRecord,
   PostRecord,
+  RingRecord,
   ScriptRecord,
+  ThemeTokens,
   SiteRecord,
   StyleRecord,
 } from "./records.ts";
@@ -111,6 +113,49 @@ export interface DiscoverSite {
 export interface DiscoverResponse {
   /** null when there's nothing to show (empty pool, or the relay is down). */
   site: DiscoverSite | null;
+}
+
+// Rings
+
+export type RingMemberStatus = "accepted" | "pending";
+
+export interface OwnedRing {
+  entry: Entry<RingRecord>;
+  uri: string;
+  /** Viewer URL of the ring page. */
+  url: string;
+  members: { did: string; handle?: string; status: RingMemberStatus }[];
+}
+
+/** A ring seen from a (prospective) member's side. */
+export interface RingRef {
+  uri: string;
+  name: string;
+  description?: string;
+  url: string;
+  ownerDid: string;
+  ownerHandle?: string;
+}
+
+export interface RingsResponse {
+  did: string;
+  hasSite: boolean;
+  owned: OwnedRing[];
+  /** Rings this account has accepted. `active` is false once the owner removed it. */
+  memberships: (RingRef & { active: boolean })[];
+  /** Rings that list this account but haven't been accepted. */
+  invites: RingRef[];
+  /** The account's styles, for ring looks. */
+  styles: { rkey: string; name: string; tokens?: ThemeTokens; basedOn?: string }[];
+  /** False when the invite index couldn't be reached. */
+  invitesOk: boolean;
+}
+
+export interface RingLookupResponse {
+  ring: RingRef;
+  invited: boolean;
+  joined: boolean;
+  hasSite: boolean;
 }
 
 export type ReportSubject = { uri: string; cid: string } | { did: string };

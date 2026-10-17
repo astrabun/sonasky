@@ -19,6 +19,7 @@ import type {
 import { isSlug } from "../shared/slug.ts";
 import { getPublicRecord, listPublicRecords, type RecordEntry } from "./atproto/repo.ts";
 import type { RenderInput, RenderTarget } from "./render/document.ts";
+import type { RingNav } from "./rings.ts";
 
 export type TargetSpec =
   | { kind: "page"; slug?: string }
@@ -126,8 +127,14 @@ export async function loadSite(
   };
 }
 
-export function toRenderInput(loaded: LoadedSite, did: string, actor: string): RenderInput {
+export function toRenderInput(
+  loaded: LoadedSite,
+  did: string,
+  actor: string,
+  rings: RingNav[] = [],
+): RenderInput {
   return {
+    rings,
     did,
     actor,
     site: loaded.site.value,

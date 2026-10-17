@@ -9,10 +9,12 @@ import type {
   LayoutRecord,
   PageRecord,
   PostRecord,
+  RingRecord,
   SiteRecord,
   StyleRecord,
 } from "../../shared/records.ts";
 import type { RecordEntry } from "../atproto/repo.ts";
+import type { RingNav, RosterMember } from "../rings.ts";
 import { renderBlocks, type BlockContext } from "./blocks.ts";
 import { esc } from "./escape.ts";
 import { markdownToHtml } from "./markdown.ts";
@@ -35,6 +37,8 @@ export interface RenderInput {
   layout?: LayoutRecord;
   /** Script records to load, by rkey + cid (cid busts caches). Empty in previews. */
   scripts: { rkey: string; cid: string }[];
+  /** Rings this site belongs to. Their navs are always rendered, whatever the layout. */
+  rings?: RingNav[];
 }
 
 export interface RenderOrigins {
@@ -117,6 +121,29 @@ function renderNav(site: SiteRecord, urls: UrlRewriters, currentSlug: string | n
   return items ? `<nav class="apollo-nav" aria-label="Site"><ul>${items}</ul></nav>` : "";
 }
 
+/** Base styles for ring navs and ring pages; site CSS still layers on top. */
+const RING_CSS = `.apollo-ring{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 14px;margin-top:10px}
+.apollo-ring a{color:inherit}
+.apollo-ring-name{font-weight:600}
+.apollo-ring-footer{max-width:var(--apollo-width);margin:48px auto 24px;padding:0 16px}
+.apollo-ring-members{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.apollo-ring-members .apollo-card{margin:0;height:100%}
+.apollo-ring-random{margin:1.5em 0}`;
+
+/** One "<- Previous · Ring · Next ->" row per ring. */
+export function renderRingNav(rings: RingNav[] | undefined): string {
+  return (rings ?? [])
+    .map(
+      (r) =>
+        `<nav class="apollo-ring" aria-label="${esc(`Webring: ${r.name}`)}"><a href="${esc(
+          r.prevUrl,
+        )}" rel="prev">&larr; Previous</a><a class="apollo-ring-name" href="${esc(
+          r.indexUrl,
+        )}">${esc(r.name)}</a><a href="${esc(r.nextUrl)}" rel="next">Next &rarr;</a></nav>`,
+    )
+    .join("");
+}
+
 function formatDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
@@ -177,6 +204,7 @@ export async function renderSiteDocument(
 
   const nav = renderNav(site, urls, currentSlug);
   const title = pageTitle(input);
+  const ringNav = renderRingNav(input.rings);
 
   let body: string;
   if (input.layout?.html) {
@@ -192,22 +220,16 @@ export async function renderSiteDocument(
       /\{\{\s*(content|nav|title|site\.title)\s*\}\}/g,
       (_, key: string) => slots[key],
     );
+    // A layout can't leave out ring navs: membership requires showing them.
+    if (ringNav) body += `<footer class="apollo-footer apollo-ring-footer">${ringNav}</footer>`;
   } else {
     body = `<div class="apollo-wrap"><header class="apollo-header"><a class="apollo-site-title" href="${esc(
       urls.pageUrl(""),
     )}">${esc(site.title)}</a>${nav}</header><main>${content}</main><footer class="apollo-footer">Made with <a href="${esc(
       origins.publicOrigin,
-    )}">SonaSky Apollo</a></footer></div>`;
+    )}">SonaSky Apollo</a>${ringNav}</footer></div>`;
   }
 
-  const css = [themeCss(input.styles[0]?.tokens), ...input.styles.map((s) => s.css ?? "")]
-    .map(safeStyleText)
-    .join("\n");
-  const fonts = googleFontFamilies(input.styles[0]?.tokens);
-  const fontLink = fonts.length
-    ? `<link rel="stylesheet" href="${esc(googleFontsHref(origins.usercontentOrigin, fonts))}">`
-    : "";
-  const lang = site.lang && LANG_RE.test(site.lang) ? site.lang : "en";
   const scripts = input.scripts
     .filter((s) => RKEY_RE.test(s.rkey))
     .map(
@@ -216,7 +238,84 @@ export async function renderSiteDocument(
     )
     .join("");
 
+  return documentHtml(
+    { lang: site.lang, title, styles: input.styles, body: body + scripts },
+    origins,
+  );
+}
+
+/** The `<html>` around a rendered body: theme CSS, fonts and Apollo's bootstrap script. */
+function documentHtml(
+  opts: { lang?: string; title: string; styles: StyleRecord[]; body: string },
+  origins: RenderOrigins,
+): string {
+  const tokens = opts.styles[0]?.tokens;
+  const css = [themeCss(tokens), RING_CSS, ...opts.styles.map((s) => s.css ?? "")]
+    .map(safeStyleText)
+    .join("\n");
+  const fonts = googleFontFamilies(tokens);
+  const fontLink = fonts.length
+    ? `<link rel="stylesheet" href="${esc(googleFontsHref(origins.usercontentOrigin, fonts))}">`
+    : "";
+  const lang = opts.lang && LANG_RE.test(opts.lang) ? opts.lang : "en";
   return `<!doctype html><html lang="${esc(lang)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><title>${esc(
-    title,
-  )}</title><script src="${esc(`${origins.usercontentOrigin}/_apollo/bootstrap.js`)}"></script>${fontLink}<style>${css}</style></head><body>${body}${scripts}</body></html>`;
+    opts.title,
+  )}</title><script src="${esc(`${origins.usercontentOrigin}/_apollo/bootstrap.js`)}"></script>${fontLink}<style>${css}</style></head><body>${opts.body}</body></html>`;
+}
+
+export interface RingRenderInput {
+  ownerDid: string;
+  /** Owner handle (or DID) for viewer URLs. */
+  ownerActor: string;
+  slug: string;
+  ring: RingRecord;
+  /** The ring's theme first; falls back to defaults when empty. */
+  styles: StyleRecord[];
+  /** Listed members, in ring order. */
+  members: RosterMember[];
+}
+
+/** A ring's index page: the owner's content, a random-site button and the member list. */
+export async function renderRingDocument(
+  input: RingRenderInput,
+  origins: RenderOrigins,
+): Promise<string> {
+  const { ring } = input;
+  // Relative links in the ring's content point at the owner's own site.
+  const urls = urlRewriters(origins, input.ownerDid, input.ownerActor, "");
+  const content =
+    ring.format === "html"
+      ? await sanitizeHtml(ring.body ?? "", urls)
+      : await sanitizeHtml(markdownToHtml(ring.body ?? ""), urls);
+  const ringUrl = `${origins.publicOrigin}/@${input.ownerActor}/ring/${input.slug}`;
+
+  const cards = input.members
+    .map((m) => {
+      const byline = m.handle ? `@${m.handle}` : m.did;
+      const avatar = m.avatar
+        ? `<img class="apollo-card-avatar" src="${esc(m.avatar)}" alt="">`
+        : "";
+      return `<li><a class="apollo-card" href="${esc(m.url)}"><div class="apollo-card-head">${avatar}<div><div class="apollo-card-name">${esc(
+        m.title,
+      )}</div><div class="apollo-card-sub">${esc(m.displayName ? `${m.displayName} · ${byline}` : byline)}</div></div></div>${
+        m.description ? `<p class="apollo-card-text">${esc(m.description)}</p>` : ""
+      }</a></li>`;
+    })
+    .join("");
+  const members = input.members.length
+    ? `<h2>Members (${input.members.length})</h2><ul class="apollo-ring-members">${cards}</ul>`
+    : "<p>No sites have joined this ring yet.</p>";
+  const random = input.members.length
+    ? `<p class="apollo-ring-random"><a class="apollo-button" href="${esc(`${ringUrl}/random`)}">Visit a random site</a></p>`
+    : "";
+
+  const body = `<div class="apollo-wrap"><header class="apollo-header"><a class="apollo-site-title" href="${esc(
+    ringUrl,
+  )}">${esc(ring.name)}</a></header><main><h1>${esc(ring.name)}</h1>${
+    ring.description ? `<p>${esc(ring.description)}</p>` : ""
+  }${content}${random}${members}</main><footer class="apollo-footer">A webring on <a href="${esc(
+    origins.publicOrigin,
+  )}">SonaSky Apollo</a></footer></div>`;
+
+  return documentHtml({ title: `${ring.name} · Webring`, styles: input.styles, body }, origins);
 }

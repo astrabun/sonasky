@@ -93,6 +93,18 @@ const QUESTIONS: { q: string; a: ReactNode }[] = [
     ),
   },
   {
+    q: "What's a ring?",
+    a: (
+      <>
+        A ring is a webring: a group of sites that link to each other. Anyone can start one in{" "}
+        <strong>Rings</strong>, even without a site, and invite sites by their handle. Once a site
+        accepts, it shows <strong>Previous · Ring name · Next</strong> links at the bottom of every
+        page. The ring's own page lists every member and has a button that takes you to a random
+        one. The links can't be turned off while you're a member; to remove them, leave the ring.
+      </>
+    ),
+  },
+  {
     q: "Does Apollo use AI?",
     a: <>No. Apollo gives you templates, themes and blocks, and you do the making.</>,
   },
@@ -110,7 +122,8 @@ const QUESTIONS: { q: string; a: ReactNode }[] = [
     a: (
       <>
         Go to <strong>Settings &rarr; Delete site</strong>. This removes every page, post, upload
-        and setting from your account.
+        and setting from your account, and takes your site out of any rings. Rings you own stay
+        until you delete them in <strong>Rings</strong>.
       </>
     ),
   },

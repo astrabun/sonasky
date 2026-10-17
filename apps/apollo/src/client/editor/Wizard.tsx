@@ -4,6 +4,7 @@
  */
 
 import { useState } from "react";
+import { Link as RouterLink } from "react-router";
 import { CalendarDays, File, Link, Palette, PenLine, Users, type LucideIcon } from "lucide-react";
 import type { SiteBundle } from "../../shared/dto.ts";
 import { NSID_PAGE, NSID_POST, NSID_STYLE } from "../../shared/nsid.ts";
@@ -98,6 +99,16 @@ export function Wizard({ bundle, onDone }: { bundle: SiteBundle; onDone: () => v
               : "You can fine-tune colors and fonts afterwards in Theme."}
         </p>
       </div>
+
+      {step === 1 ? (
+        <p className="text-sm text-neutral-600 dark:text-neutral-300">
+          Just want to start a webring?{" "}
+          <RouterLink to="/edit/rings" className="text-sky-700 hover:underline dark:text-sky-400">
+            Make a ring
+          </RouterLink>{" "}
+          - you don't need a site for that.
+        </p>
+      ) : null}
 
       {step === 1 ? (
         <ul className="grid gap-3 sm:grid-cols-2">

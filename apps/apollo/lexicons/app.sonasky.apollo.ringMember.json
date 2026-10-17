@@ -1,0 +1,24 @@
+{
+  "lexicon": 1,
+  "id": "app.sonasky.apollo.ringMember",
+  "description": "Documentation only. A site's acceptance of a ring invite, in the member's repo. Deleting it leaves the ring.",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "any",
+      "description": "rkey is the first 26 base32 characters of sha256(ring at-uri), so a membership can be checked with one getRecord. The `ring` field is what counts.",
+      "record": {
+        "type": "object",
+        "required": ["ring", "createdAt"],
+        "properties": {
+          "ring": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "at://<owner did>/app.sonasky.apollo.ring/<slug>"
+          },
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}

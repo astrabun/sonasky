@@ -1,0 +1,46 @@
+{
+  "lexicon": 1,
+  "id": "app.sonasky.apollo.ring",
+  "description": "Documentation only. A webring, in its owner's repo. Owning a ring doesn't need a site. A site is a member only when it is listed in `members` AND its own repo has an app.sonasky.apollo.ringMember record pointing at this ring; members' sites then always show previous/index/next ring links in their footer.",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "any",
+      "description": "rkey is the ring's slug (lowercase letters, numbers, dashes), used in its URL /@owner/ring/<slug>.",
+      "record": {
+        "type": "object",
+        "required": ["name", "format", "members", "createdAt", "updatedAt"],
+        "properties": {
+          "name": { "type": "string", "maxLength": 300 },
+          "description": { "type": "string", "maxLength": 3000 },
+          "format": { "type": "string", "knownValues": ["markdown", "html"] },
+          "body": {
+            "type": "string",
+            "maxLength": 65536,
+            "description": "Content of the ring's index page, sanitized like page bodies."
+          },
+          "theme": {
+            "type": "string",
+            "description": "rkey of an app.sonasky.apollo.style in the owner's repo. Falls back to the owner's site theme."
+          },
+          "members": {
+            "type": "array",
+            "maxLength": 100,
+            "description": "Invited sites, in ring order (previous/next walk this list).",
+            "items": { "type": "ref", "ref": "#member" }
+          },
+          "createdAt": { "type": "string", "format": "datetime" },
+          "updatedAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    },
+    "member": {
+      "type": "object",
+      "required": ["did", "addedAt"],
+      "properties": {
+        "did": { "type": "string", "format": "did" },
+        "addedAt": { "type": "string", "format": "datetime" }
+      }
+    }
+  }
+}

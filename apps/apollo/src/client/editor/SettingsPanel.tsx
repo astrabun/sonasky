@@ -158,7 +158,7 @@ export function SettingsPanel() {
 
   const deleteSite = async () => {
     const answer = globalThis.prompt(
-      "This deletes your whole site - every page, post, upload and setting - from your Bluesky account. Type DELETE to confirm.",
+      "This deletes your whole site - every page, post, upload and setting - from your Bluesky account, and takes it out of any rings (rings you own are kept). Type DELETE to confirm.",
     );
     if (answer !== "DELETE") return;
     setBusy(true);

@@ -13,6 +13,8 @@ import {
   NSID_LAYOUT,
   NSID_PAGE,
   NSID_POST,
+  NSID_RING,
+  NSID_RING_MEMBER,
   NSID_SCRIPT,
   NSID_SITE,
   NSID_STYLE,
@@ -26,6 +28,8 @@ import {
   type PageFormat,
   type PageRecord,
   type PostRecord,
+  type RingMemberRecord,
+  type RingRecord,
   type ScriptRecord,
   type SelfLabels,
   type SiteRecord,
@@ -484,6 +488,54 @@ export function validateLayout(input: unknown): LayoutRecord {
   };
   checkSize(record);
   return record;
+}
+
+export function validateRing(input: unknown): RingRecord {
+  const o = obj(input, "ring");
+  const format = oneOf(o, "format", "format", ["markdown", "html"] as const, "markdown");
+  const seen = new Set<string>();
+  const members = arr(o, "members", "members", LIMITS.ringMembers).map((item, i) => {
+    const m = obj(item, `members[${i}]`);
+    if (typeof m.did !== "string" || !DID_RE.test(m.did)) {
+      throw new ValidationError(`members[${i}]`, "Not a valid account.");
+    }
+    if (seen.has(m.did)) throw new ValidationError(`members[${i}]`, "That site is already listed.");
+    seen.add(m.did);
+    return {
+      did: m.did,
+      addedAt: datetime(m.addedAt, `members[${i}].addedAt`, false) ?? new Date().toISOString(),
+    };
+  });
+  const record: RingRecord = {
+    $type: NSID_RING,
+    name: str(o, "name", "name", LIMITS.titleBytes, true),
+    description: str(o, "description", "description", LIMITS.descriptionBytes),
+    format,
+    body: str(o, "body", "body", LIMITS.pageBodyBytes),
+    theme: slugRef(o, "theme", "theme"),
+    members,
+    ...timestamps(o),
+  };
+  checkSize(record);
+  return record;
+}
+
+/** `at://<did>/app.sonasky.apollo.ring/<slug>` -> its parts, or null. */
+export function parseRingUri(value: unknown): { did: string; slug: string } | null {
+  if (typeof value !== "string") return null;
+  const m = AT_URI_RE.exec(value);
+  if (!m || m[2] !== NSID_RING || !DID_RE.test(m[1]) || !isSlug(m[3])) return null;
+  return { did: m[1], slug: m[3] };
+}
+
+export function validateRingMember(input: unknown): RingMemberRecord {
+  const o = obj(input, "ringMember");
+  if (!parseRingUri(o.ring)) throw new ValidationError("ring", "Not a valid ring.");
+  return {
+    $type: NSID_RING_MEMBER,
+    ring: o.ring as string,
+    createdAt: timestamps(o).createdAt,
+  };
 }
 
 export const SLUG_VALIDATORS: Record<SlugCollection, (input: unknown) => unknown> = {
