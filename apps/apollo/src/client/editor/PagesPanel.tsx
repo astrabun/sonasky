@@ -131,6 +131,25 @@ export function BlogPanel() {
     }
   };
 
+  const disable = async () => {
+    if (
+      !globalThis.confirm(
+        posts.length
+          ? `Turn off the blog? ${bundle.siteUrl}/blog and your ${posts.length} post(s) will stop showing on your site. The posts stay saved, so turning the blog back on brings them back. (Delete them first if you want them gone.)`
+          : `Turn off the blog? ${bundle.siteUrl}/blog will stop showing on your site.`,
+      )
+    )
+      return;
+    try {
+      const kept = site.value.nav?.filter((n) => n.url !== "/blog");
+      const nav = kept?.length ? kept : undefined;
+      const res = await api.putSite({ ...editable(site.value), blogEnabled: false, nav });
+      setSite({ ...site, cid: res.cid, value: { ...site.value, blogEnabled: false, nav } });
+    } catch (err) {
+      globalThis.alert(err instanceof ApiFailure ? err.message : "Couldn't turn off the blog.");
+    }
+  };
+
   const del = async (rkey: string, title: string) => {
     if (!globalThis.confirm(`Delete "${title}"? This can't be undone.`)) return;
     try {
@@ -160,12 +179,17 @@ export function BlogPanel() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Blog posts</h2>
-        <Link
-          to="/edit/blog/new"
-          className="rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500"
-        >
-          + New post
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="ghost" onClick={disable}>
+            Turn off the blog
+          </Button>
+          <Link
+            to="/edit/blog/new"
+            className="rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500"
+          >
+            + New post
+          </Link>
+        </div>
       </div>
       {posts.length === 0 ? <p className="text-sm text-neutral-500">No posts yet.</p> : null}
       <ul className="space-y-2">
