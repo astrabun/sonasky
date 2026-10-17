@@ -29,6 +29,7 @@
     "@codemirror/view": "^6.43.12",
     "@sonasky/apollo-themes": "workspace:*",
     "@sonasky/labels-def": "workspace:*",
+    "@tiptap/extension-image": "^3.31.3",
     "@tiptap/extension-table": "^3.31.3",
     "@tiptap/extension-table-cell": "^3.31.3",
     "@tiptap/extension-table-header": "^3.31.3",

@@ -4,7 +4,8 @@
  * from apps/sonasky-ref/.../CharacterEditor/DescriptionEditor.tsx.
  */
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
+import type { EditorView } from "@codemirror/view";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { TaskItem } from "@tiptap/extension-task-item";
@@ -13,12 +14,14 @@ import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { TableCell } from "@tiptap/extension-table-cell";
+import { Image } from "@tiptap/extension-image";
 import { Markdown, type MarkdownStorage } from "tiptap-markdown";
 import {
   Bold,
   Heading1,
   Heading2,
   Heading3,
+  ImagePlus,
   Italic,
   Link2,
   List,
@@ -32,8 +35,51 @@ import {
   Underline as UnderlineIcon,
   Unlink,
 } from "lucide-react";
+import type { MediaEntry } from "../../shared/dto.ts";
 import { linkValueError } from "../../shared/links.ts";
 import { CodeEditor } from "./CodeEditor.tsx";
+import { imageMarkdown } from "./MediaLibrary.tsx";
+
+/** Lets the editor insert and show uploaded images (`![alt](media:ID)`). */
+export interface MarkdownImages {
+  /** Open a picker; resolves with the chosen image, or null. */
+  pick: () => Promise<MediaEntry | null>;
+  /** Display URL for a media ID, if it's in the library. */
+  urlFor: (id: string) => string | undefined;
+}
+
+/**
+ * Images in the formatted editor. The node keeps `src` as written
+ * (`media:ID` round-trips through Markdown unchanged); only the on-screen
+ * picture is resolved to the uploaded file.
+ */
+function imageExtension(urlFor: { current: MarkdownImages["urlFor"] | undefined }) {
+  return Image.extend({
+    addNodeView() {
+      return ({ node }) => {
+        const src = String(node.attrs.src ?? "");
+        const alt = String(node.attrs.alt ?? "");
+        const url = src.startsWith("media:")
+          ? urlFor.current?.(src.slice("media:".length))
+          : /^https:\/\//i.test(src)
+            ? src
+            : undefined;
+        if (!url) {
+          const missing = document.createElement("span");
+          missing.className =
+            "rounded bg-neutral-100 px-1 text-xs text-neutral-500 dark:bg-neutral-800";
+          missing.textContent = `[image${alt ? `: ${alt}` : ""}]`;
+          return { dom: missing };
+        }
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = alt;
+        img.className = "inline-block max-h-64 rounded";
+        return { dom: img };
+      };
+    },
+  }).configure({ inline: true });
+}
 
 type EditorMode = "source" | "formatted";
 
@@ -71,11 +117,15 @@ function FormattedEditor({
   initialValue,
   onChange,
   minHeight,
+  images,
 }: {
   initialValue: string;
   onChange: (value: string) => void;
   minHeight: string;
+  images?: MarkdownImages;
 }) {
+  const urlFor = useRef(images?.urlFor);
+  urlFor.current = images?.urlFor;
   const editor = useEditor({
     shouldRerenderOnTransaction: true,
     extensions: [
@@ -86,6 +136,7 @@ function FormattedEditor({
       TableRow,
       TableHeader,
       TableCell,
+      imageExtension(urlFor),
       Markdown.configure({ html: true, linkify: false, breaks: true }),
     ],
     content: initialValue,
@@ -125,7 +176,7 @@ function FormattedEditor({
   return (
     <div className="rounded-md border border-neutral-300 bg-white dark:border-neutral-700 dark:bg-neutral-900">
       <div
-        className="flex flex-wrap gap-0.5 border-b border-neutral-200 p-1 dark:border-neutral-800"
+        className="sticky top-0 z-10 flex flex-wrap gap-0.5 rounded-t-md border-b border-neutral-200 bg-white p-1 dark:border-neutral-800 dark:bg-neutral-900"
         role="toolbar"
       >
         <ToolbarButton
@@ -227,6 +278,24 @@ function FormattedEditor({
         >
           <Minus size={16} />
         </ToolbarButton>
+        {images ? (
+          <ToolbarButton
+            title="Insert image"
+            onClick={() => {
+              void images.pick().then((m) => {
+                if (m) {
+                  editor
+                    .chain()
+                    .focus()
+                    .setImage({ src: `media:${m.rkey}`, alt: m.value.alt })
+                    .run();
+                }
+              });
+            }}
+          >
+            <ImagePlus size={16} />
+          </ToolbarButton>
+        ) : null}
         <ToolbarButton title="Add link" active={editor.isActive("link")} onClick={setLink}>
           <Link2 size={16} />
         </ToolbarButton>
@@ -249,13 +318,24 @@ export function MarkdownEditor({
   onChange,
   minHeight = "8rem",
   help,
+  images,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   minHeight?: string;
   help?: ReactNode;
+  /** Enables "Insert image" (pages and posts; needs the media library). */
+  images?: MarkdownImages;
 }) {
+  const sourceView = useRef<EditorView | null>(null);
+  const insertImageInSource = async () => {
+    const m = await images?.pick();
+    const view = sourceView.current;
+    if (!m || !view) return;
+    view.dispatch(view.state.replaceSelection(imageMarkdown(m)));
+    view.focus();
+  };
   const [mode, setMode] = useState<EditorMode>("formatted");
   // Remount the WYSIWYG editor when switching back so it picks up source edits.
   const [formattedKey, setFormattedKey] = useState(0);
@@ -282,11 +362,27 @@ export function MarkdownEditor({
 
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between">
+      {/* In Markdown mode this row holds the editor's buttons, so keep it in view on long posts. */}
+      <div
+        className={`flex items-center justify-between ${
+          mode === "source" ? "sticky top-0 z-10 bg-white py-1 dark:bg-neutral-900" : ""
+        }`}
+      >
         <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{label}</span>
-        <div className="flex overflow-hidden rounded-md border border-neutral-300 text-xs dark:border-neutral-700">
-          {modeButton("formatted", "Formatted")}
-          {modeButton("source", "Markdown")}
+        <div className="flex items-center gap-2">
+          {images && mode === "source" ? (
+            <button
+              type="button"
+              onClick={() => void insertImageInSource()}
+              className="inline-flex items-center gap-1 rounded-md border border-neutral-300 px-2 py-1 text-xs hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            >
+              <ImagePlus size={14} aria-hidden /> Insert image
+            </button>
+          ) : null}
+          <div className="flex overflow-hidden rounded-md border border-neutral-300 text-xs dark:border-neutral-700">
+            {modeButton("formatted", "Formatted")}
+            {modeButton("source", "Markdown")}
+          </div>
         </div>
       </div>
       {mode === "source" ? (
@@ -296,6 +392,9 @@ export function MarkdownEditor({
           language="markdown"
           minHeight={minHeight}
           label={label}
+          onView={(view) => {
+            sourceView.current = view;
+          }}
         />
       ) : (
         <FormattedEditor
@@ -303,6 +402,7 @@ export function MarkdownEditor({
           initialValue={value}
           onChange={onChange}
           minHeight={minHeight}
+          images={images}
         />
       )}
       {help ? <p className="text-xs text-neutral-500 dark:text-neutral-400">{help}</p> : null}

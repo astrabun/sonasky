@@ -1,10 +1,23 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { MediaEntry } from "../../shared/dto.ts";
 import { formatBytes, LIMITS } from "../../shared/limits.ts";
 import { NSID_MEDIA } from "../../shared/nsid.ts";
 import { api, ApiFailure } from "../api.ts";
 import { Button, Modal, Notice, TextArea } from "../components/ui.tsx";
 import { useEditorState } from "./context.tsx";
+
+/** Markdown that shows an uploaded image: `![alt](media:ID)`. */
+export function imageMarkdown(media: MediaEntry): string {
+  // Brackets would end the alt text early, and escaping them isn't kept by
+  // every Markdown parser, so swap them for parentheses.
+  const alt = media.value.alt
+    .replace(/\[/g, "(")
+    .replace(/\]/g, ")")
+    .replace(/\\/g, "/")
+    .replace(/\s+/g, " ")
+    .trim();
+  return `![${alt}](media:${media.rkey})`;
+}
 
 const ACCEPT = "image/png,image/jpeg,image/gif,image/webp,image/avif,video/mp4,video/webm";
 
@@ -137,6 +150,14 @@ function MediaItem({ media, onPick }: { media: MediaEntry; onPick?: (m: MediaEnt
   const [alt, setAlt] = useState(media.value.alt);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const copyMarkdown = () => {
+    void navigator.clipboard.writeText(imageMarkdown(media)).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
 
   const saveAlt = async () => {
     setBusy(true);
@@ -199,6 +220,11 @@ function MediaItem({ media, onPick }: { media: MediaEntry; onPick?: (m: MediaEnt
             {media.value.alt || <em>No description</em>}
           </p>
         )}
+        {!onPick ? (
+          <p className="truncate font-mono text-[11px] text-neutral-400" title="Media ID">
+            ID: {media.rkey}
+          </p>
+        ) : null}
         {error ? <p className="text-rose-600">{error}</p> : null}
         {!editing ? (
           <div className="flex flex-wrap gap-1">
@@ -210,6 +236,11 @@ function MediaItem({ media, onPick }: { media: MediaEntry; onPick?: (m: MediaEnt
             <Button size="sm" onClick={() => setEditing(true)}>
               Edit description
             </Button>
+            {!onPick && !media.value.file.mimeType.startsWith("video/") ? (
+              <Button size="sm" onClick={copyMarkdown} title={`ID: ${media.rkey}`}>
+                {copied ? "Copied!" : "Copy Markdown"}
+              </Button>
+            ) : null}
             {!onPick ? (
               <Button size="sm" variant="ghost" disabled={busy} onClick={del}>
                 Delete
@@ -300,4 +331,32 @@ export function MediaField({
       </Modal>
     </div>
   );
+}
+
+/**
+ * Open the library as a picker from anywhere (e.g. an editor toolbar):
+ * `await pick()` resolves with the chosen file, or null if the picker was
+ * closed. Render `element` once.
+ */
+export function useMediaPicker(only?: "image") {
+  const [resolve, setResolve] = useState<((m: MediaEntry | null) => void) | null>(null);
+  const pick = useCallback(
+    () => new Promise<MediaEntry | null>((res) => setResolve(() => res)),
+    [],
+  );
+  const finish = (m: MediaEntry | null) => {
+    resolve?.(m);
+    setResolve(null);
+  };
+  const element = (
+    <Modal
+      open={resolve !== null}
+      onClose={() => finish(null)}
+      title={only === "image" ? "Insert an image" : "Insert a file"}
+      wide
+    >
+      <MediaLibrary only={only} onPick={finish} />
+    </Modal>
+  );
+  return { pick, element };
 }

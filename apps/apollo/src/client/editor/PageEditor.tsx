@@ -17,8 +17,8 @@ import { Button, Card, Notice, Select, SizeMeter, TextArea, TextInput } from "..
 import { BlockList } from "./blocks.tsx";
 import { CodeEditor } from "./CodeEditor.tsx";
 import { editable, useEditorState } from "./context.tsx";
-import { MarkdownEditor } from "./MarkdownEditor.tsx";
-import { MediaField } from "./MediaLibrary.tsx";
+import { MarkdownEditor, type MarkdownImages } from "./MarkdownEditor.tsx";
+import { MediaField, useMediaPicker } from "./MediaLibrary.tsx";
 import { Preview } from "./Preview.tsx";
 
 type Kind = "page" | "post";
@@ -113,6 +113,11 @@ export function PageEditor({
   entry: Entry<PageRecord | PostRecord> | null;
 }) {
   const { bundle, site, upsert, setSite } = useEditorState();
+  const picker = useMediaPicker("image");
+  const images: MarkdownImages = {
+    pick: picker.pick,
+    urlFor: (id) => bundle.media.find((m) => m.rkey === id)?.url,
+  };
   const navigate = useNavigate();
   const collection = kind === "post" ? NSID_POST : NSID_PAGE;
   const isNew = entry === null;
@@ -416,8 +421,10 @@ export function PageEditor({
                 minHeight="20rem"
                 value={draft.body ?? ""}
                 onChange={(body) => update({ body })}
-                help="Link to your other pages with /page-name. To show an uploaded image in Markdown, use ![description](media:ID) - copy the ID from Media."
+                images={images}
+                help="Link to your other pages with /page-name. Add pictures with the image button, or type ![description](media:ID) - Media shows each file's ID and a Copy Markdown button."
               />
+              {picker.element}
               <SizeMeter label="Content size" used={bodyBytes} max={LIMITS.pageBodyBytes} />
             </Card>
           ) : (

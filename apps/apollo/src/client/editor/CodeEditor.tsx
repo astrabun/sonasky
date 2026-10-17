@@ -28,6 +28,7 @@ export function CodeEditor({
   language,
   minHeight = "12rem",
   label,
+  onView,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -35,6 +36,8 @@ export function CodeEditor({
   minHeight?: string;
   /** Accessible name for the editor. */
   label: string;
+  /** Receives the CodeMirror view, e.g. to insert text at the cursor. */
+  onView?: (view: EditorView) => void;
 }) {
   const isDark = useIsDarkMode();
   const extensions = useMemo(() => {
@@ -60,6 +63,7 @@ export function CodeEditor({
       extensions={extensions}
       theme={isDark ? "dark" : "light"}
       minHeight={minHeight}
+      onCreateEditor={onView}
       className="overflow-hidden rounded-md border border-neutral-300 text-sm dark:border-neutral-700"
     />
   );
