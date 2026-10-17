@@ -273,6 +273,8 @@ export interface RingRecord {
   theme?: string;
   /** Ring order: prev/next walk this list. */
   members: RingMemberRef[];
+  /** Keep the ring out of the public ring directory. It still works by link. */
+  unlisted?: boolean;
   createdAt: string;
   updatedAt: string;
 }

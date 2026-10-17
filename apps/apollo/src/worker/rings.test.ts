@@ -57,6 +57,11 @@ describe("validateRing", () => {
       validateRing({ ...base, members: Array.from({ length: 101 }, () => ({ did: A })) }),
     ).toThrow(ValidationError);
   });
+  it("keeps unlisted only when it is exactly true", () => {
+    expect(validateRing({ ...base, unlisted: true }).unlisted).toBe(true);
+    expect("unlisted" in validateRing({ ...base, unlisted: false })).toBe(false);
+    expect("unlisted" in validateRing({ ...base, unlisted: "yes" })).toBe(false);
+  });
 });
 
 describe("parseRingUri", () => {

@@ -29,6 +29,10 @@
             "description": "Invited sites, in ring order (previous/next walk this list).",
             "items": { "type": "ref", "ref": "#member" }
           },
+          "unlisted": {
+            "type": "boolean",
+            "description": "Keep this ring out of Apollo's public ring directory. It still works by direct link."
+          },
           "createdAt": { "type": "string", "format": "datetime" },
           "updatedAt": { "type": "string", "format": "datetime" }
         }

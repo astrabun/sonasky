@@ -514,6 +514,7 @@ export function validateRing(input: unknown): RingRecord {
     body: str(o, "body", "body", LIMITS.pageBodyBytes),
     theme: slugRef(o, "theme", "theme"),
     members,
+    ...(o.unlisted === true ? { unlisted: true } : {}),
     ...timestamps(o),
   };
   checkSize(record);

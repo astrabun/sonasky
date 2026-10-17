@@ -323,6 +323,7 @@ function RingEditor({
   const [name, setName] = useState(value?.name ?? "");
   const [slug, setSlug] = useState(existing?.entry.rkey ?? "");
   const [description, setDescription] = useState(value?.description ?? "");
+  const [listed, setListed] = useState(value?.unlisted !== true);
   const [body, setBody] = useState(value?.body ?? "");
   // A ring either borrows the owner's site theme or has its own style record.
   const ownStyle = data.styles.find((st) => st.rkey === value?.theme);
@@ -367,6 +368,7 @@ function RingEditor({
         body: body || undefined,
         theme: customLook ? styleRkey : undefined,
         members: nextMembers,
+        unlisted: listed ? undefined : true,
         createdAt: value?.createdAt,
       });
       // Back to the site theme: the ring's own style record isn't needed any more.
@@ -470,6 +472,16 @@ function RingEditor({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
+        <div className="space-y-1">
+          <label className="flex items-center gap-2 text-sm font-medium text-neutral-800 dark:text-neutral-200">
+            <input type="checkbox" checked={listed} onChange={(e) => setListed(e.target.checked)} />
+            Show in the ring directory
+          </label>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            Lets people find this ring on Discover once a site has joined. Unlisted rings still work
+            for anyone with the link.
+          </p>
+        </div>
         <MarkdownEditor
           label="Ring page"
           help="Anything you want on the ring's page: what it's about, how to join, rules. The member list and a random-site button are added below it."

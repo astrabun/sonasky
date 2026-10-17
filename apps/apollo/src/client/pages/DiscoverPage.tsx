@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Shuffle } from "lucide-react";
+import { Link } from "react-router";
 import type { DiscoverSite } from "../../shared/dto.ts";
 import { api } from "../api.ts";
 import { SiteCount } from "../components/SiteCount.tsx";
 import { Button, Card, Notice, Spinner } from "../components/ui.tsx";
+import { RingsTab } from "./RingsTab.tsx";
 
 function SiteCard({ site }: { site: DiscoverSite }) {
   const byline = site.handle ? `@${site.handle}` : site.did;
@@ -36,7 +38,41 @@ function SiteCard({ site }: { site: DiscoverSite }) {
   );
 }
 
-export function DiscoverPage() {
+const TABS = [
+  { id: "sites", label: "Sites", to: "/discover" },
+  { id: "rings", label: "Rings", to: "/discover/rings" },
+] as const;
+
+export type DiscoverTab = (typeof TABS)[number]["id"];
+
+export function DiscoverPage({ tab }: { tab: DiscoverTab }) {
+  return (
+    <div className="mx-auto max-w-xl space-y-6">
+      <nav
+        aria-label="Discover"
+        className="flex gap-1 border-b border-neutral-200 dark:border-neutral-800"
+      >
+        {TABS.map((t) => (
+          <Link
+            key={t.id}
+            to={t.to}
+            aria-current={t.id === tab ? "page" : undefined}
+            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${
+              t.id === tab
+                ? "border-sky-600 text-sky-700 dark:text-sky-400"
+                : "border-transparent text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
+            }`}
+          >
+            {t.label}
+          </Link>
+        ))}
+      </nav>
+      {tab === "rings" ? <RingsTab /> : <SitesTab />}
+    </div>
+  );
+}
+
+function SitesTab() {
   const [site, setSite] = useState<DiscoverSite | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +94,7 @@ export function DiscoverPage() {
   useEffect(next, [next]);
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
+    <div className="space-y-6">
       <div className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight">Discover</h1>
         <p className="text-neutral-600 dark:text-neutral-300">

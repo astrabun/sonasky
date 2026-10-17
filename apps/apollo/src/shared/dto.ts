@@ -137,6 +137,21 @@ export interface RingRef {
   ownerHandle?: string;
 }
 
+/** A ring in the public directory. */
+export interface DirectoryRing extends RingRef {
+  /** Invited sites that accepted and have a site (approximate; the ring page is authoritative). */
+  activeMembers: number;
+  createdAt: string;
+  updatedAt: string;
+  ownerDisplayName?: string;
+  ownerAvatar?: string;
+}
+
+export interface RingDirectoryResponse {
+  /** null when the network index couldn't be reached. */
+  rings: DirectoryRing[] | null;
+}
+
 export interface RingsResponse {
   did: string;
   hasSite: boolean;
