@@ -78,7 +78,9 @@ async function renderShell(c: Ctx, rawActor: string, spec: TargetSpec): Promise<
   const verdict = await checkModeration(c.env, identity.did, identity.pds, loaded.selfLabels);
   if (verdict.kind === "unavailable") return unavailablePage();
 
-  const acceptedWarning = c.req.query("cw") === "1";
+  const acceptedDids = readAcceptedWarnings(c.req.header("Cookie"));
+  const acceptedNow = c.req.query("cw") === "1";
+  const acceptedWarning = acceptedNow || acceptedDids.includes(identity.did);
   const canonical = `${publicOrigin}/@${actor}${pathFor(spec)}`;
   if (verdict.kind === "warn" && !acceptedWarning) {
     return staticPage({
@@ -147,7 +149,7 @@ async function renderShell(c: Ctx, rawActor: string, spec: TargetSpec): Promise<
   if (ogImage) {
     meta.push(["property", "og:image", ogImage], ["name", "twitter:image", ogImage]);
   }
-  return shellResponse({
+  const res = shellResponse({
     title: fullTitle,
     barTitle: site.title,
     meta,
@@ -159,6 +161,49 @@ async function renderShell(c: Ctx, rawActor: string, spec: TargetSpec): Promise<
     ucOrigin,
     analytics: swetrixConfig(c.env),
   });
+  if (verdict.kind === "warn") {
+    // Whether this shell is served depends on the cookie, so keep it out of shared caches.
+    res.headers.set("cache-control", "private, max-age=30");
+    // Remember "Show anyway" for the rest of the browsing session, so every
+    // page of the site doesn't ask again (links inside the site drop `?cw=1`).
+    if (!acceptedDids.includes(identity.did)) {
+      res.headers.append(
+        "Set-Cookie",
+        serializeAcceptedWarnings(
+          [...acceptedDids, identity.did],
+          c.env.PUBLIC_URL.startsWith("https:"),
+        ),
+      );
+    }
+  }
+  return res;
+}
+
+const CW_COOKIE = "sonasky_apollo_cw";
+/** Most recently accepted sites kept in the cookie; older ones fall off. */
+const CW_COOKIE_MAX_DIDS = 50;
+
+/** DIDs whose site-wide content warning the visitor has accepted this session. */
+export function readAcceptedWarnings(cookieHeader: string | null | undefined): string[] {
+  if (!cookieHeader) return [];
+  const match = cookieHeader
+    .split(/; */)
+    .map((c) => c.split("="))
+    .find(([name]) => name === CW_COOKIE);
+  if (!match?.[1]) return [];
+  return match[1].split("|").filter(isDid);
+}
+
+/** A session cookie (no Max-Age) listing accepted DIDs, newest last. */
+export function serializeAcceptedWarnings(dids: string[], secure = true): string {
+  const value = [...new Set(dids)].slice(-CW_COOKIE_MAX_DIDS).join("|");
+  return [
+    `${CW_COOKIE}=${value}`,
+    "HttpOnly",
+    ...(secure ? ["Secure"] : []),
+    "SameSite=Lax",
+    "Path=/",
+  ].join("; ");
 }
 
 /** Apollo's top bar + the sandboxed iframe, with OG tags. Shared by sites and ring pages. */
