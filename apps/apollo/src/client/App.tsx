@@ -3,6 +3,7 @@ import { Sun } from "lucide-react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router";
 import { logout } from "./api.ts";
 import { useAuth } from "./auth.tsx";
+import { ShareBanner } from "./components/ShareBanner.tsx";
 import { SignIn } from "./components/SignIn.tsx";
 import { Card, Spinner } from "./components/ui.tsx";
 import { DiscoverPage } from "./pages/DiscoverPage.tsx";
@@ -44,6 +45,13 @@ function SignedOutEdit() {
   );
 }
 
+/** The share banner shows on the home page and in the editor only. */
+function RouteBanner() {
+  const { pathname } = useLocation();
+  const show = pathname === "/" || pathname === "/edit" || pathname.startsWith("/edit/");
+  return show ? <ShareBanner /> : null;
+}
+
 export default function App() {
   const { loading, me, refresh } = useAuth();
   const [needsReauth, setNeedsReauth] = useState(false);
@@ -60,6 +68,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <RouteBanner />
       <div className="mx-auto min-h-screen max-w-7xl px-4 py-6 text-neutral-900 dark:text-neutral-100">
         <header className="mb-8 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-2 text-lg font-bold">

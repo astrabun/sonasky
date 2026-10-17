@@ -501,7 +501,7 @@ export function PageEditor({
         </div>
 
         {showPreview ? (
-          <div className="xl:sticky xl:top-4 xl:self-start">
+          <div className="xl:sticky xl:top-[calc(var(--banner-h,0px)+1rem)] xl:self-start">
             <Preview target={previewTarget} />
           </div>
         ) : null}

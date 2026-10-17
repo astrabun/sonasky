@@ -429,7 +429,7 @@ export function ThemePanel() {
           Want more control? You can add your own CSS in <strong>Advanced</strong>.
         </p>
       </div>
-      <div className="xl:sticky xl:top-4 xl:self-start">
+      <div className="xl:sticky xl:top-[calc(var(--banner-h,0px)+1rem)] xl:self-start">
         {home ? (
           <Preview
             target={{ kind: "page", slug: home.rkey, record: home.value }}

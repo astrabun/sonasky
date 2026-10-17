@@ -176,7 +176,7 @@ function FormattedEditor({
   return (
     <div className="rounded-md border border-neutral-300 bg-white dark:border-neutral-700 dark:bg-neutral-900">
       <div
-        className="sticky top-0 z-10 flex flex-wrap gap-0.5 rounded-t-md border-b border-neutral-200 bg-white p-1 dark:border-neutral-800 dark:bg-neutral-900"
+        className="sticky top-(--banner-h,0px) z-10 flex flex-wrap gap-0.5 rounded-t-md border-b border-neutral-200 bg-white p-1 dark:border-neutral-800 dark:bg-neutral-900"
         role="toolbar"
       >
         <ToolbarButton
@@ -365,7 +365,9 @@ export function MarkdownEditor({
       {/* In Markdown mode this row holds the editor's buttons, so keep it in view on long posts. */}
       <div
         className={`flex items-center justify-between ${
-          mode === "source" ? "sticky top-0 z-10 bg-white py-1 dark:bg-neutral-900" : ""
+          mode === "source"
+            ? "sticky top-(--banner-h,0px) z-10 bg-white py-1 dark:bg-neutral-900"
+            : ""
         }`}
       >
         <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{label}</span>
