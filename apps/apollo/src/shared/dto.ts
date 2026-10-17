@@ -96,6 +96,23 @@ export interface StatsResponse {
   sites: number | null;
 }
 
+export interface DiscoverSite {
+  did: string;
+  handle?: string;
+  /** Viewer URL, e.g. `https://apollo.sonasky.app/@alice.bsky.social`. */
+  url: string;
+  title: string;
+  description?: string;
+  /** Bluesky profile, for the card's byline. */
+  displayName?: string;
+  avatar?: string;
+}
+
+export interface DiscoverResponse {
+  /** null when there's nothing to show (empty pool, or the relay is down). */
+  site: DiscoverSite | null;
+}
+
 export type ReportSubject = { uri: string; cid: string } | { did: string };
 
 export interface ReportRequest {

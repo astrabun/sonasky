@@ -5,6 +5,7 @@ import { logout } from "./api.ts";
 import { useAuth } from "./auth.tsx";
 import { SignIn } from "./components/SignIn.tsx";
 import { Card, Spinner } from "./components/ui.tsx";
+import { DiscoverPage } from "./pages/DiscoverPage.tsx";
 import { HelpPage } from "./pages/HelpPage.tsx";
 import { Landing } from "./pages/Landing.tsx";
 import { ReportPage } from "./pages/ReportPage.tsx";
@@ -49,18 +50,23 @@ export default function App() {
             <Sun size={20} className="text-amber-500" aria-hidden />
             SonaSky Apollo
           </Link>
-          {signedIn ? (
-            <div className="flex items-center gap-3 text-sm">
-              <span className="hidden text-neutral-500 sm:inline">{me.handle ?? me.did}</span>
-              <button
-                className="text-sky-700 hover:underline dark:text-sky-400"
-                onClick={signOut}
-                type="button"
-              >
-                Sign out
-              </button>
-            </div>
-          ) : null}
+          <div className="flex items-center gap-3 text-sm">
+            <Link to="/discover" className="text-sky-700 hover:underline dark:text-sky-400">
+              Discover
+            </Link>
+            {signedIn ? (
+              <>
+                <span className="hidden text-neutral-500 sm:inline">{me.handle ?? me.did}</span>
+                <button
+                  className="text-sky-700 hover:underline dark:text-sky-400"
+                  onClick={signOut}
+                  type="button"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : null}
+          </div>
         </header>
         <main>
           {loading ? (
@@ -95,6 +101,7 @@ export default function App() {
               />
               <Route path="/report" element={<ReportPage me={me} />} />
               <Route path="/help" element={<HelpPage />} />
+              <Route path="/discover" element={<DiscoverPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           )}

@@ -10,6 +10,8 @@ import { TID } from "@atproto/common-web";
 import { Hono, type Context, type MiddlewareHandler } from "hono";
 import type {
   ApiError,
+  DiscoverResponse,
+  DiscoverSite,
   Entry,
   MediaEntry,
   MediaUploadResponse,
@@ -47,6 +49,7 @@ import type {
 } from "../../shared/records.ts";
 import { isSlug, RESERVED_PAGE_SLUGS } from "../../shared/slug.ts";
 import { origin, type AppEnv } from "../env.ts";
+import { discoverSite } from "../discover.ts";
 import { isBlocked } from "../moderation.ts";
 import { getSessionAgent, type SessionAgent } from "../oauth/session.ts";
 import { renderSiteDocument } from "../render/document.ts";
@@ -211,6 +214,17 @@ apiRoutes.get("/api/me", async (c) => {
 /** Public: how many people have an Apollo site. */
 apiRoutes.get("/api/stats", async (c) => {
   return c.json<StatsResponse>(await getStats(), 200, { "cache-control": "public, max-age=300" });
+});
+
+/** Public: one random site to feature. `?not=<did>` skips the one already on screen. */
+apiRoutes.get("/api/discover", async (c) => {
+  let site: DiscoverSite | null = null;
+  try {
+    site = await discoverSite(c.env, c.req.query("not"));
+  } catch (err) {
+    console.error("discover error", err);
+  }
+  return c.json<DiscoverResponse>({ site }, 200, { "cache-control": "no-store" });
 });
 
 // Site bundle

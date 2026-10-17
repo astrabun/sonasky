@@ -55,6 +55,11 @@ export function Landing() {
           </li>
         </ol>
         <p className="text-sm">
+          <Link to="/discover" className="text-sky-700 hover:underline dark:text-sky-400">
+            See what others have made.
+          </Link>
+        </p>
+        <p className="text-sm">
           <Link to="/help" className="text-sky-700 hover:underline dark:text-sky-400">
             Questions? Read the help page.
           </Link>

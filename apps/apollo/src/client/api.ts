@@ -1,5 +1,6 @@
 import type {
   ApiError,
+  DiscoverResponse,
   MediaUploadResponse,
   MeResponse,
   PreviewRequest,
@@ -65,6 +66,8 @@ const json = (method: string, body: unknown): RequestInit => ({
 export const api = {
   me: () => call<MeResponse>("/api/me"),
   stats: () => call<StatsResponse>("/api/stats"),
+  discover: (not?: string) =>
+    call<DiscoverResponse>(`/api/discover${not ? `?not=${encodeURIComponent(not)}` : ""}`),
   site: () => call<SiteBundle>("/api/site"),
   putSite: (record: Omit<SiteRecord, "$type" | "updatedAt"> & { updatedAt?: string }) =>
     call<PutResponse>("/api/site", json("PUT", record)),
