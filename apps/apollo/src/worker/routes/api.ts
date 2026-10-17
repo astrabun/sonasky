@@ -18,6 +18,7 @@ import type {
   MeResponse,
   PreviewRequest,
   PreviewResponse,
+  RingDirectoryResponse,
   OwnedRing,
   PutResponse,
   ReportRequest,
@@ -58,6 +59,7 @@ import type {
 import { isSlug, RESERVED_PAGE_SLUGS } from "../../shared/slug.ts";
 import { origin, type AppEnv } from "../env.ts";
 import { discoverSite } from "../discover.ts";
+import { ringDirectory } from "../ring-directory.ts";
 import { resolveActor } from "../atproto/identity.ts";
 import { isBlocked } from "../moderation.ts";
 import {
@@ -249,6 +251,18 @@ apiRoutes.get("/api/discover", async (c) => {
     console.error("discover error", err);
   }
   return c.json<DiscoverResponse>({ site }, 200, { "cache-control": "no-store" });
+});
+
+/** Public: every listed ring with an active member. Sorting and search happen client-side. */
+apiRoutes.get("/api/discover/rings", async (c) => {
+  try {
+    return c.json<RingDirectoryResponse>({ rings: await ringDirectory(c.env) }, 200, {
+      "cache-control": "public, max-age=300",
+    });
+  } catch (err) {
+    console.error("ring directory error", err);
+    return c.json<RingDirectoryResponse>({ rings: null }, 200, { "cache-control": "no-store" });
+  }
 });
 
 // Site bundle

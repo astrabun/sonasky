@@ -17,25 +17,26 @@ const PAGE_LIMIT = 2000;
 const MAX_PAGES = 50;
 const CACHE_SECONDS = 600;
 
-async function fetchSiteDids(): Promise<string[]> {
+/** DIDs of every repo with a record in `collection`. Throws if no index can be reached. */
+export async function listReposWith(collection: string): Promise<string[]> {
   let lastErr: unknown;
   for (const base of INDEX_URLS) {
     try {
-      return await fetchSiteDidsFrom(base);
+      return await listReposFrom(base, collection);
     } catch (err) {
-      console.error(`listReposByCollection via ${base} failed`, err);
+      console.error(`listReposByCollection ${collection} via ${base} failed`, err);
       lastErr = err;
     }
   }
   throw lastErr;
 }
 
-async function fetchSiteDidsFrom(base: string): Promise<string[]> {
+async function listReposFrom(base: string, collection: string): Promise<string[]> {
   const dids: string[] = [];
   let cursor: string | undefined;
   for (let page = 0; page < MAX_PAGES; page++) {
     const url = new URL("/xrpc/com.atproto.sync.listReposByCollection", base);
-    url.searchParams.set("collection", NSID_SITE);
+    url.searchParams.set("collection", collection);
     url.searchParams.set("limit", String(PAGE_LIMIT));
     if (cursor) url.searchParams.set("cursor", cursor);
     const res = await fetch(url);
@@ -55,7 +56,7 @@ export async function listSiteDids(): Promise<string[]> {
   const cached = await cache.match(cacheKey);
   if (cached) return (await cached.json()) as string[];
 
-  const dids = await fetchSiteDids();
+  const dids = await listReposWith(NSID_SITE);
   await cache.put(
     cacheKey,
     new Response(JSON.stringify(dids), {
