@@ -1,4 +1,5 @@
 import { paper } from "./community/paper.ts";
+import { windowsXp } from "./community/windows-xp.ts";
 import { midnight } from "./official/midnight.ts";
 import { skyDark, skyDim, skyLight } from "./official/sky.ts";
 import { terminal } from "./official/terminal.ts";
@@ -21,7 +22,7 @@ export const OFFICIAL_THEMES: readonly ThemeDefinition[] = [
  * Themes contributed by the community. To add one, see README.md: add a file
  * in src/community/ and list it here (alphabetical by id).
  */
-export const COMMUNITY_THEMES: readonly ThemeDefinition[] = [paper];
+export const COMMUNITY_THEMES: readonly ThemeDefinition[] = [paper, windowsXp];
 
 export const ALL_THEMES: readonly ThemeDefinition[] = [...OFFICIAL_THEMES, ...COMMUNITY_THEMES];
 
