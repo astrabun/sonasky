@@ -1,6 +1,7 @@
 import { Blocks, Cloud } from "lucide-react";
 import { Link } from "react-router";
 import { SignIn } from "../components/SignIn.tsx";
+import { SiteCount } from "../components/SiteCount.tsx";
 
 const FEATURES = [
   {
@@ -27,6 +28,7 @@ export function Landing() {
         <div className="max-w-md">
           <SignIn returnTo="/edit" intro="Sign in with your Bluesky handle to get started." />
         </div>
+        <SiteCount className="text-sm text-neutral-600 dark:text-neutral-400" />
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2">

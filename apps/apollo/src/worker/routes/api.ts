@@ -19,6 +19,7 @@ import type {
   PutResponse,
   ReportRequest,
   SiteBundle,
+  StatsResponse,
 } from "../../shared/dto.ts";
 import { LIMITS, utf8Bytes } from "../../shared/limits.ts";
 import { BSKY_LABELER_DID, SONASKY_DID } from "../../shared/moderation.ts";
@@ -49,6 +50,7 @@ import { origin, type AppEnv } from "../env.ts";
 import { isBlocked } from "../moderation.ts";
 import { getSessionAgent, type SessionAgent } from "../oauth/session.ts";
 import { renderSiteDocument } from "../render/document.ts";
+import { getStats } from "../stats.ts";
 import { ALLOWED_MEDIA, sniffMime } from "../validate/media.ts";
 import {
   SLUG_VALIDATORS,
@@ -204,6 +206,11 @@ apiRoutes.get("/api/me", async (c) => {
     reauthRequired: !session.scopesOk,
     siteUrl: siteUrlFor(c.env, session.did, handle),
   });
+});
+
+/** Public: how many people have an Apollo site. */
+apiRoutes.get("/api/stats", async (c) => {
+  return c.json<StatsResponse>(await getStats(), 200, { "cache-control": "public, max-age=300" });
 });
 
 // Site bundle

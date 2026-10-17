@@ -7,6 +7,7 @@ import type {
   PutResponse,
   ReportRequest,
   SiteBundle,
+  StatsResponse,
 } from "../shared/dto.ts";
 import type { SlugCollection } from "../shared/nsid.ts";
 import type { SiteRecord } from "../shared/records.ts";
@@ -63,6 +64,7 @@ const json = (method: string, body: unknown): RequestInit => ({
 
 export const api = {
   me: () => call<MeResponse>("/api/me"),
+  stats: () => call<StatsResponse>("/api/stats"),
   site: () => call<SiteBundle>("/api/site"),
   putSite: (record: Omit<SiteRecord, "$type" | "updatedAt"> & { updatedAt?: string }) =>
     call<PutResponse>("/api/site", json("PUT", record)),

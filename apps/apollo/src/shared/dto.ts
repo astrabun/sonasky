@@ -91,6 +91,11 @@ export interface PreviewResponse {
   html: string;
 }
 
+export interface StatsResponse {
+  /** Accounts with an Apollo site record, or null if it couldn't be counted. */
+  sites: number | null;
+}
+
 export type ReportSubject = { uri: string; cid: string } | { did: string };
 
 export interface ReportRequest {

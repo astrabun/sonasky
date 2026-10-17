@@ -14,6 +14,7 @@ import { Navigate, NavLink, Route, Routes } from "react-router";
 import type { Entry, SiteBundle } from "../../shared/dto.ts";
 import type { SiteRecord } from "../../shared/records.ts";
 import { api, ApiFailure } from "../api.ts";
+import { SiteCount } from "../components/SiteCount.tsx";
 import { Notice, Spinner } from "../components/ui.tsx";
 import { AdvancedPanel } from "./AdvancedPanel.tsx";
 import { EditorProvider, useEditorState } from "./context.tsx";
@@ -75,6 +76,7 @@ function Sidebar() {
           </NavLink>
         </li>
       </ul>
+      <SiteCount className="hidden px-3 text-xs text-neutral-500 md:flex dark:text-neutral-400" />
     </nav>
   );
 }
