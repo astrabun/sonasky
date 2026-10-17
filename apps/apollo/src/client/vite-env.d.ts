@@ -2,10 +2,10 @@
 
 interface ImportMetaEnv {
   readonly VITE_APP_NAME?: string;
-  /** Base URL of the Swetrix instance */
-  readonly SWETRIX_BASE_URL?: string;
-  /** Swetrix project id. Analytics is disabled when unset. */
-  readonly SWETRIX_PROJECT_ID?: string;
+  /** Apollo's self-hosted Swetrix pageview endpoint, including `/log`. Analytics is disabled when unset. */
+  readonly VITE_APOLLO_SWETRIX_API_URL?: string;
+  /** Apollo's Swetrix project id. Analytics is disabled when unset. */
+  readonly VITE_APOLLO_SWETRIX_PROJECT_ID?: string;
 }
 
 interface ImportMeta {

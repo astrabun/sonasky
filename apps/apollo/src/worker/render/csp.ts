@@ -13,6 +13,7 @@
  * Viewer shell (apollo.sonasky.app/@actor/...):
  *  - `frame-src` pinned to this one site's usercontent path, so script inside the
  *    iframe cannot navigate the frame to any other site (or another user's)
+ *  - `connect-src` only to Apollo's Swetrix instance, when analytics is configured
  */
 
 export function usercontentCsp(
@@ -42,13 +43,14 @@ export function usercontentCsp(
   ].join("; ");
 }
 
-export function shellCsp(usercontentOrigin: string, did: string): string {
+export function shellCsp(usercontentOrigin: string, did: string, analyticsOrigin?: string): string {
   return [
     "default-src 'none'",
     "script-src 'self'",
     "style-src 'unsafe-inline'",
     `img-src 'self' ${usercontentOrigin}/m/${did}/`,
     `frame-src ${usercontentOrigin}/r/${did}/`,
+    ...(analyticsOrigin ? [`connect-src ${analyticsOrigin}`] : []),
     "form-action 'none'",
     "base-uri 'none'",
     "frame-ancestors 'none'",

@@ -18,7 +18,7 @@ import { Hono, type Context } from "hono";
 import { NSID_SITE, SITE_RKEY } from "../../shared/nsid.ts";
 import { isSlug } from "../../shared/slug.ts";
 import { isDid, isHandle, resolveActor, type ResolvedIdentity } from "../atproto/identity.ts";
-import { origin, type AppEnv } from "../env.ts";
+import { origin, swetrixConfig, type AppEnv, type SwetrixConfig } from "../env.ts";
 import { checkModeration } from "../moderation.ts";
 import { SECURITY_HEADERS, shellCsp } from "../render/csp.ts";
 import { esc } from "../render/escape.ts";
@@ -157,6 +157,7 @@ async function renderShell(c: Ctx, rawActor: string, spec: TargetSpec): Promise<
     reportHref: `/report?${reportParams.toString()}`,
     identity,
     ucOrigin,
+    analytics: swetrixConfig(c.env),
   });
 }
 
@@ -171,8 +172,12 @@ function shellResponse(opts: {
   reportHref: string;
   identity: { did: string; handle?: string };
   ucOrigin: string;
+  analytics: SwetrixConfig | null;
 }): Response {
-  const { identity } = opts;
+  const { identity, analytics } = opts;
+  const analyticsAttrs = analytics
+    ? ` data-swetrix-api="${esc(analytics.apiURL)}" data-swetrix-pid="${esc(analytics.projectId)}"`
+    : "";
   const metaTags = opts.meta
     .filter(([, , value]) => value)
     .map(([attr, key, value]) => `<meta ${attr}="${esc(key)}" content="${esc(value)}">`)
@@ -190,12 +195,16 @@ function shellResponse(opts: {
     opts.barTitle,
   )}" sandbox="allow-scripts" referrerpolicy="no-referrer" src="${esc(
     opts.frameSrc,
-  )}"></iframe><script src="/_apollo/shell.js"></script></body></html>`;
+  )}"></iframe><script src="/_apollo/shell.js"${analyticsAttrs}></script></body></html>`;
 
   return new Response(html, {
     headers: {
       "content-type": "text/html; charset=utf-8",
-      "content-security-policy": shellCsp(opts.ucOrigin, identity.did),
+      "content-security-policy": shellCsp(
+        opts.ucOrigin,
+        identity.did,
+        analytics ? origin(analytics.apiURL) : undefined,
+      ),
       "cache-control": "public, max-age=30",
       ...SECURITY_HEADERS,
     },
@@ -267,6 +276,7 @@ async function renderRingShell(c: Ctx, rawActor: string, slug: string): Promise<
     reportHref: `/report?${reportParams.toString()}`,
     identity,
     ucOrigin,
+    analytics: swetrixConfig(c.env),
   });
 }
 
@@ -361,10 +371,30 @@ export function viewerAliasPath(pathname: string): string | null {
  * iframe - and only from it - and only while the visitor is actively clicking,
  * so a site's script can't redirect visitors on its own. Every link (internal
  * or not) goes through `/out`, which decides on the server whether to warn.
+ *
+ * When the script tag carries Swetrix settings, it also sends one pageview,
+ * shaped like the `swetrix` package's (that's what the editor SPA uses).
  */
 function shellSource(): string {
   return `(function () {
   "use strict";
+  var cfg = document.currentScript && document.currentScript.dataset;
+  if (cfg && cfg.swetrixApi && cfg.swetrixPid && !navigator.webdriver) {
+    try {
+      fetch(cfg.swetrixApi.replace(/\\/?$/, "/"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        keepalive: true,
+        body: JSON.stringify({
+          pid: cfg.swetrixPid,
+          pg: location.pathname,
+          lc: navigator.languages ? navigator.languages[0] : navigator.language,
+          tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          ref: document.referrer || undefined,
+        }),
+      }).catch(function () {});
+    } catch (e) {}
+  }
   var frame = document.getElementById("apollo-site");
   if (!frame) return;
   window.addEventListener("message", function (e) {
