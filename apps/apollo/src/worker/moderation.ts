@@ -30,7 +30,7 @@ export type ModerationVerdict =
   | { kind: "warn"; labels: string[] }
   | { kind: "unavailable"; reason: string };
 
-interface LabelRow {
+export interface LabelRow {
   src: string;
   uri: string;
   val: string;

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { Check, ExternalLink } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { EditorView } from "@codemirror/view";
+import { Check, ExternalLink, Tags } from "lucide-react";
 import { useNavigate } from "react-router";
 import type { Entry } from "../../shared/dto.ts";
 import { jsonBytes, LIMITS, utf8Bytes } from "../../shared/limits.ts";
@@ -17,6 +18,7 @@ import { Button, Card, Notice, Select, SizeMeter, TextArea, TextInput } from "..
 import { BlockList } from "./blocks.tsx";
 import { CodeEditor } from "./CodeEditor.tsx";
 import { editable, useEditorState } from "./context.tsx";
+import { useLabelsPicker } from "./LabelsFields.tsx";
 import { MarkdownEditor, type MarkdownImages } from "./MarkdownEditor.tsx";
 import { MediaField, useMediaPicker } from "./MediaLibrary.tsx";
 import { Preview } from "./Preview.tsx";
@@ -117,6 +119,15 @@ export function PageEditor({
   const images: MarkdownImages = {
     pick: picker.pick,
     urlFor: (id) => bundle.media.find((m) => m.rkey === id)?.url,
+  };
+  const labelsPicker = useLabelsPicker();
+  const htmlView = useRef<EditorView | null>(null);
+  const insertLabelsInHtml = async () => {
+    const snippet = await labelsPicker.pick();
+    const view = htmlView.current;
+    if (!snippet || !view) return;
+    view.dispatch(view.state.replaceSelection(snippet));
+    view.focus();
   };
   const navigate = useNavigate();
   const collection = kind === "post" ? NSID_POST : NSID_PAGE;
@@ -422,9 +433,11 @@ export function PageEditor({
                 value={draft.body ?? ""}
                 onChange={(body) => update({ body })}
                 images={images}
+                labels={labelsPicker}
                 help="Link to your other pages with /page-name. Add pictures with the image button, or type ![description](media:ID) - Media shows each file's ID and a Copy Markdown button."
               />
               {picker.element}
+              {labelsPicker.element}
               <SizeMeter label="Content size" used={bodyBytes} max={LIMITS.pageBodyBytes} />
             </Card>
           ) : (
@@ -433,6 +446,11 @@ export function PageEditor({
                 Write HTML for the page body. Scripts, forms, iframes and external images are
                 removed - add scripts in <strong>Advanced &rarr; Scripts</strong> instead.
               </p>
+              <div className="flex justify-end">
+                <Button size="sm" onClick={() => void insertLabelsInHtml()}>
+                  <Tags size={14} aria-hidden /> Insert your labels
+                </Button>
+              </div>
               <CodeEditor
                 key={blocksKey}
                 label="Page HTML"
@@ -440,7 +458,11 @@ export function PageEditor({
                 minHeight="20rem"
                 value={draft.body ?? ""}
                 onChange={(body) => update({ body })}
+                onView={(view) => {
+                  htmlView.current = view;
+                }}
               />
+              {labelsPicker.element}
               <SizeMeter label="Content size" used={bodyBytes} max={LIMITS.pageBodyBytes} />
             </Card>
           )}

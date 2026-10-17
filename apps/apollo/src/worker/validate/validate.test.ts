@@ -112,6 +112,38 @@ describe("validatePage", () => {
   });
 });
 
+describe("labels block", () => {
+  const LABELER = "did:plc:2qawvcwumvgxmed6iy6pmt6l";
+  const page = (block: Record<string, unknown>) =>
+    validatePage({
+      title: "t",
+      format: "blocks",
+      blocks: [{ $type: "app.sonasky.apollo.defs#labels", ...block }],
+    });
+
+  it("keeps labelers in order, dedupes them and defaults the layout", () => {
+    const other = "did:web:labeler.example.com";
+    expect(page({ labelers: [other, LABELER, other] }).blocks?.[0]).toEqual({
+      $type: "app.sonasky.apollo.defs#labels",
+      labelers: [other, LABELER],
+      layout: "grouped",
+      title: undefined,
+    });
+  });
+  it("allows no labelers", () => {
+    expect(page({ labelers: [] }).blocks?.[0]).toMatchObject({ labelers: [] });
+  });
+  it("rejects handles, junk and too many labelers", () => {
+    expect(() => page({ labelers: ["sonasky.app"] })).toThrow(/labeler/);
+    expect(() => page({ labelers: [42] })).toThrow(ValidationError);
+    const many = Array.from({ length: LIMITS.labelersPerBlock + 1 }, () => LABELER);
+    expect(() => page({ labelers: many })).toThrow(/Too many/);
+  });
+  it("rejects unknown layouts", () => {
+    expect(() => page({ labelers: [LABELER], layout: "carousel" })).toThrow(ValidationError);
+  });
+});
+
 describe("image block alt text", () => {
   it("accepts an image uploaded with an explicit opt-out", () => {
     const page = validatePage({

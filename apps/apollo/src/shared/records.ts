@@ -149,6 +149,18 @@ export interface EventBlock {
   url?: string;
 }
 
+export type LabelsLayout = "grouped" | "combined";
+
+/** The site owner's labels from one or more labelers (SonaSky, SonaSky Pokémon, ...). */
+export interface LabelsBlock {
+  $type: "app.sonasky.apollo.defs#labels";
+  /** Labeler DIDs, in display order. */
+  labelers: string[];
+  /** One section per labeler, or every label in a single row. */
+  layout?: LabelsLayout;
+  title?: string;
+}
+
 export interface DividerBlock {
   $type: "app.sonasky.apollo.defs#divider";
 }
@@ -168,6 +180,7 @@ export type Block =
   | BskyProfileBlock
   | StarterPackBlock
   | EventBlock
+  | LabelsBlock
   | DividerBlock
   | SpacerBlock;
 export type BlockType = Block["$type"];
