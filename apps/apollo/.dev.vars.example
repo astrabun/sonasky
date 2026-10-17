@@ -1,0 +1,26 @@
+# Copy to .dev.vars (git-ignored) for `wrangler dev` / `vite dev`.
+
+# HMAC key for the session cookie. Use a long random value, e.g. `openssl rand -hex 32`.
+COOKIE_SECRET=dev-only-change-me-to-32-plus-random-bytes
+
+# Editor origin. A localhost/127.0.0.1 origin switches OAuth to atproto "loopback client"
+# mode - so open the editor at http://127.0.0.1:8787 (not "localhost") when signing in.
+PUBLIC_URL=http://127.0.0.1:8787
+
+# Usercontent origin. Locally, `localhost` and `127.0.0.1` are different origins, so this
+# exercises the same cross-origin isolation as production.
+USERCONTENT_URL=http://localhost:8787
+
+# Handle / PDS resolver used during sign-in.
+HANDLE_RESOLVER_URL=https://bsky.social
+
+# Confidential OAuth client signing key (ES256). A PKCS8 PEM or a JWK JSON string.
+# Leave unset to run as a public client (fine for local dev).
+# Generate: openssl ecparam -name prime256v1 -genkey -noout -out key.pem && openssl pkcs8 -topk8 -nocrypt -in key.pem
+OAUTH_PRIVATE_KEY=
+
+# Viewer shell (/@handle/...) analytics: Apollo's self-hosted Swetrix. Off when either is unset.
+# Use the same values as VITE_APOLLO_SWETRIX_* in .env.production. In production, set them with
+# `wrangler secret put` (or as wrangler.jsonc vars). Leave unset locally to keep dev views out.
+APOLLO_SWETRIX_API_URL=
+APOLLO_SWETRIX_PROJECT_ID=

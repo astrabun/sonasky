@@ -27,6 +27,10 @@ jobs:
 
       - run: pnpm typecheck
 
+      # Every Apollo theme (including community contributions) must pass the
+      # catalog checks: valid tokens, unique ids, readable contrast.
+      - run: pnpm -F @sonasky/apollo-themes test
+
       # The @sonasky/feeds-def catalog is generated from @sonasky/labels-def; fail
       # if it wasn't regenerated (pnpm feeds-def:gen) after a label change.
       - run: pnpm feeds-def:gen

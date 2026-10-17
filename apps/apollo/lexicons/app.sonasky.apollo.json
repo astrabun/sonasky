@@ -1,0 +1,68 @@
+{
+  "lexicon": 1,
+  "id": "app.sonasky.apollo",
+  "description": "Documentation only - not loaded or validated at runtime (records are written with validate:false and checked by src/worker/validate/records.ts). An Apollo website: one per repo. Pages, posts, styles, scripts, layouts and media are separate records in the same repo, referenced here by rkey.",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "literal:self",
+      "record": {
+        "type": "object",
+        "required": ["title", "homePage", "createdAt", "updatedAt"],
+        "properties": {
+          "title": { "type": "string", "maxLength": 300 },
+          "description": { "type": "string", "maxLength": 3000 },
+          "homePage": {
+            "type": "string",
+            "description": "rkey of the app.sonasky.apollo.page served at the site root."
+          },
+          "nav": {
+            "type": "array",
+            "maxLength": 32,
+            "items": { "type": "ref", "ref": "#navItem" }
+          },
+          "theme": {
+            "type": "string",
+            "description": "rkey of the app.sonasky.apollo.style used as the site theme."
+          },
+          "defaultLayout": {
+            "type": "string",
+            "description": "rkey of an app.sonasky.apollo.layout; built-in layout when unset."
+          },
+          "favicon": { "type": "string", "description": "rkey of an app.sonasky.apollo.media." },
+          "ogImage": { "type": "string", "description": "rkey of an app.sonasky.apollo.media." },
+          "og": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string", "maxLength": 300 },
+              "description": { "type": "string", "maxLength": 3000 }
+            }
+          },
+          "lang": { "type": "string", "format": "language" },
+          "blogEnabled": { "type": "boolean" },
+          "labels": {
+            "type": "union",
+            "description": "Author-applied content warnings for the whole site.",
+            "refs": ["com.atproto.label.defs#selfLabels"]
+          },
+          "createdAt": { "type": "string", "format": "datetime" },
+          "updatedAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    },
+    "navItem": {
+      "type": "object",
+      "description": "Exactly one of page / url is set.",
+      "required": ["label"],
+      "properties": {
+        "label": { "type": "string", "maxLength": 200 },
+        "page": { "type": "string", "description": "rkey of a page in this site." },
+        "url": {
+          "type": "string",
+          "maxLength": 2048,
+          "description": "https/http/mailto URL, or a relative path to a page on this site."
+        }
+      }
+    }
+  }
+}
