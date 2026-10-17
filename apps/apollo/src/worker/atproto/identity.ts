@@ -10,7 +10,7 @@ const DID_RE = /^did:(plc:[a-z2-7]{24}|web:[a-zA-Z0-9.-]+(%3A[0-9]+)?)$/;
 const HANDLE_RE =
   /^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/;
 
-interface DidDocument {
+export interface DidDocument {
   id?: string;
   alsoKnownAs?: string[];
   service?: { id: string; type: string; serviceEndpoint: string }[];
@@ -40,7 +40,7 @@ function didDocUrl(did: string): string {
     : `https://plc.directory/${did}`;
 }
 
-async function fetchDidDoc(did: string): Promise<DidDocument | null> {
+export async function fetchDidDoc(did: string): Promise<DidDocument | null> {
   try {
     const res = await fetch(didDocUrl(did), { headers: { accept: "application/json" } });
     if (!res.ok) return null;

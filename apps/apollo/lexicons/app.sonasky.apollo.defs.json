@@ -35,6 +35,7 @@
               "#bskyProfile",
               "#starterPack",
               "#event",
+              "#labels",
               "#divider",
               "#spacer"
             ]
@@ -247,6 +248,26 @@
     "divider": {
       "type": "object",
       "properties": {}
+    },
+    "labels": {
+      "type": "object",
+      "description": "The site owner's account labels from the listed labelers.",
+      "required": ["labelers"],
+      "properties": {
+        "labelers": {
+          "type": "array",
+          "maxLength": 10,
+          "items": { "type": "string", "format": "did" }
+        },
+        "layout": {
+          "type": "string",
+          "knownValues": ["grouped", "combined"]
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 300
+        }
+      }
     },
     "spacer": {
       "type": "object",

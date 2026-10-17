@@ -8,9 +8,12 @@ import {
 } from "./bsky.ts";
 import { esc } from "./escape.ts";
 import { icon } from "./icons.ts";
+import { renderLabels } from "./labels.ts";
 import { markdownToHtml } from "./markdown.ts";
 
 export interface BlockContext {
+  /** DID of the site owner (whose labels the labels block shows). */
+  did: string;
   /** Public URL for a media rkey, or null if it isn't a valid rkey. */
   mediaUrl: (rkey: string) => string | null;
   /** Same rules as the sanitizer's href rewriting; null drops the link. */
@@ -154,6 +157,8 @@ async function renderBlock(
       return renderStarterPack(block);
     case "app.sonasky.apollo.defs#event":
       return renderEvent(block, ctx);
+    case "app.sonasky.apollo.defs#labels":
+      return renderLabels(block, ctx.did);
     case "app.sonasky.apollo.defs#divider":
       return `<hr class="apollo-divider">`;
     case "app.sonasky.apollo.defs#spacer": {

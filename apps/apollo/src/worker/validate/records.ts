@@ -322,6 +322,22 @@ function validateBlock(input: unknown, field: string): Block {
         url: b.url === undefined || b.url === "" ? undefined : link(b.url, `${field}.url`),
       };
     }
+    case "app.sonasky.apollo.defs#labels": {
+      const labelers = arr(b, "labelers", `${field}.labelers`, LIMITS.labelersPerBlock).map(
+        (did, i) => {
+          if (typeof did !== "string" || !DID_RE.test(did)) {
+            throw new ValidationError(`${field}.labelers[${i}]`, "Not a valid labeler.");
+          }
+          return did;
+        },
+      );
+      return {
+        $type: b.$type,
+        labelers: [...new Set(labelers)],
+        layout: oneOf(b, "layout", `${field}.layout`, ["grouped", "combined"] as const, "grouped"),
+        title: str(b, "title", `${field}.title`, LIMITS.titleBytes),
+      };
+    }
     case "app.sonasky.apollo.defs#divider":
       return { $type: b.$type };
     case "app.sonasky.apollo.defs#spacer":

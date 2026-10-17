@@ -98,6 +98,15 @@ hr,.apollo-divider{border:0;border-top:1px solid color-mix(in srgb,var(--apollo-
 .apollo-event-name{font-family:var(--apollo-font-heading);font-size:1.3rem;font-weight:700;margin:0 0 6px}
 .apollo-event-meta{margin:2px 0;color:var(--apollo-muted);display:flex;align-items:center;gap:6px}
 .apollo-icon{flex:none}
+.apollo-labels{margin:1.5em 0}
+.apollo-labels-title{margin:0 0 .5em}
+.apollo-labels-group{margin:0 0 1em}
+.apollo-labels-labeler{display:inline-flex;align-items:center;gap:8px;font-weight:700;color:var(--apollo-text);text-decoration:none;margin-bottom:6px}
+.apollo-labels-list{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:6px}
+.apollo-label-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:var(--apollo-surface);color:var(--apollo-text);border:1px solid color-mix(in srgb,var(--apollo-muted) 25%,transparent);font-size:.9rem;text-decoration:none}
+a.apollo-label-chip:hover{border-color:var(--apollo-accent)}
+.apollo-label-avatar{width:20px;height:20px;border-radius:50%;object-fit:cover;flex:none}
+.apollo-labels-labeler .apollo-label-avatar{width:28px;height:28px}
 .apollo-post-meta{color:var(--apollo-muted);font-size:.9rem;margin-top:-.5em}
 .apollo-post-list{list-style:none;padding:0}
 .apollo-post-list li{margin:0 0 1.25em}
