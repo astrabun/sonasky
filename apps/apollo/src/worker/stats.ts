@@ -1,5 +1,5 @@
 /**
- * The pool of Apollo sites: every repo the relay knows has an
+ * The pool of Apollo sites: every repo the collection index knows has an
  * `app.sonasky.apollo` site record - no Apollo-side storage involved. Backs the
  * public site count and Discover.
  */
@@ -7,17 +7,34 @@
 import type { StatsResponse } from "../shared/dto.ts";
 import { NSID_SITE } from "../shared/nsid.ts";
 
-const RELAY_URL = "https://bsky.network";
+/**
+ * Lightrail drops repos whose records were deleted; the bsky.network relay's
+ * index keeps them, so it's only a fallback.
+ */
+const INDEX_URLS = ["https://lightrail.microcosm.blue", "https://bsky.network"];
 const PAGE_LIMIT = 2000;
 /** Stop paging past this many pages; the pool is a nicety, not a ledger. */
 const MAX_PAGES = 50;
 const CACHE_SECONDS = 600;
 
 async function fetchSiteDids(): Promise<string[]> {
+  let lastErr: unknown;
+  for (const base of INDEX_URLS) {
+    try {
+      return await fetchSiteDidsFrom(base);
+    } catch (err) {
+      console.error(`listReposByCollection via ${base} failed`, err);
+      lastErr = err;
+    }
+  }
+  throw lastErr;
+}
+
+async function fetchSiteDidsFrom(base: string): Promise<string[]> {
   const dids: string[] = [];
   let cursor: string | undefined;
   for (let page = 0; page < MAX_PAGES; page++) {
-    const url = new URL("/xrpc/com.atproto.sync.listReposByCollection", RELAY_URL);
+    const url = new URL("/xrpc/com.atproto.sync.listReposByCollection", base);
     url.searchParams.set("collection", NSID_SITE);
     url.searchParams.set("limit", String(PAGE_LIMIT));
     if (cursor) url.searchParams.set("cursor", cursor);
