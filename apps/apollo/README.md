@@ -76,6 +76,11 @@ appended even after custom layouts, since showing it is the point of membership.
 - Invites are found through the [Constellation](https://constellation.microcosm.blue) backlink
   index (`.members[].did` on ring records). Every hit is re-checked against the real record.
   Owners can also send an invite link (`/edit/rings/join?ring=<at-uri>`).
+- The ring directory (`/discover/rings`, `GET /api/discover/rings`) lists every ring that has at
+  least one active member and isn't `unlisted` (`src/worker/ring-directory.ts`). Owners come from
+  `listReposByCollection`, and acceptances are counted from Constellation backlinks. The result is
+  cached for 10 minutes. Sorting, search and random picks run in the browser
+  (`src/shared/ringDirectory.ts`).
 
 ## Themes
 

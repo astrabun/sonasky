@@ -8,6 +8,7 @@ import type {
   PutResponse,
   ReportRequest,
   RingLookupResponse,
+  RingDirectoryResponse,
   RingsResponse,
   SiteBundle,
   StatsResponse,
@@ -70,6 +71,7 @@ export const api = {
   stats: () => call<StatsResponse>("/api/stats"),
   discover: (not?: string) =>
     call<DiscoverResponse>(`/api/discover${not ? `?not=${encodeURIComponent(not)}` : ""}`),
+  discoverRings: () => call<RingDirectoryResponse>("/api/discover/rings"),
   site: () => call<SiteBundle>("/api/site"),
   putSite: (record: Omit<SiteRecord, "$type" | "updatedAt"> & { updatedAt?: string }) =>
     call<PutResponse>("/api/site", json("PUT", record)),

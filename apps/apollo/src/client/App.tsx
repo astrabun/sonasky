@@ -126,7 +126,8 @@ export default function App() {
               />
               <Route path="/report" element={<ReportPage me={me} />} />
               <Route path="/help" element={<HelpPage />} />
-              <Route path="/discover" element={<DiscoverPage />} />
+              <Route path="/discover" element={<DiscoverPage tab="sites" />} />
+              <Route path="/discover/rings" element={<DiscoverPage tab="rings" />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           )}

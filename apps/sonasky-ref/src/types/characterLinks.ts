@@ -3,7 +3,8 @@ export type CharacterLinkType =
   | "sofurry"
   | "bluesky"
   | "refsheetdotnet"
-  | "toyhouse";
+  | "toyhouse"
+  | "apollo";
 
 export interface CharacterLink {
   type: CharacterLinkType;
@@ -17,6 +18,7 @@ export const LINK_TYPE_LABELS: Record<CharacterLinkType, string> = {
   refsheetdotnet: "Refsheet.net",
   sofurry: "SoFurry",
   toyhouse: "Toyhouse",
+  apollo: "SonaSky Apollo",
 };
 
 export const LINK_TYPE_HINTS: Record<CharacterLinkType, string> = {
@@ -25,6 +27,7 @@ export const LINK_TYPE_HINTS: Record<CharacterLinkType, string> = {
   refsheetdotnet: "Must be on https://refsheet.net",
   sofurry: "Must be on https://sofurry.com/",
   toyhouse: "Must be on https://toyhou.se/",
+  apollo: "Must be on https://apollo.sonasky.app/ or https://sitesky.app/",
 };
 
 export const ALLOWED_LINK_TYPES: CharacterLinkType[] = [
@@ -33,6 +36,7 @@ export const ALLOWED_LINK_TYPES: CharacterLinkType[] = [
   "refsheetdotnet",
   "toyhouse",
   "sofurry",
+  "apollo",
 ];
 
 export function validateCharacterLink(link: CharacterLink): boolean {
@@ -76,6 +80,17 @@ export function validateCharacterLink(link: CharacterLink): boolean {
       try {
         const url = new URL(link.url);
         return url.protocol === "https:" && url.hostname === "toyhou.se";
+      } catch {
+        return false;
+      }
+    }
+    case "apollo": {
+      try {
+        const url = new URL(link.url);
+        return (
+          url.protocol === "https:" &&
+          (url.hostname === "apollo.sonasky.app" || url.hostname === "sitesky.app")
+        );
       } catch {
         return false;
       }

@@ -9,6 +9,7 @@
 import type { RingRef } from "../shared/dto.ts";
 import { LIMITS } from "../shared/limits.ts";
 import { NSID_RING, NSID_RING_MEMBER, NSID_SITE, SITE_RKEY } from "../shared/nsid.ts";
+import { pickRandom } from "../shared/random.ts";
 import type { RingMemberRecord, RingRecord, SiteRecord } from "../shared/records.ts";
 import { isSlug } from "../shared/slug.ts";
 import { resolveActor, type ResolvedIdentity } from "./atproto/identity.ts";
@@ -60,7 +61,7 @@ export function ringPageUrl(env: AppEnv, ownerActor: string, slug: string): stri
   return `${origin(env.PUBLIC_URL)}/@${ownerActor}/ring/${slug}`;
 }
 
-function isRing(value: unknown): value is RingRecord {
+export function isRing(value: unknown): value is RingRecord {
   const v = value as Partial<RingRecord> | null;
   return (
     typeof v === "object" &&
@@ -228,8 +229,7 @@ export function neighbor<T extends { did: string }>(
 
 /** A random listed site, avoiding `not` when there's any other choice. */
 export function randomMember<T extends { did: string }>(roster: T[], not?: string): T | null {
-  const pool = roster.length > 1 ? roster.filter((m) => m.did !== not) : roster;
-  return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+  return pickRandom(roster, (m) => m.did, not);
 }
 
 export interface RingNav {
@@ -293,6 +293,35 @@ export function ringRef(env: AppEnv, ring: LoadedRing): RingRef {
     ownerDid: ring.owner.did,
     ...(ring.owner.handle ? { ownerHandle: ring.owner.handle } : {}),
   };
+}
+
+/**
+ * DIDs with a `ringMember` record pointing at the ring at `uri`, from the
+ * Constellation backlink index. Includes people who aren't (or are no longer)
+ * invited - callers intersect with the ring's members. Throws when the index
+ * can't be reached.
+ */
+export async function acceptedDids(uri: string): Promise<Set<string>> {
+  const out = new Set<string>();
+  let cursor: string | undefined;
+  // Members cap at 100; a few pages covers stale acceptances too.
+  for (let page = 0; page < 3; page++) {
+    const url = new URL("/links/distinct-dids", CONSTELLATION_URL);
+    url.searchParams.set("target", uri);
+    url.searchParams.set("collection", NSID_RING_MEMBER);
+    url.searchParams.set("path", ".ring");
+    url.searchParams.set("limit", "100");
+    if (cursor) url.searchParams.set("cursor", cursor);
+    const res = await fetch(url, {
+      headers: { accept: "application/json", "user-agent": "SonaSky Apollo (rings)" },
+    });
+    if (!res.ok) throw new Error(`constellation: ${res.status}`);
+    const body = (await res.json()) as { linking_dids?: string[]; cursor?: string | null };
+    for (const did of body.linking_dids ?? []) out.add(did);
+    cursor = body.cursor ?? undefined;
+    if (!cursor) break;
+  }
+  return out;
 }
 
 /**
