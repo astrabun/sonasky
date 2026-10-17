@@ -16,6 +16,7 @@ import type {
 import type { RecordEntry } from "../atproto/repo.ts";
 import type { RingNav, RosterMember } from "../rings.ts";
 import { renderBlocks, type BlockContext } from "./blocks.ts";
+import { expandLabelPlaceholders } from "./labels.ts";
 import { esc } from "./escape.ts";
 import { markdownToHtml } from "./markdown.ts";
 import { safeStyleText, sanitizeHtml } from "./sanitize.ts";
@@ -155,9 +156,12 @@ async function renderBody(record: PageRecord | PostRecord, ctx: BlockContext): P
     case "blocks":
       return renderBlocks(record.blocks ?? [], ctx);
     case "markdown":
-      return ctx.sanitize(markdownToHtml(record.body ?? ""));
+      return expandLabelPlaceholders(
+        await ctx.sanitize(markdownToHtml(record.body ?? "")),
+        ctx.did,
+      );
     case "html":
-      return ctx.sanitize(record.body ?? "");
+      return expandLabelPlaceholders(await ctx.sanitize(record.body ?? ""), ctx.did);
     default:
       return "";
   }
@@ -178,7 +182,12 @@ export async function renderSiteDocument(
   const urls = urlRewriters(origins, did, actor, site.homePage);
   const sanitize = (html: string) =>
     sanitizeHtml(html, { rewriteHref: urls.rewriteHref, rewriteSrc: urls.rewriteSrc });
-  const ctx: BlockContext = { mediaUrl: urls.mediaUrl, rewriteHref: urls.rewriteHref, sanitize };
+  const ctx: BlockContext = {
+    did,
+    mediaUrl: urls.mediaUrl,
+    rewriteHref: urls.rewriteHref,
+    sanitize,
+  };
 
   let content: string;
   let currentSlug: string | null = null;

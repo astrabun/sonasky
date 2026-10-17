@@ -73,3 +73,34 @@ export function bskyUrlForUri(uri: string): string {
     ? `https://bsky.app/profile/${m[1]}/post/${m[3]}`
     : `https://bsky.app/starter-pack/${m[1]}/${m[3]}`;
 }
+
+export interface LabelerSummary {
+  did: string;
+  handle: string;
+  name: string;
+}
+
+/** Labeler accounts' names, for showing chosen labelers in the editor. Missing ones are left out. */
+export async function labelerSummaries(dids: string[]): Promise<LabelerSummary[]> {
+  if (dids.length === 0) return [];
+  const url = new URL("/xrpc/app.bsky.labeler.getServices", APPVIEW);
+  for (const did of dids) url.searchParams.append("dids", did);
+  const res = await fetch(url);
+  if (!res.ok) return [];
+  const { views } = (await res.json()) as {
+    views?: { creator: { did: string; handle: string; displayName?: string } }[];
+  };
+  return (views ?? []).map(({ creator }) => ({
+    did: creator.did,
+    handle: creator.handle,
+    name: creator.displayName || creator.handle,
+  }));
+}
+
+/** A labeler's profile link, handle or DID -> DID, checking the account really runs a labeler. */
+export async function labelerDidFrom(input: string): Promise<string> {
+  const did = await profileDidFrom(input);
+  const [found] = await labelerSummaries([did]);
+  if (!found) throw new Error("That account isn't a labeler.");
+  return did;
+}

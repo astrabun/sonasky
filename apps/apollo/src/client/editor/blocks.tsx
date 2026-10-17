@@ -17,6 +17,7 @@ import {
   Minus,
   MoveVertical,
   Plus,
+  Tags,
   TextAlignStart,
   Trash2,
   UserRound,
@@ -36,6 +37,7 @@ import type {
 } from "../../shared/records.ts";
 import { bskyUrlForUri, postUriFrom, profileDidFrom, starterPackUriFrom } from "../bsky.ts";
 import { Button, Card, Modal, Notice, Select, TextArea, TextInput } from "../components/ui.tsx";
+import { DEFAULT_LABELS_SETTINGS, LabelsFields } from "./LabelsFields.tsx";
 import { MarkdownEditor } from "./MarkdownEditor.tsx";
 import { MediaField, MediaLibrary, MediaThumb } from "./MediaLibrary.tsx";
 import { useEditorState } from "./context.tsx";
@@ -118,6 +120,17 @@ export const BLOCK_CATALOG: CatalogItem[] = [
     description: "A card for a Bluesky starter pack.",
     icon: Users,
     create: () => ({ $type: `${D}#starterPack`, uri: "" }),
+  },
+  {
+    type: `${D}#labels`,
+    name: "Your labels",
+    description: "Labels on your Bluesky account, from SonaSky or other labelers.",
+    icon: Tags,
+    create: () => ({
+      $type: `${D}#labels`,
+      ...DEFAULT_LABELS_SETTINGS,
+      labelers: [...DEFAULT_LABELS_SETTINGS.labelers],
+    }),
   },
   {
     type: `${D}#divider`,
@@ -590,6 +603,8 @@ function BlockFields({ block, onChange }: { block: Block; onChange: (b: Block) =
           onResolved={(uri) => onChange({ ...block, uri })}
         />
       );
+    case `${D}#labels`:
+      return <LabelsFields value={block} onChange={(v) => onChange({ ...block, ...v })} />;
     case `${D}#spacer`:
       return (
         <Select

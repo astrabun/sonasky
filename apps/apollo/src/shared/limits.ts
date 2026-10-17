@@ -25,6 +25,7 @@ export const LIMITS = {
   navItems: 32,
   buttonsPerBlock: 32,
   galleryItems: 24,
+  labelersPerBlock: 10,
   tagsPerPost: 16,
   ringsPerAccount: 16,
   ringMembers: 100,

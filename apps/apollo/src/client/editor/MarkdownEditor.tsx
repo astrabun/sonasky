@@ -31,6 +31,7 @@ import {
   Quote,
   Strikethrough,
   Table as TableIcon,
+  Tags,
   Trash2,
   Underline as UnderlineIcon,
   Unlink,
@@ -38,6 +39,7 @@ import {
 import type { MediaEntry } from "../../shared/dto.ts";
 import { linkValueError } from "../../shared/links.ts";
 import { CodeEditor } from "./CodeEditor.tsx";
+import { LabelsNode } from "./LabelsNode.ts";
 import { imageMarkdown } from "./MediaLibrary.tsx";
 
 /** Lets the editor insert and show uploaded images (`![alt](media:ID)`). */
@@ -46,6 +48,12 @@ export interface MarkdownImages {
   pick: () => Promise<MediaEntry | null>;
   /** Display URL for a media ID, if it's in the library. */
   urlFor: (id: string) => string | undefined;
+}
+
+/** Lets the editor insert the labels widget placeholder. */
+export interface MarkdownLabels {
+  /** Open the labels dialog; resolves with the placeholder snippet, or null. */
+  pick: () => Promise<string | null>;
 }
 
 /**
@@ -118,11 +126,13 @@ function FormattedEditor({
   onChange,
   minHeight,
   images,
+  labels,
 }: {
   initialValue: string;
   onChange: (value: string) => void;
   minHeight: string;
   images?: MarkdownImages;
+  labels?: MarkdownLabels;
 }) {
   const urlFor = useRef(images?.urlFor);
   urlFor.current = images?.urlFor;
@@ -137,6 +147,7 @@ function FormattedEditor({
       TableHeader,
       TableCell,
       imageExtension(urlFor),
+      LabelsNode,
       Markdown.configure({ html: true, linkify: false, breaks: true }),
     ],
     content: initialValue,
@@ -296,6 +307,18 @@ function FormattedEditor({
             <ImagePlus size={16} />
           </ToolbarButton>
         ) : null}
+        {labels ? (
+          <ToolbarButton
+            title="Insert your labels"
+            onClick={() => {
+              void labels.pick().then((snippet) => {
+                if (snippet) editor.chain().focus().insertContent(snippet).run();
+              });
+            }}
+          >
+            <Tags size={16} />
+          </ToolbarButton>
+        ) : null}
         <ToolbarButton title="Add link" active={editor.isActive("link")} onClick={setLink}>
           <Link2 size={16} />
         </ToolbarButton>
@@ -319,6 +342,7 @@ export function MarkdownEditor({
   minHeight = "8rem",
   help,
   images,
+  labels,
 }: {
   label: string;
   value: string;
@@ -327,6 +351,8 @@ export function MarkdownEditor({
   help?: ReactNode;
   /** Enables "Insert image" (pages and posts; needs the media library). */
   images?: MarkdownImages;
+  /** Enables "Insert labels" (pages and posts in writing mode). */
+  labels?: MarkdownLabels;
 }) {
   const sourceView = useRef<EditorView | null>(null);
   const insertImageInSource = async () => {
@@ -334,6 +360,14 @@ export function MarkdownEditor({
     const view = sourceView.current;
     if (!m || !view) return;
     view.dispatch(view.state.replaceSelection(imageMarkdown(m)));
+    view.focus();
+  };
+  const insertLabelsInSource = async () => {
+    const snippet = await labels?.pick();
+    const view = sourceView.current;
+    if (!snippet || !view) return;
+    // Raw HTML needs blank lines around it to stay a block in Markdown.
+    view.dispatch(view.state.replaceSelection(`\n\n${snippet}\n\n`));
     view.focus();
   };
   const [mode, setMode] = useState<EditorMode>("formatted");
@@ -379,6 +413,15 @@ export function MarkdownEditor({
               <ImagePlus size={14} aria-hidden /> Insert image
             </button>
           ) : null}
+          {labels && mode === "source" ? (
+            <button
+              type="button"
+              onClick={() => void insertLabelsInSource()}
+              className="inline-flex items-center gap-1 rounded-md border border-neutral-300 px-2 py-1 text-xs hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            >
+              <Tags size={14} aria-hidden /> Insert labels
+            </button>
+          ) : null}
           <div className="flex overflow-hidden rounded-md border border-neutral-300 text-xs dark:border-neutral-700">
             {modeButton("formatted", "Formatted")}
             {modeButton("source", "Markdown")}
@@ -403,6 +446,7 @@ export function MarkdownEditor({
           onChange={onChange}
           minHeight={minHeight}
           images={images}
+          labels={labels}
         />
       )}
       {help ? <p className="text-xs text-neutral-500 dark:text-neutral-400">{help}</p> : null}
