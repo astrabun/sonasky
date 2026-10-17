@@ -313,7 +313,7 @@ export function PageEditor({
             </span>
           ) : null}
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" variant="ghost" onClick={() => setShowPreview((s) => !s)}>
             {showPreview ? "Hide preview" : "Show preview"}
           </Button>
@@ -347,7 +347,7 @@ export function PageEditor({
       {error ? <Notice tone="error">{error}</Notice> : null}
       {savedNote ? <Notice tone="success">{savedNote}</Notice> : null}
 
-      <div className={showPreview ? "grid gap-6 xl:grid-cols-2" : ""}>
+      <div className={showPreview ? "grid grid-cols-1 gap-6 xl:grid-cols-2" : ""}>
         <div className="space-y-4">
           <Card className="space-y-3">
             <TextInput

@@ -286,11 +286,11 @@ export function ThemePanel() {
   const home = bundle.pages.find((p) => p.rkey === site.value.homePage);
 
   return (
-    <div className="grid gap-6 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold">Theme</h2>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <ThemeExportButton tokens={tokens} basedOn={basedOn} handle={bundle.handle} />
             <Button variant="primary" disabled={!dirty || busy} onClick={save}>
               {busy ? (

@@ -79,7 +79,7 @@ export function Preview({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between text-xs text-neutral-500">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 text-xs text-neutral-500">
         <span>Preview {loading ? "· updating..." : ""}</span>
         <span>Links and scripts work on the published site.</span>
       </div>

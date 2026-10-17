@@ -42,7 +42,7 @@ export function PagesPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Pages</h2>
         {pages.length < LIMITS.pagesPerSite ? (
           <Link
@@ -158,7 +158,7 @@ export function BlogPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Blog posts</h2>
         <Link
           to="/edit/blog/new"

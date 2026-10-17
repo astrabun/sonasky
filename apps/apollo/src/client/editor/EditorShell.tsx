@@ -35,7 +35,7 @@ const TABS: { to: string; label: string; icon: LucideIcon }[] = [
 function Sidebar() {
   const { bundle, site } = useEditorState();
   return (
-    <nav aria-label="Editor" className="space-y-4">
+    <nav aria-label="Editor" className="min-w-0 space-y-4">
       <div className="rounded-xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900">
         <p className="truncate font-semibold">{site.value.title}</p>
         <a
@@ -90,7 +90,7 @@ function MediaPanel() {
 
 function Editor() {
   return (
-    <div className="grid gap-6 md:grid-cols-[12rem_1fr]">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-[12rem_minmax(0,1fr)]">
       <Sidebar />
       <div className="min-w-0">
         <Routes>
