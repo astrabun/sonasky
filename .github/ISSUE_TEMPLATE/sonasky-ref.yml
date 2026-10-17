@@ -1,6 +1,6 @@
-name: "\U0001F4DA SonaSky-ref issue"
+name: "\U0001F4DA SonaSky-REF issue"
 description: Report a bug or data issue in sonasky-ref or sonasky-ref-firehose.
-title: "[SonaSky-ref]: "
+title: "[SonaSky-REF]: "
 labels:
   - sonasky-ref
 body:
