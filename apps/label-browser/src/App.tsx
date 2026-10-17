@@ -220,6 +220,14 @@ function App() {
               Create/Manage Ref Sheet
             </a>{" "}
             &middot;{" "}
+            <a
+              href="https://apollo.sonasky.app/?utm_source=sonasky&utm_medium=nav"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Make a Website (Apollo)
+            </a>{" "}
+            &middot;{" "}
             <a href="https://forms.sonasky.app/f/000-sonasky-open-feedback" target="_blank">
               Feedback
             </a>

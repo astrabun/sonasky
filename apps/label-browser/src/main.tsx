@@ -4,6 +4,7 @@ import "./index.css";
 import App from "./App.tsx";
 import Faq from "./Faq.tsx";
 import { initAnalytics } from "./analytics.ts";
+import { ApolloBanner } from "./components/ApolloBanner.tsx";
 
 initAnalytics();
 
@@ -20,6 +21,7 @@ if (isFaq) {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
+    <ApolloBanner />
     <Page />
   </StrictMode>,
 );

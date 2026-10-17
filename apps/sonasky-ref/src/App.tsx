@@ -15,6 +15,7 @@ import { ENV, HANDLE_RESOLVER_URL, PLC_DIRECTORY_URL } from "./const";
 import { AuthProvider } from "./auth/auth-provider";
 import { handleResolver } from "./helpers/handleResolver";
 import Changelog from "./pages/Dashboard/Changelog/Changelog";
+import { ApolloBanner } from "./components/ApolloBanner";
 
 export const clientId =
   ENV === "development"
@@ -55,6 +56,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <>
+      <ApolloBanner />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
