@@ -1,7 +1,7 @@
 import { OAuthResolverError } from "@atproto/oauth-client";
 import { Hono } from "hono";
 import type { AppEnv } from "../env.ts";
-import { clientMetadata, getOAuthClient, OAUTH_SCOPE, REPORT_SCOPE } from "./client.ts";
+import { clientMetadata, getOAuthClient, OAUTH_SCOPE, VISITOR_SCOPE } from "./client.ts";
 import { clearSessionCookie, readSessionCookie, serializeSessionCookie } from "./cookie.ts";
 
 const HANDLE_INPUT_RE = /^[^\s]{1,512}$/;
@@ -53,8 +53,9 @@ oauthRoutes.get("/oauth/login", async (c) => {
   }
   try {
     const client = await getOAuthClient(c.env);
-    // `purpose=report` asks only for permission to file reports, not to edit.
-    const scope = c.req.query("purpose") === "report" ? REPORT_SCOPE : OAUTH_SCOPE;
+    // `purpose=report` / `purpose=like` ask only to like and report, not to edit.
+    const purpose = c.req.query("purpose");
+    const scope = purpose === "report" || purpose === "like" ? VISITOR_SCOPE : OAUTH_SCOPE;
     const url = await client.authorize(handle, { state: returnPath, scope });
     return c.redirect(url.toString(), 302);
   } catch (err) {

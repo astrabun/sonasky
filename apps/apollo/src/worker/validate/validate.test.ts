@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 import { LIMITS } from "../../shared/limits.ts";
 import { pageUrls, urlRewriters, type RenderInput } from "../render/document.ts";
 import { sniffMime } from "./media.ts";
-import { validatePage, validateSite, validateStyle, ValidationError } from "./records.ts";
+import {
+  parseSiteUri,
+  validateLike,
+  validatePage,
+  validateSite,
+  validateStyle,
+  ValidationError,
+} from "./records.ts";
 
 const bytes = (...parts: (number[] | string)[]) =>
   new Uint8Array(
@@ -318,5 +325,37 @@ describe("Bluesky comments", () => {
     expect(
       pageUrls(input({ kind: "post", slug: "hello", record: {} as never }), "https://a.example")[0],
     ).toBe("https://a.example/@me.example/blog/hello");
+  });
+});
+
+describe("validateLike", () => {
+  const SITE = "at://did:plc:abcdefghijklmnopqrstuvwx/app.sonasky.apollo/self";
+
+  it("keeps a site subject and drops unknown fields", () => {
+    const like = validateLike({ subject: SITE, createdAt: "2026-10-18T00:00:00.000Z", extra: 1 });
+    expect(like).toEqual({
+      $type: "app.sonasky.apollo.like",
+      subject: SITE,
+      createdAt: "2026-10-18T00:00:00.000Z",
+    });
+  });
+
+  it("only accepts a site's self record", () => {
+    for (const subject of [
+      "at://did:plc:abcdefghijklmnopqrstuvwx/app.sonasky.apollo.page/home",
+      "at://did:plc:abcdefghijklmnopqrstuvwx/app.sonasky.apollo/other",
+      "at://alice.bsky.social/app.sonasky.apollo/self",
+      "https://apollo.sonasky.app/@alice",
+      42,
+    ]) {
+      expect(() => validateLike({ subject, createdAt: "2026-10-18T00:00:00.000Z" })).toThrow(
+        ValidationError,
+      );
+    }
+  });
+
+  it("parses the owner out of a site uri", () => {
+    expect(parseSiteUri(SITE)).toBe("did:plc:abcdefghijklmnopqrstuvwx");
+    expect(parseSiteUri("at://did:plc:x/app.sonasky.apollo/self")).toBeNull();
   });
 });

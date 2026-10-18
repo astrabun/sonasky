@@ -21,6 +21,8 @@ export type MeResponse =
       handle?: string;
       /** The session is missing scopes Apollo needs to edit - sign in again. */
       reauthRequired: boolean;
+      /** The session may like sites (full or visitor scope). */
+      canLike: boolean;
       /** Viewer URL of the user's site (whether or not it exists yet). */
       siteUrl: string;
     };
@@ -113,6 +115,39 @@ export interface DiscoverSite {
 export interface DiscoverResponse {
   /** null when there's nothing to show (empty pool, or the relay is down). */
   site: DiscoverSite | null;
+}
+
+/** A site in the public directory. */
+export interface DirectorySite extends DiscoverSite {
+  createdAt: string;
+  updatedAt: string;
+  /** Accounts that like the site (approximate; from the backlink index). */
+  likes: number;
+  /** When someone last posted a link to the site on Bluesky. */
+  lastLinkedAt?: string;
+}
+
+export interface SiteDirectoryResponse {
+  /** null when the index couldn't be reached. */
+  sites: DirectorySite[] | null;
+  /** 1-based. */
+  page: number;
+  pages: number;
+  total: number;
+}
+
+export interface SiteLookupResponse {
+  site: DiscoverSite | null;
+  /** Why there's no site: no such account, no Apollo site, or it can't be shown. */
+  reason?: "not_found" | "no_site" | "unavailable";
+  /** The resolved handle, for the "no site" message. */
+  handle?: string;
+}
+
+export interface LikeStatusResponse {
+  count: number;
+  /** Whether the caller likes the site (false when signed out). */
+  liked: boolean;
 }
 
 // Rings

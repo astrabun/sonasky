@@ -13,6 +13,7 @@ import { jsonBytes, LIMITS, utf8Bytes } from "../../shared/limits.ts";
 import { linkValueError } from "../../shared/links.ts";
 import {
   NSID_LAYOUT,
+  NSID_LIKE,
   NSID_PAGE,
   NSID_POST,
   NSID_RING,
@@ -20,6 +21,7 @@ import {
   NSID_SCRIPT,
   NSID_SITE,
   NSID_STYLE,
+  SITE_RKEY,
   type SlugCollection,
 } from "../../shared/nsid.ts";
 import {
@@ -28,6 +30,7 @@ import {
   type CommunityBlock,
   type ContentComments,
   type LayoutRecord,
+  type LikeRecord,
   type NavItem,
   type PageFormat,
   type PageRecord,
@@ -635,6 +638,24 @@ export function validateRingMember(input: unknown): RingMemberRecord {
   return {
     $type: NSID_RING_MEMBER,
     ring: o.ring as string,
+    createdAt: timestamps(o).createdAt,
+  };
+}
+
+/** `at://<did>/app.sonasky.apollo/self` -> the site owner's DID, or null. */
+export function parseSiteUri(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const m = AT_URI_RE.exec(value);
+  if (!m || m[2] !== NSID_SITE || m[3] !== SITE_RKEY || !DID_RE.test(m[1])) return null;
+  return m[1];
+}
+
+export function validateLike(input: unknown): LikeRecord {
+  const o = obj(input, "like");
+  if (!parseSiteUri(o.subject)) throw new ValidationError("subject", "Not a valid site.");
+  return {
+    $type: NSID_LIKE,
+    subject: o.subject as string,
     createdAt: timestamps(o).createdAt,
   };
 }

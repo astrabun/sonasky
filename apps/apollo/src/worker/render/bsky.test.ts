@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchComments, findSharePost } from "./bsky.ts";
+import { fetchComments, findSharePost, lastLinkedAt, tidTime } from "./bsky.ts";
 
 const ROOT = "at://did:plc:owner/app.bsky.feed.post/root";
 const post = (rkey: string, did = "did:plc:fan", extra: Record<string, unknown> = {}) => ({
@@ -164,5 +164,61 @@ describe("findSharePost", () => {
       }),
     );
     expect(await findSharePost(OWNER, ["https://a.example/@me/hi"])).toBeNull();
+  });
+});
+
+describe("tidTime", () => {
+  it("reads the microsecond timestamp out of a TID", () => {
+    expect(tidTime("3m5xyz2abcd22")).toBe("2025-11-19T10:07:04.383Z");
+  });
+});
+
+describe("lastLinkedAt", () => {
+  // TIDs for 2025-11-19 (past) and one far in the future.
+  const PAST_OLD = "3m5xyz2abcd22";
+  const PAST_NEW = "3m5xzz2abcd22";
+  const FUTURE = "7zzzzzzzzzz22";
+
+  function stub(rkeys: string[], indexed: Record<string, string>) {
+    const fetch = vi.fn(async (url: string | URL) => {
+      const u = new URL(String(url));
+      if (u.pathname === "/links") {
+        if (u.searchParams.get("path") !== ".embed.external.uri") return Response.json({});
+        return Response.json({
+          linking_records: rkeys.map((rkey) => ({
+            did: "did:plc:fan",
+            collection: "app.bsky.feed.post",
+            rkey,
+          })),
+        });
+      }
+      const posts = u.searchParams
+        .getAll("uris")
+        .filter((uri) => indexed[uri.slice(uri.lastIndexOf("/") + 1)])
+        .map((uri) => ({ uri, indexedAt: indexed[uri.slice(uri.lastIndexOf("/") + 1)] }));
+      return Response.json({ posts });
+    });
+    vi.stubGlobal("fetch", fetch);
+    return fetch;
+  }
+
+  it("uses the AppView's indexedAt, not the rkey, and skips future-dated TIDs", async () => {
+    const fetch = stub([PAST_OLD, FUTURE, PAST_NEW], {
+      [PAST_OLD]: "2025-11-19T10:07:05.000Z",
+      [PAST_NEW]: "2025-11-20T00:00:00.000Z",
+      [FUTURE]: "2026-01-01T00:00:00.000Z",
+    });
+    expect(await lastLinkedAt(["https://a.example/@me"])).toBe("2025-11-20T00:00:00.000Z");
+    const getPosts = fetch.mock.calls
+      .map(([u]) => new URL(String(u)))
+      .find((u) => u.pathname.endsWith("getPosts"));
+    expect(getPosts?.searchParams.getAll("uris").some((u) => u.endsWith(FUTURE))).toBe(false);
+  });
+
+  it("is null when nobody linked, or the posts are gone", async () => {
+    stub([], {});
+    expect(await lastLinkedAt(["https://a.example/@me"])).toBeNull();
+    stub([PAST_OLD], {});
+    expect(await lastLinkedAt(["https://a.example/@me"])).toBeNull();
   });
 });
