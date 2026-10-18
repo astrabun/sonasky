@@ -1,7 +1,7 @@
 import { Agent } from "@atproto/api";
 import type { Context } from "hono";
 import type { AppEnv } from "../env.ts";
-import { getOAuthClient, hasRequiredScopes } from "./client.ts";
+import { canLike, getOAuthClient, hasRequiredScopes } from "./client.ts";
 import { readSessionCookie } from "./cookie.ts";
 
 export interface SessionAgent {
@@ -9,6 +9,8 @@ export interface SessionAgent {
   did: string;
   /** False when the session predates a scope Apollo now needs; the user must sign in again. */
   scopesOk: boolean;
+  /** The session may write likes (full or visitor scope). */
+  canLike: boolean;
 }
 
 /**
@@ -26,7 +28,12 @@ export async function getSessionAgent<E extends { Bindings: AppEnv }>(
     const client = await getOAuthClient(c.env);
     const oauthSession = await client.restore(did);
     const info = await oauthSession.getTokenInfo(false);
-    return { agent: new Agent(oauthSession), did, scopesOk: hasRequiredScopes(info.scope) };
+    return {
+      agent: new Agent(oauthSession),
+      did,
+      scopesOk: hasRequiredScopes(info.scope),
+      canLike: canLike(info.scope),
+    };
   } catch {
     return null;
   }

@@ -1,6 +1,7 @@
 import type {
   ApiError,
   DiscoverResponse,
+  LikeStatusResponse,
   MediaUploadResponse,
   MeResponse,
   PreviewRequest,
@@ -11,6 +12,8 @@ import type {
   RingDirectoryResponse,
   RingsResponse,
   SiteBundle,
+  SiteDirectoryResponse,
+  SiteLookupResponse,
   StatsResponse,
 } from "../shared/dto.ts";
 import type { SlugCollection } from "../shared/nsid.ts";
@@ -72,6 +75,17 @@ export const api = {
   discover: (not?: string) =>
     call<DiscoverResponse>(`/api/discover${not ? `?not=${encodeURIComponent(not)}` : ""}`),
   discoverRings: () => call<RingDirectoryResponse>("/api/discover/rings"),
+  discoverSites: (sort: string, page: number) =>
+    call<SiteDirectoryResponse>(
+      `/api/discover/sites?${new URLSearchParams({ sort, page: String(page) }).toString()}`,
+    ),
+  lookupSite: (actor: string) =>
+    call<SiteLookupResponse>(`/api/discover/lookup?actor=${encodeURIComponent(actor)}`),
+  likeStatus: (site: string) =>
+    call<LikeStatusResponse>(`/api/likes?site=${encodeURIComponent(site)}`),
+  like: (site: string) => call<PutResponse>("/api/likes", json("POST", { site })),
+  unlike: (site: string) =>
+    call<{ ok: true }>(`/api/likes?site=${encodeURIComponent(site)}`, { method: "DELETE" }),
   site: () => call<SiteBundle>("/api/site"),
   putSite: (record: Omit<SiteRecord, "$type" | "updatedAt"> & { updatedAt?: string }) =>
     call<PutResponse>("/api/site", json("PUT", record)),
@@ -120,13 +134,20 @@ export const api = {
   report: (req: ReportRequest) => call<{ ok: true }>("/api/report", json("POST", req)),
 };
 
-export function loginHref(handle: string, returnTo?: string, purpose?: "report"): string {
+export type SignInPurpose = "report" | "like";
+
+export function loginHref(handle: string, returnTo?: string, purpose?: SignInPurpose): string {
   const params = new URLSearchParams({ handle: handle.trim() });
   if (returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")) {
     params.set("return", returnTo);
   }
   if (purpose) params.set("purpose", purpose);
   return `/oauth/login?${params.toString()}`;
+}
+
+/** The page that asks for a like-capable sign-in, then returns to `returnTo`. */
+export function likeSignInHref(returnTo: string): string {
+  return `/like?${new URLSearchParams({ return: returnTo }).toString()}`;
 }
 
 export function logout(): Promise<unknown> {

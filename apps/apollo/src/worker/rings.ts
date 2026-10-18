@@ -13,6 +13,7 @@ import { pickRandom } from "../shared/random.ts";
 import type { RingMemberRecord, RingRecord, SiteRecord } from "../shared/records.ts";
 import { isSlug } from "../shared/slug.ts";
 import { resolveActor, type ResolvedIdentity } from "./atproto/identity.ts";
+import { hashRkey } from "./atproto/rkey.ts";
 import { getPublicRecord, listPublicRecords, type RecordEntry } from "./atproto/repo.ts";
 import { origin, type AppEnv } from "./env.ts";
 import { checkModeration, isBlocked } from "./moderation.ts";
@@ -28,29 +29,11 @@ export function ringUri(ownerDid: string, slug: string): string {
   return `at://${ownerDid}/${NSID_RING}/${slug}`;
 }
 
-const BASE32 = "abcdefghijklmnopqrstuvwxyz234567";
-
 /**
- * rkey of a member's `ringMember` record for a ring: 26 base32 chars of
- * sha256(ring uri). Deterministic, so checking a membership is one getRecord.
+ * rkey of a member's `ringMember` record for a ring. Deterministic, so
+ * checking a membership is one getRecord.
  */
-export async function membershipRkey(uri: string): Promise<string> {
-  const digest = new Uint8Array(
-    await crypto.subtle.digest("SHA-256", new TextEncoder().encode(uri)),
-  );
-  let bits = 0;
-  let value = 0;
-  let out = "";
-  for (const byte of digest) {
-    value = (value << 8) | byte;
-    bits += 8;
-    while (bits >= 5 && out.length < 26) {
-      out += BASE32[(value >>> (bits - 5)) & 31];
-      bits -= 5;
-    }
-  }
-  return out;
-}
+export const membershipRkey = hashRkey;
 
 function resolver(env: AppEnv): string {
   return env.HANDLE_RESOLVER_URL ?? "https://bsky.social";

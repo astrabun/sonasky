@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { loginHref } from "../api.ts";
+import { loginHref, type SignInPurpose } from "../api.ts";
 
 /** A handle looks like a dotted domain (alice.bsky.social). */
 const HANDLE_SHAPE_RE = /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+$/;
@@ -17,7 +17,7 @@ export function SignIn({
   intro,
 }: {
   returnTo: string;
-  purpose?: "report";
+  purpose?: SignInPurpose;
   intro?: string;
 }) {
   const [handle, setHandle] = useState("");

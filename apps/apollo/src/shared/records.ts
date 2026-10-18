@@ -10,6 +10,7 @@
 import type { ThemeTokens } from "@sonasky/apollo-themes";
 import type {
   NSID_LAYOUT,
+  NSID_LIKE,
   NSID_MEDIA,
   NSID_PAGE,
   NSID_POST,
@@ -343,6 +344,14 @@ export interface RingMemberRecord {
   createdAt: string;
 }
 
+/** A like of a site, in the liker's repo. Counted from Constellation backlinks. */
+export interface LikeRecord {
+  $type: typeof NSID_LIKE;
+  /** at://<site owner>/app.sonasky.apollo/self */
+  subject: string;
+  createdAt: string;
+}
+
 export type ApolloRecord =
   | SiteRecord
   | PageRecord
@@ -352,4 +361,5 @@ export type ApolloRecord =
   | LayoutRecord
   | MediaRecord
   | RingRecord
-  | RingMemberRecord;
+  | RingMemberRecord
+  | LikeRecord;

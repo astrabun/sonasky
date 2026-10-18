@@ -14,7 +14,8 @@
  * Viewer shell (apollo.sonasky.app/@actor/...):
  *  - `frame-src` pinned to this one site's usercontent path, so script inside the
  *    iframe cannot navigate the frame to any other site (or another user's)
- *  - `connect-src` only to Apollo's Swetrix instance, when analytics is configured
+ *  - `connect-src` only to Apollo itself (the Like button) and its Swetrix
+ *    instance, when analytics is configured
  */
 
 export function usercontentCsp(
@@ -51,7 +52,8 @@ export function shellCsp(usercontentOrigin: string, did: string, analyticsOrigin
     "style-src 'unsafe-inline'",
     `img-src 'self' ${usercontentOrigin}/m/${did}/`,
     `frame-src ${usercontentOrigin}/r/${did}/`,
-    ...(analyticsOrigin ? [`connect-src ${analyticsOrigin}`] : []),
+    // 'self' for the Like button's /api/likes calls.
+    `connect-src 'self'${analyticsOrigin ? ` ${analyticsOrigin}` : ""}`,
     "form-action 'none'",
     "base-uri 'none'",
     "frame-ancestors 'none'",
