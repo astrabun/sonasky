@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { LIMITS } from "../../shared/limits.ts";
-import { urlRewriters } from "../render/document.ts";
+import { pageUrls, urlRewriters, type RenderInput } from "../render/document.ts";
 import { sniffMime } from "./media.ts";
 import { validatePage, validateSite, validateStyle, ValidationError } from "./records.ts";
 
@@ -245,5 +245,78 @@ describe("urlRewriters", () => {
     expect(urls.rewriteSrc("data:image/png;base64,iVBORw0KGgo=")).toBe(
       "data:image/png;base64,iVBORw0KGgo=",
     );
+  });
+});
+
+describe("Bluesky comments", () => {
+  const POST = "at://did:plc:owner/app.bsky.feed.post/3mx2abcdefghi";
+  const NOT_A_POST = "at://did:plc:owner/app.bsky.actor.profile/self";
+
+  it("keeps site defaults only when one is on", () => {
+    expect(
+      validateSite({ ...baseSite, commentsDefaults: { posts: true, pages: "yes" } })
+        .commentsDefaults,
+    ).toEqual({
+      posts: true,
+      pages: undefined,
+    });
+    expect(
+      validateSite({ ...baseSite, commentsDefaults: { posts: false } }).commentsDefaults,
+    ).toBeUndefined();
+  });
+
+  it("checks a page's comments post", () => {
+    const page = (comments: unknown) =>
+      validatePage({ title: "t", format: "markdown", body: "", comments });
+    expect(page({}).comments).toEqual({ post: undefined });
+    expect(page({ post: POST }).comments).toEqual({ post: POST });
+    expect(page({ sort: "likes" }).comments).toEqual({ sort: "likes" });
+    expect(() => page({ sort: "random" })).toThrow(ValidationError);
+    expect(page(undefined).comments).toBeUndefined();
+    expect(() => page({ post: NOT_A_POST })).toThrow(/Bluesky post/);
+  });
+
+  it("checks the comments block", () => {
+    const block = (b: Record<string, unknown>) =>
+      validatePage({
+        title: "t",
+        format: "blocks",
+        blocks: [{ $type: "app.sonasky.apollo.defs#bskyComments", ...b }],
+      }).blocks?.[0];
+    expect(block({ junk: 1 })).toEqual({
+      $type: "app.sonasky.apollo.defs#bskyComments",
+      post: undefined,
+      title: undefined,
+      sort: "oldest",
+    });
+    expect(block({ post: POST, sort: "likes", title: "Talk" })).toMatchObject({
+      post: POST,
+      sort: "likes",
+    });
+    expect(() => block({ post: NOT_A_POST })).toThrow(/Bluesky post/);
+    expect(() => block({ sort: "random" })).toThrow(ValidationError);
+  });
+
+  it("lists every URL a page can be shared at", () => {
+    const input = (target: RenderInput["target"], handle?: string): RenderInput => ({
+      did: "did:plc:owner",
+      actor: "me.example",
+      handle,
+      site: { ...baseSite, homePage: "home" } as RenderInput["site"],
+      target,
+      styles: [],
+      scripts: [],
+    });
+    const page = { kind: "page" as const, slug: "about", record: {} as never };
+    expect(pageUrls(input(page, "me.example"), "https://a.example")).toEqual([
+      "https://a.example/@me.example/about",
+      "https://a.example/@did:plc:owner/about",
+    ]);
+    expect(pageUrls(input({ ...page, slug: "home" }), "https://a.example")).toContain(
+      "https://a.example/@me.example",
+    );
+    expect(
+      pageUrls(input({ kind: "post", slug: "hello", record: {} as never }), "https://a.example")[0],
+    ).toBe("https://a.example/@me.example/blog/hello");
   });
 });

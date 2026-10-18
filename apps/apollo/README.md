@@ -82,6 +82,24 @@ appended even after custom layouts, since showing it is the point of membership.
   cached for 10 minutes. Sorting, search and random picks run in the browser
   (`src/shared/ringDirectory.ts`).
 
+## Bluesky comments
+
+Replies to a Bluesky post can be shown as comments, either under a whole page or post (its
+`comments` setting) or as a `bskyComments` block. Both render through `src/worker/render/comments.ts`.
+
+- **Which post:** an explicit `post` (at-uri) if set. Otherwise it's the site owner's earliest Bluesky
+  post that links to the page, found with Constellation (`findSharePost` in `render/bsky.ts`,
+  filtered to the owner's DID). It looks for link cards and links in the text, at every URL the page
+  is served at, with both the handle and the DID (`pageUrls` in `render/document.ts`). Until the
+  page has been shared, no comments section is shown.
+- **Replies:** `fetchComments` reads `app.bsky.feed.getPostThread` from the public AppView, 3 levels
+  deep and 50 replies at most, filled a level at a time. It drops replies the author hid
+  (threadgate), blocked or deleted posts, and replies labeled (or from accounts labeled) as adult,
+  graphic or hidden. Everything is rendered as escaped text, and avatars only come from
+  `cdn.bsky.app`.
+- **Defaults:** `site.commentsDefaults.{posts,pages}` only decides whether the editor turns comments
+  on for something new. Each page or post keeps its own setting after that.
+
 ## Themes
 
 The theme picker's official and community themes come from

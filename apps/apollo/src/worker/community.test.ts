@@ -99,6 +99,7 @@ describe("community block rendering", () => {
   const sanitized: string[] = [];
   const ctx: BlockContext = {
     did: "did:plc:abcdefghijklmnopqrstuvwx",
+    pageUrls: [],
     mediaUrl: (rkey) => `https://u.example/m/${rkey}`,
     rewriteHref: (href) => (href.startsWith("https:") ? href : null),
     // Stand-in for the HTMLRewriter sanitizer (not available under Node).

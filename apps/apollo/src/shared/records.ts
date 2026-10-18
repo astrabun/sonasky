@@ -67,6 +67,12 @@ export interface SiteRecord {
   lang?: string;
   /** When true, `/@actor/blog` lists this site's posts. */
   blogEnabled?: boolean;
+  /**
+   * Whether new posts / pages start with Bluesky comments turned on. Only
+   * read by the editor when making something new; each page keeps its own
+   * `comments` setting after that.
+   */
+  commentsDefaults?: { posts?: boolean; pages?: boolean };
   labels?: SelfLabels;
   createdAt: string;
   updatedAt: string;
@@ -161,6 +167,20 @@ export interface LabelsBlock {
   title?: string;
 }
 
+export type CommentsSort = "oldest" | "newest" | "likes";
+
+/** Replies to a Bluesky post, shown as comments. */
+export interface BskyCommentsBlock {
+  $type: "app.sonasky.apollo.defs#bskyComments";
+  /**
+   * at:// uri of the app.bsky.feed.post. Unset: the site owner's earliest
+   * Bluesky post that links to this page.
+   */
+  post?: string;
+  title?: string;
+  sort?: CommentsSort;
+}
+
 export interface DividerBlock {
   $type: "app.sonasky.apollo.defs#divider";
 }
@@ -192,6 +212,7 @@ export type Block =
   | StarterPackBlock
   | EventBlock
   | LabelsBlock
+  | BskyCommentsBlock
   | DividerBlock
   | SpacerBlock
   | CommunityBlock;
@@ -213,8 +234,18 @@ interface ContentFields {
   scripts?: string[];
   ogImage?: string;
   labels?: SelfLabels;
+  /** Present when Bluesky comments are shown after the content. */
+  comments?: ContentComments;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Bluesky comments under a page or post. */
+export interface ContentComments {
+  /** at:// uri of the post to use; unset finds it automatically (see BskyCommentsBlock). */
+  post?: string;
+  /** Defaults to oldest first. */
+  sort?: CommentsSort;
 }
 
 export interface PageRecord extends ContentFields {

@@ -107,6 +107,20 @@ hr,.apollo-divider{border:0;border-top:1px solid color-mix(in srgb,var(--apollo-
 a.apollo-label-chip:hover{border-color:var(--apollo-accent)}
 .apollo-label-avatar{width:20px;height:20px;border-radius:50%;object-fit:cover;flex:none}
 .apollo-labels-labeler .apollo-label-avatar{width:28px;height:28px}
+.apollo-comments{margin:2.5em 0 1.5em}
+.apollo-comments-title{margin:0 0 .5em}
+.apollo-comments-note{color:var(--apollo-muted);margin:0}
+.apollo-comments .apollo-card-cta{text-decoration:none}
+.apollo-comments-list{list-style:none;margin:1.25em 0 0;padding:0}
+.apollo-comments-list .apollo-comments-list{margin:.75em 0 0;padding-left:1em;border-left:2px solid color-mix(in srgb,var(--apollo-muted) 25%,transparent)}
+.apollo-comment+.apollo-comment{margin-top:1em}
+.apollo-comment-head{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:.9rem}
+.apollo-comment-avatar{display:inline-block;width:28px;height:28px;border-radius:50%;object-fit:cover;flex:none;background:var(--apollo-surface)}
+.apollo-comment-name{font-weight:600;color:var(--apollo-text);text-decoration:none}
+.apollo-comment-sub{color:var(--apollo-muted);text-decoration:none}
+.apollo-comment-badge{font-size:.75rem;padding:0 6px;border-radius:999px;background:var(--apollo-accent);color:var(--apollo-accent-text)}
+.apollo-comment-text{margin:.25em 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.apollo-comment-likes{margin:.25em 0 0;color:var(--apollo-muted);font-size:.85rem}
 .apollo-post-meta{color:var(--apollo-muted);font-size:.9rem;margin-top:-.5em}
 .apollo-post-list{list-style:none;padding:0}
 .apollo-post-list li{margin:0 0 1.25em}

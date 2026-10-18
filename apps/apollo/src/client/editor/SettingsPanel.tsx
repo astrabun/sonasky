@@ -258,6 +258,33 @@ export function SettingsPanel() {
       </Card>
 
       <Card className="space-y-2">
+        <h3 className="text-sm font-semibold">Comments</h3>
+        <p className="text-xs text-neutral-500">
+          Show replies from Bluesky as comments. Share a post or page on Bluesky, and replies to
+          your post show up under it. These choices apply to new posts and pages; you can turn
+          comments on or off for each one in its settings.
+        </p>
+        {(
+          [
+            ["posts", "Turn on comments for new blog posts"],
+            ["pages", "Turn on comments for new pages"],
+          ] as const
+        ).map(([key, label]) => (
+          <label key={key} className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={Boolean(draft.commentsDefaults?.[key])}
+              onChange={(e) => {
+                const next = { ...draft.commentsDefaults, [key]: e.target.checked || undefined };
+                update({ commentsDefaults: next.posts || next.pages ? next : undefined });
+              }}
+            />
+            {label}
+          </label>
+        ))}
+      </Card>
+
+      <Card className="space-y-2">
         <h3 className="text-sm font-semibold">Content warning for the whole site</h3>
         <p className="text-xs text-neutral-500">
           If your site has adult or graphic content, check what applies. Visitors are asked before
