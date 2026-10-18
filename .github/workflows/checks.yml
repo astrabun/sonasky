@@ -31,6 +31,10 @@ jobs:
       # catalog checks: valid tokens, unique ids, readable contrast.
       - run: pnpm -F @sonasky/apollo-themes test
 
+      # Every community Apollo block must pass the catalog checks: valid fields,
+      # an example that renders, unique ids and CSS that stays inside the block.
+      - run: pnpm -F @sonasky/apollo-blocks test
+
       # The @sonasky/feeds-def catalog is generated from @sonasky/labels-def; fail
       # if it wasn't regenerated (pnpm feeds-def:gen) after a label change.
       - run: pnpm feeds-def:gen

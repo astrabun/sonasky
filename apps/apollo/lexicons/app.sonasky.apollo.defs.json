@@ -37,7 +37,8 @@
               "#event",
               "#labels",
               "#divider",
-              "#spacer"
+              "#spacer",
+              "#community"
             ]
           }
         },
@@ -276,6 +277,21 @@
         "size": {
           "type": "string",
           "knownValues": ["small", "medium", "large"]
+        }
+      }
+    },
+    "community": {
+      "type": "object",
+      "description": "A community-contributed block type from @sonasky/apollo-blocks. The shape of fields is defined there, per block id.",
+      "required": ["block", "fields"],
+      "properties": {
+        "block": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Community block id, e.g. pull-quote."
+        },
+        "fields": {
+          "type": "unknown"
         }
       }
     }

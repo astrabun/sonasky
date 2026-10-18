@@ -93,6 +93,25 @@ the catalog at render time.
 The Theme panel's **Export** produces either a community theme file (to contribute back) or the
 full generated CSS (`src/shared/themeCss.ts`), for people who want to keep going in code.
 
+## Community blocks
+
+Besides the built-in blocks (`src/worker/render/blocks.ts`, `src/client/editor/blocks.tsx`), the
+block menu lists community-contributed block types from
+[`packages/apollo-blocks`](../../packages/apollo-blocks) (`@sonasky/apollo-blocks`). Its README
+explains how to contribute one. They're stored as a single generic union member,
+`app.sonasky.apollo.defs#community` (`{ block: <id>, fields: {...} }`), so the lexicon doesn't grow
+with each contribution:
+
+- **Write:** `validateBlock` checks `fields` with the package's `normalizeFields`, then runs URLs
+  and pictures through the same `link()` / `mediaRef()` checks as built-in blocks.
+- **Render:** `renderCommunityBlock` calls the block's `render` (values in, HTML out; no I/O) with escaping and link/media
+  helpers, sanitizes the result, and wraps it in `.apollo-cb-<id>`. Each used block's scoped CSS is
+  added after the theme and before the site's own styles. Unknown ids render nothing.
+- **Editor:** `CommunityBlockFields.tsx` builds the form from the block's declared fields.
+- **Graduation:** when a community block becomes official, add the official block as usual, list
+  the id in the package's `GRADUATED_BLOCKS`, and add a converter to
+  `src/shared/communityUpgrades.ts`. Old records are upgraded wherever blocks are read.
+
 **Google Fonts** are proxied by the usercontent host (`src/worker/fonts.ts`):
 `/_apollo/fonts.css?family=...` fetches Google's CSS server-side and rewrites every font URL to
 `/_apollo/font/...`, which proxies `fonts.gstatic.com` with a one-year immutable cache. Visitors'

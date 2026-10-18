@@ -48,6 +48,7 @@
     "apollo:test": "pnpm -F @sonasky/app-apollo test",
     "apollo:cf-typegen": "pnpm -F @sonasky/app-apollo cf-typegen",
     "apollo-themes:test": "pnpm -F @sonasky/apollo-themes test",
+    "apollo-blocks:test": "pnpm -F @sonasky/apollo-blocks test",
     "prepare": "husky"
   },
   "devDependencies": {

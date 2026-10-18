@@ -5,7 +5,10 @@
  * by URL (never inlined) so the CSP can pin them to this site.
  */
 
+import { findCommunityBlock, scopedCss } from "@sonasky/apollo-blocks";
+import { upgradeBlock } from "../../shared/communityUpgrades.ts";
 import type {
+  Block,
   LayoutRecord,
   PageRecord,
   PostRecord,
@@ -248,18 +251,52 @@ export async function renderSiteDocument(
     .join("");
 
   return documentHtml(
-    { lang: site.lang, title, styles: input.styles, body: body + scripts },
+    {
+      lang: site.lang,
+      title,
+      styles: input.styles,
+      blockCss: target.kind === "blog" ? [] : communityBlockCss(target.record.blocks ?? []),
+      body: body + scripts,
+    },
     origins,
   );
 }
 
-/** The `<html>` around a rendered body: theme CSS, fonts and Apollo's bootstrap script. */
+/** Scoped CSS for each community block type on the page, once each. */
+export function communityBlockCss(blocks: Block[]): string[] {
+  const ids = new Set<string>();
+  for (const block of blocks.map(upgradeBlock)) {
+    if (block.$type === "app.sonasky.apollo.defs#community") ids.add(block.block);
+  }
+  return [...ids].flatMap((id) => {
+    const def = findCommunityBlock(id);
+    const css = def ? scopedCss(def) : "";
+    return css ? [css] : [];
+  });
+}
+
+/**
+ * The `<html>` around a rendered body: theme CSS, fonts and Apollo's bootstrap
+ * script. Community block CSS goes after the theme and before the site's own
+ * styles, so a site can still restyle any block.
+ */
 function documentHtml(
-  opts: { lang?: string; title: string; styles: StyleRecord[]; body: string },
+  opts: {
+    lang?: string;
+    title: string;
+    styles: StyleRecord[];
+    blockCss?: string[];
+    body: string;
+  },
   origins: RenderOrigins,
 ): string {
   const tokens = opts.styles[0]?.tokens;
-  const css = [themeCss(tokens), RING_CSS, ...opts.styles.map((s) => s.css ?? "")]
+  const css = [
+    themeCss(tokens),
+    RING_CSS,
+    ...(opts.blockCss ?? []),
+    ...opts.styles.map((s) => s.css ?? ""),
+  ]
     .map(safeStyleText)
     .join("\n");
   const fonts = googleFontFamilies(tokens);
