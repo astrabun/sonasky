@@ -6,7 +6,9 @@
  * validation.
  */
 
+import { findCommunityBlock, normalizeFields, type MediaValue } from "@sonasky/apollo-blocks";
 import { isGoogleFontFamily } from "@sonasky/apollo-themes";
+import { COMMUNITY_UPGRADES } from "../../shared/communityUpgrades.ts";
 import { jsonBytes, LIMITS, utf8Bytes } from "../../shared/limits.ts";
 import { linkValueError } from "../../shared/links.ts";
 import {
@@ -23,6 +25,7 @@ import {
 import {
   SELF_LABEL_OPTIONS,
   type Block,
+  type CommunityBlock,
   type LayoutRecord,
   type NavItem,
   type PageFormat,
@@ -242,6 +245,37 @@ function altFields(o: Obj, field: string): { alt: string; noAlt?: true } {
   throw new ValidationError(`${field}.alt`, "Add a description of the picture.");
 }
 
+/**
+ * A block from @sonasky/apollo-blocks: its fields are checked against the
+ * block's definition there, then links and pictures get the same checks as
+ * the built-in blocks.
+ */
+function validateCommunityBlock(id: string, input: unknown, field: string): CommunityBlock {
+  const def = findCommunityBlock(id);
+  if (!def) throw new ValidationError(`${field}.block`, "Unknown community block.");
+  const result = normalizeFields(def, input ?? {});
+  if (!result.ok) {
+    const [e] = result.errors;
+    throw new ValidationError(e.path ? `${field}.fields.${e.path}` : `${field}.fields`, e.message);
+  }
+  const fields = result.fields;
+  for (const [key, f] of Object.entries(def.fields)) {
+    const value = fields[key];
+    if (value === undefined) continue;
+    if (f.type === "url") fields[key] = link(value, `${field}.fields.${key}`);
+    if (f.type === "media") mediaRef((value as MediaValue).media, `${field}.fields.${key}`);
+    if (f.type === "mediaList") {
+      (value as MediaValue[]).forEach((item, i) =>
+        mediaRef(item.media, `${field}.fields.${key}.${i}`),
+      );
+    }
+  }
+  if (jsonBytes(fields) > LIMITS.communityBlockBytes) {
+    throw new ValidationError(`${field}.fields`, "This block has too much in it.");
+  }
+  return { $type: "app.sonasky.apollo.defs#community", block: id, fields };
+}
+
 function validateBlock(input: unknown, field: string): Block {
   const b = obj(input, field);
   switch (b.$type) {
@@ -345,6 +379,12 @@ function validateBlock(input: unknown, field: string): Block {
         $type: b.$type,
         size: oneOf(b, "size", `${field}.size`, ["small", "medium", "large"] as const, "medium"),
       };
+    case "app.sonasky.apollo.defs#community": {
+      const id = str(b, "block", `${field}.block`, 64, true);
+      const upgrade = COMMUNITY_UPGRADES[id];
+      if (upgrade) return validateBlock(upgrade(obj(b.fields ?? {}, `${field}.fields`)), field);
+      return validateCommunityBlock(id, b.fields, field);
+    }
     default:
       throw new ValidationError(field, "Unknown block type.");
   }

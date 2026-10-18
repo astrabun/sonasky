@@ -10,9 +10,11 @@
  *   GET /s/:did/script/:rkey.js   a script record's source
  *   GET /m/:did/:rkey        a media record's blob, re-sniffed
  *   GET /_apollo/bootstrap.js     link interceptor injected into every page
+ *   GET /_apollo/block/:id.js     a community block's script (from @sonasky/apollo-blocks)
  *   GET /_apollo/fonts.css, /_apollo/font/*   Google Fonts proxy (see ../fonts.ts)
  */
 
+import { blockScriptSource, findCommunityBlock } from "@sonasky/apollo-blocks";
 import { Hono, type Context } from "hono";
 import { NSID_MEDIA, NSID_SCRIPT, NSID_SITE, NSID_STYLE, SITE_RKEY } from "../../shared/nsid.ts";
 import type { MediaRecord, ScriptRecord, SiteRecord, StyleRecord } from "../../shared/records.ts";
@@ -280,6 +282,23 @@ function bootstrapSource(publicOrigin: string): string {
 })();
 `;
 }
+
+// Reviewed code shipped with Apollo, not user data: the same file for every
+// site. Pages link it with `?v=<content hash>`, so it can be cached for long.
+usercontentRoutes.get("/_apollo/block/:file", (c) => {
+  const file = c.req.param("file");
+  const def = file.endsWith(".js") ? findCommunityBlock(file.slice(0, -3)) : undefined;
+  const js = def ? blockScriptSource(def) : "";
+  if (!js) return plain(404, "Not found");
+  return new Response(js, {
+    headers: {
+      "content-type": "text/javascript; charset=utf-8",
+      "cache-control": "public, max-age=86400",
+      "cross-origin-resource-policy": "cross-origin",
+      ...SECURITY_HEADERS,
+    },
+  });
+});
 
 usercontentRoutes.get("/_apollo/fonts.css", (c) => {
   const families = parseFamilies(c.req.queries("family") ?? []);
