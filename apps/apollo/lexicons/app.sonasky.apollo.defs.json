@@ -36,6 +36,7 @@
               "#starterPack",
               "#event",
               "#labels",
+              "#bskyComments",
               "#divider",
               "#spacer",
               "#community"
@@ -72,6 +73,11 @@
         "labels": {
           "type": "union",
           "refs": ["com.atproto.label.defs#selfLabels"]
+        },
+        "comments": {
+          "type": "ref",
+          "ref": "#comments",
+          "description": "Present when Bluesky comments are shown after the content."
         },
         "createdAt": {
           "type": "string",
@@ -243,6 +249,41 @@
         "url": {
           "type": "string",
           "maxLength": 2048
+        }
+      }
+    },
+    "comments": {
+      "type": "object",
+      "description": "Replies to a Bluesky post, shown as comments under a page or post.",
+      "properties": {
+        "post": {
+          "type": "string",
+          "format": "at-uri",
+          "description": "The app.bsky.feed.post to use. Unset: the site owner's earliest Bluesky post that links to this page."
+        },
+        "sort": {
+          "type": "string",
+          "knownValues": ["oldest", "newest", "likes"],
+          "description": "Defaults to oldest."
+        }
+      }
+    },
+    "bskyComments": {
+      "type": "object",
+      "description": "Replies to a Bluesky post, shown as comments.",
+      "properties": {
+        "post": {
+          "type": "string",
+          "format": "at-uri",
+          "description": "The app.bsky.feed.post to use. Unset: the site owner's earliest Bluesky post that links to this page."
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "sort": {
+          "type": "string",
+          "knownValues": ["oldest", "newest", "likes"]
         }
       }
     },

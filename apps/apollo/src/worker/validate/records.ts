@@ -26,6 +26,7 @@ import {
   SELF_LABEL_OPTIONS,
   type Block,
   type CommunityBlock,
+  type ContentComments,
   type LayoutRecord,
   type NavItem,
   type PageFormat,
@@ -148,6 +149,40 @@ function link(value: unknown, field: string): string {
   return value.trim();
 }
 
+/** An optional at:// uri of an app.bsky.feed.post ("" and missing mean unset). */
+function optPostUri(o: Obj, key: string, field: string): string | undefined {
+  const v = o[key];
+  if (v === undefined || v === null || v === "") return undefined;
+  const m = typeof v === "string" ? AT_URI_RE.exec(v) : null;
+  if (!m || m[2] !== "app.bsky.feed.post") {
+    throw new ValidationError(field, "Paste a link to a Bluesky post.");
+  }
+  return v as string;
+}
+
+/** `{ posts?: true, pages?: true }`, or undefined when both are off. */
+function commentsDefaults(o: Obj): SiteRecord["commentsDefaults"] {
+  const v = o.commentsDefaults;
+  if (v === undefined || v === null) return undefined;
+  const d = obj(v, "commentsDefaults");
+  const posts = d.posts === true ? true : undefined;
+  const pages = d.pages === true ? true : undefined;
+  return posts || pages ? { posts, pages } : undefined;
+}
+
+/** A page or post's `comments` setting; undefined when comments are off. */
+function contentComments(o: Obj): ContentComments | undefined {
+  if (o.comments === undefined || o.comments === null) return undefined;
+  const c = obj(o.comments, "comments");
+  return {
+    post: optPostUri(c, "post", "comments.post"),
+    sort:
+      c.sort === undefined || c.sort === null
+        ? undefined
+        : oneOf(c, "sort", "comments.sort", ["oldest", "newest", "likes"] as const),
+  };
+}
+
 function datetime(value: unknown, field: string, required: boolean): string | undefined {
   if (value === undefined || value === null || value === "") {
     if (required) throw new ValidationError(field, "Pick a date and time.");
@@ -227,6 +262,7 @@ export function validateSite(input: unknown): SiteRecord {
       : undefined,
     lang,
     blogEnabled: o.blogEnabled === true ? true : undefined,
+    commentsDefaults: commentsDefaults(o),
     labels: selfLabels(o, "labels"),
     ...timestamps(o),
   };
@@ -372,6 +408,13 @@ function validateBlock(input: unknown, field: string): Block {
         title: str(b, "title", `${field}.title`, LIMITS.titleBytes),
       };
     }
+    case "app.sonasky.apollo.defs#bskyComments":
+      return {
+        $type: b.$type,
+        post: optPostUri(b, "post", `${field}.post`),
+        title: str(b, "title", `${field}.title`, LIMITS.titleBytes),
+        sort: oneOf(b, "sort", `${field}.sort`, ["oldest", "newest", "likes"] as const, "oldest"),
+      };
     case "app.sonasky.apollo.defs#divider":
       return { $type: b.$type };
     case "app.sonasky.apollo.defs#spacer":
@@ -418,6 +461,7 @@ function contentFields(o: Obj) {
     scripts: refs("scripts", LIMITS.scriptsPerPage),
     ogImage: optMediaRef(o, "ogImage", "ogImage"),
     labels: selfLabels(o, "labels"),
+    comments: contentComments(o),
     ...timestamps(o),
   };
 }

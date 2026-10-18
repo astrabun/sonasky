@@ -16,12 +16,15 @@ import {
 } from "./bsky.ts";
 import { esc } from "./escape.ts";
 import { icon } from "./icons.ts";
+import { renderComments } from "./comments.ts";
 import { renderLabels } from "./labels.ts";
 import { markdownToHtml } from "./markdown.ts";
 
 export interface BlockContext {
   /** DID of the site owner (whose labels the labels block shows). */
   did: string;
+  /** Public URLs of the page being rendered, most canonical first (for Bluesky comments). */
+  pageUrls: string[];
   /** Public URL for a media rkey, or null if it isn't a valid rkey. */
   mediaUrl: (rkey: string) => string | null;
   /** Same rules as the sanitizer's href rewriting; null drops the link. */
@@ -199,6 +202,8 @@ async function renderBlock(
       return renderEvent(block, ctx);
     case "app.sonasky.apollo.defs#labels":
       return renderLabels(block, ctx.did);
+    case "app.sonasky.apollo.defs#bskyComments":
+      return renderComments(block, ctx);
     case "app.sonasky.apollo.defs#divider":
       return `<hr class="apollo-divider">`;
     case "app.sonasky.apollo.defs#spacer": {

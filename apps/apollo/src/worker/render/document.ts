@@ -25,6 +25,7 @@ import type {
 import type { RecordEntry } from "../atproto/repo.ts";
 import type { RingNav, RosterMember } from "../rings.ts";
 import { renderBlocks, type BlockContext } from "./blocks.ts";
+import { renderComments } from "./comments.ts";
 import { expandLabelPlaceholders } from "./labels.ts";
 import { esc } from "./escape.ts";
 import { markdownToHtml } from "./markdown.ts";
@@ -40,6 +41,8 @@ export interface RenderInput {
   did: string;
   /** Handle (or DID) used to build viewer URLs: `/@<actor>/...`. */
   actor: string;
+  /** The site owner's verified handle, when known (finds Bluesky posts linking here). */
+  handle?: string;
   site: SiteRecord;
   target: RenderTarget;
   /** The site theme first, then the page's extra styles, in order. */
@@ -183,6 +186,25 @@ function pageTitle(input: RenderInput): string {
   return `${target.record.title} · ${site.title}`;
 }
 
+/**
+ * Every public URL a page or post is reachable at - with the handle and with
+ * the DID - so a Bluesky post linking to any of them counts as sharing it.
+ */
+export function pageUrls(input: RenderInput, publicOrigin: string): string[] {
+  const { target } = input;
+  if (target.kind === "blog") return [];
+  const actors = [
+    ...new Set([input.handle, input.actor, input.did].filter((a): a is string => !!a)),
+  ];
+  return actors.flatMap((actor) => {
+    const root = `${publicOrigin}/@${actor}`;
+    if (target.kind === "post") return [`${root}/blog/${target.slug}`];
+    return target.slug === input.site.homePage
+      ? [root, `${root}/${target.slug}`]
+      : [`${root}/${target.slug}`];
+  });
+}
+
 export async function renderSiteDocument(
   input: RenderInput,
   origins: RenderOrigins,
@@ -193,10 +215,13 @@ export async function renderSiteDocument(
     sanitizeHtml(html, { rewriteHref: urls.rewriteHref, rewriteSrc: urls.rewriteSrc });
   const ctx: BlockContext = {
     did,
+    pageUrls: target.kind === "blog" ? [] : pageUrls(input, origins.publicOrigin),
     mediaUrl: urls.mediaUrl,
     rewriteHref: urls.rewriteHref,
     sanitize,
   };
+  const comments = async (record: PageRecord | PostRecord) =>
+    record.comments ? renderComments(record.comments, ctx) : "";
 
   let content: string;
   let currentSlug: string | null = null;
@@ -214,10 +239,10 @@ export async function renderSiteDocument(
   } else if (target.kind === "post") {
     content = `<article><h1>${esc(target.record.title)}</h1><p class="apollo-post-meta">${esc(
       formatDate(target.record.publishedAt),
-    )}</p>${await renderBody(target.record, ctx)}</article>`;
+    )}</p>${await renderBody(target.record, ctx)}${await comments(target.record)}</article>`;
   } else {
     currentSlug = target.slug;
-    content = await renderBody(target.record, ctx);
+    content = (await renderBody(target.record, ctx)) + (await comments(target.record));
   }
 
   const nav = renderNav(site, urls, currentSlug);

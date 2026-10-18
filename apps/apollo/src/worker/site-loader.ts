@@ -132,11 +132,13 @@ export function toRenderInput(
   did: string,
   actor: string,
   rings: RingNav[] = [],
+  handle?: string,
 ): RenderInput {
   return {
     rings,
     did,
     actor,
+    handle,
     site: loaded.site.value,
     target: loaded.target,
     styles: loaded.styles,
