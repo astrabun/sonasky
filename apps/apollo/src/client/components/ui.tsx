@@ -2,6 +2,7 @@ import {
   useEffect,
   useId,
   useRef,
+  useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
@@ -121,6 +122,94 @@ export function TextArea({
           className={INPUT_CLASS}
           {...props}
         />
+      )}
+    </Field>
+  );
+}
+
+/** Free-text tags shown as chips. Comma or Enter accepts the pending tag. */
+export function TagInput({
+  label,
+  help,
+  value,
+  onChange,
+  max,
+}: {
+  label: ReactNode;
+  help?: ReactNode;
+  value: string[];
+  onChange: (tags: string[]) => void;
+  max: number;
+}) {
+  const [pending, setPending] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const full = value.length >= max;
+
+  const add = (raw: string[]) => {
+    const next = [...value];
+    for (const r of raw) {
+      const tag = r.trim();
+      if (!tag || next.length >= max) continue;
+      if (next.some((t) => t.toLowerCase() === tag.toLowerCase())) continue;
+      next.push(tag);
+    }
+    if (next.length !== value.length) onChange(next);
+  };
+
+  const commit = () => {
+    add([pending]);
+    setPending("");
+  };
+
+  return (
+    <Field label={label} help={help}>
+      {({ id, describedBy }) => (
+        <div
+          className={`${INPUT_CLASS} flex cursor-text flex-wrap items-center gap-1.5 focus-within:border-sky-500 focus-within:ring-1 focus-within:ring-sky-500`}
+          onClick={() => inputRef.current?.focus()}
+        >
+          {value.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1 rounded-full bg-sky-100 py-0.5 pr-1 pl-2.5 text-xs font-medium text-sky-900 dark:bg-sky-900 dark:text-sky-100"
+            >
+              {tag}
+              <button
+                type="button"
+                onClick={() => onChange(value.filter((t) => t !== tag))}
+                className="rounded-full p-0.5 hover:bg-sky-200 dark:hover:bg-sky-800"
+                aria-label={`Remove tag ${tag}`}
+              >
+                <X size={12} aria-hidden />
+              </button>
+            </span>
+          ))}
+          <input
+            ref={inputRef}
+            id={id}
+            aria-describedby={describedBy}
+            className="min-w-24 flex-1 bg-transparent outline-none placeholder:text-neutral-400 disabled:cursor-not-allowed"
+            value={pending}
+            disabled={full}
+            placeholder={full ? `Up to ${max} tags` : value.length ? "" : "Add a tag"}
+            onChange={(e) => {
+              // Typed or pasted commas split off finished tags; the remainder stays pending.
+              const parts = e.target.value.split(",");
+              const rest = parts.pop() ?? "";
+              if (parts.length) add(parts);
+              setPending(rest);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commit();
+              } else if (e.key === "Backspace" && pending === "" && value.length) {
+                onChange(value.slice(0, -1));
+              }
+            }}
+            onBlur={commit}
+          />
+        </div>
       )}
     </Field>
   );
