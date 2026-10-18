@@ -6,15 +6,18 @@
 
 import {
   findCommunityBlock,
+  MAX_MEDIA_LIST,
   normalizeFields,
   type FieldDef,
   type MediaValue,
 } from "@sonasky/apollo-blocks";
 import type { CommunityBlock } from "../../shared/records.ts";
 import { Notice, Select, TextArea, TextInput } from "../components/ui.tsx";
-import { AltField, fromLocalInput, LinkHint, toLocalInput } from "./fieldParts.tsx";
+import { AltField, LinkHint } from "./fieldParts.tsx";
+import { fromLocalInput, toLocalInput } from "./localDate.ts";
 import { MarkdownEditor } from "./MarkdownEditor.tsx";
 import { MediaField } from "./MediaLibrary.tsx";
+import { MediaListEditor } from "./MediaListEditor.tsx";
 
 function FieldInput({
   field,
@@ -123,6 +126,23 @@ function FieldInput({
           {field.help ? (
             <p className="text-xs text-neutral-500 dark:text-neutral-400">{field.help}</p>
           ) : null}
+        </div>
+      );
+    case "mediaList":
+      return (
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+            {field.label}
+          </p>
+          {field.help ? (
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">{field.help}</p>
+          ) : null}
+          <MediaListEditor
+            items={Array.isArray(value) ? (value as MediaValue[]) : []}
+            max={field.max ?? MAX_MEDIA_LIST}
+            onChange={onChange}
+          />
+          {error ? <p className="text-xs text-rose-600">{error}</p> : null}
         </div>
       );
     case "media": {

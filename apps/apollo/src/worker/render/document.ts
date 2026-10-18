@@ -5,7 +5,13 @@
  * by URL (never inlined) so the CSP can pin them to this site.
  */
 
-import { findCommunityBlock, scopedCss } from "@sonasky/apollo-blocks";
+import {
+  blockScriptSource,
+  blockScriptVersion,
+  findCommunityBlock,
+  scopedCss,
+  type CommunityBlockDefinition,
+} from "@sonasky/apollo-blocks";
 import { upgradeBlock } from "../../shared/communityUpgrades.ts";
 import type {
   Block,
@@ -242,37 +248,55 @@ export async function renderSiteDocument(
     )}">SonaSky Apollo</a>${ringNav}</footer></div>`;
   }
 
-  const scripts = input.scripts
-    .filter((s) => RKEY_RE.test(s.rkey))
-    .map(
-      (s) =>
-        `<script src="${esc(`${origins.usercontentOrigin}/s/${did}/script/${s.rkey}.js?v=${encodeURIComponent(s.cid)}`)}"></script>`,
-    )
-    .join("");
+  const blocks = target.kind === "blog" ? [] : (target.record.blocks ?? []);
+  // Block scripts first, so the site's own scripts can build on what they set up.
+  const scripts =
+    communityBlockScripts(blocks, origins.usercontentOrigin) +
+    input.scripts
+      .filter((s) => RKEY_RE.test(s.rkey))
+      .map(
+        (s) =>
+          `<script src="${esc(`${origins.usercontentOrigin}/s/${did}/script/${s.rkey}.js?v=${encodeURIComponent(s.cid)}`)}"></script>`,
+      )
+      .join("");
 
   return documentHtml(
     {
       lang: site.lang,
       title,
       styles: input.styles,
-      blockCss: target.kind === "blog" ? [] : communityBlockCss(target.record.blocks ?? []),
+      blockCss: communityBlockCss(blocks),
       body: body + scripts,
     },
     origins,
   );
 }
 
-/** Scoped CSS for each community block type on the page, once each. */
-export function communityBlockCss(blocks: Block[]): string[] {
+/** Each community block type used on the page, once each, skipping unknown ids. */
+function communityBlockDefs(blocks: Block[]): CommunityBlockDefinition[] {
   const ids = new Set<string>();
   for (const block of blocks.map(upgradeBlock)) {
     if (block.$type === "app.sonasky.apollo.defs#community") ids.add(block.block);
   }
-  return [...ids].flatMap((id) => {
-    const def = findCommunityBlock(id);
-    const css = def ? scopedCss(def) : "";
-    return css ? [css] : [];
-  });
+  return [...ids].flatMap((id) => findCommunityBlock(id) ?? []);
+}
+
+/** Scoped CSS for each community block type on the page. */
+export function communityBlockCss(blocks: Block[]): string[] {
+  return communityBlockDefs(blocks)
+    .map(scopedCss)
+    .filter((css) => css);
+}
+
+/** `<script>` tags for the community block types on the page that have a script. */
+export function communityBlockScripts(blocks: Block[], usercontentOrigin: string): string {
+  return communityBlockDefs(blocks)
+    .filter((def) => blockScriptSource(def))
+    .map(
+      (def) =>
+        `<script src="${esc(`${usercontentOrigin}/_apollo/block/${def.id}.js?v=${blockScriptVersion(def)}`)}"></script>`,
+    )
+    .join("");
 }
 
 /**

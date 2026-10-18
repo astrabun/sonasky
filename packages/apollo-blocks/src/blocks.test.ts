@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { cssProblems, scopedCss } from "./css.ts";
 import { normalizeFields } from "./fields.ts";
+import { blockScriptSource, blockScriptVersion, scriptProblems } from "./script.ts";
 import { COMMUNITY_BLOCKS, findCommunityBlock, GRADUATED_BLOCKS } from "./index.ts";
 import { defineCommunityBlock } from "./types.ts";
 import { testHelpers, validateBlockDefinition } from "./validate.ts";
@@ -19,6 +20,15 @@ describe("community block catalog", () => {
     const ids = COMMUNITY_BLOCKS.map((b) => b.id);
     expect(ids).toEqual([...ids].sort());
   });
+
+  it.each(COMMUNITY_BLOCKS.filter((b) => b.script).map((b) => [b.id, b] as const))(
+    "%s's script is valid JavaScript",
+    (_id, block) => {
+      // Parse only; never run. The test runner is the one place eval-like checks are fine.
+      // oxlint-disable-next-line typescript/no-implied-eval
+      expect(() => new Function(blockScriptSource(block))).not.toThrow();
+    },
+  );
 
   it("never reuses a graduated block's id", () => {
     for (const id of Object.keys(GRADUATED_BLOCKS)) expect(findCommunityBlock(id)).toBeUndefined();
@@ -45,6 +55,7 @@ const sample = defineCommunityBlock({
     count: { type: "number", label: "Count", default: 1, min: 0, max: 5 },
     shown: { type: "boolean", label: "Shown" },
     photo: { type: "media", label: "Photo" },
+    pics: { type: "mediaList", label: "Pictures", max: 2 },
   },
   example: { title: "Hi" },
   render: (f, h) => `<p>${h.esc(f.title)}</p>`,
@@ -54,7 +65,7 @@ describe("normalizeFields", () => {
   it("fills defaults, drops unknown keys and empty optional fields", () => {
     expect(normalizeFields(sample, { title: "Hi", extra: 1, when: "" })).toEqual({
       ok: true,
-      fields: { title: "Hi", size: "s", count: 1, shown: false },
+      fields: { title: "Hi", size: "s", count: 1, shown: false, pics: [] },
     });
   });
 
@@ -66,6 +77,7 @@ describe("normalizeFields", () => {
       count: 9,
       shown: "yes",
       photo: { media: "3l2abc" },
+      pics: [{ media: "a", alt: "x" }, { media: "b" }],
     });
     expect(result.ok).toBe(false);
     if (result.ok) return;
@@ -76,7 +88,21 @@ describe("normalizeFields", () => {
       "count",
       "shown",
       "photo.alt",
+      "pics.1.alt",
     ]);
+    expect(
+      normalizeFields(sample, {
+        title: "Hi",
+        pics: [
+          { media: "a", alt: "x" },
+          { media: "b", alt: "y" },
+          { media: "c", alt: "z" },
+        ],
+      }),
+    ).toMatchObject({
+      ok: false,
+      errors: [{ path: "pics", message: "Too many pictures (max 2)." }],
+    });
   });
 
   it("requires required fields and accepts pictures marked as undescribed", () => {
@@ -165,5 +191,31 @@ describe("block CSS", () => {
   it("scopes CSS under the block's class", () => {
     expect(scopedCss({ ...sample, css: ".a{color:red}" })).toBe(".apollo-cb-sample{.a{color:red}}");
     expect(scopedCss(sample)).toBe("");
+  });
+});
+
+describe("block scripts", () => {
+  it("refuses scripts that load, write HTML, store or escape the site", () => {
+    const problems = (js: string) => scriptProblems(js).join("\n");
+    expect(problems(`fetch("https://x.example")`)).toMatch(/must not load/);
+    expect(problems(`el.innerHTML = name`)).toMatch(/must not write HTML/);
+    expect(problems(`eval("1")`)).toMatch(/eval/);
+    expect(problems(`setTimeout("go()", 1)`)).toMatch(/function, not a string/);
+    expect(problems(`localStorage.x = 1`)).toMatch(/store/);
+    expect(problems(`window.parent.postMessage(1, "*")`)).toMatch(/around the site/);
+    expect(problems(`el.setAttribute("onclick", "x")`)).toMatch(/addEventListener/);
+    expect(problems(`const e = "\\u0065val"`)).toMatch(/escapes/);
+    expect(problems(`el.style.top = "0"; block.parentNode.append(el)`)).toBe("");
+  });
+
+  it("wraps a script to run once per block, and versions it by content", () => {
+    const withScript = { ...sample, script: "block.dataset.ready = '1';" };
+    const src = blockScriptSource(withScript);
+    expect(src).toContain(`document.querySelectorAll(".apollo-cb-sample")`);
+    expect(src).toContain("block.dataset.ready = '1';");
+    expect(blockScriptSource(sample)).toBe("");
+    expect(blockScriptVersion(withScript)).not.toBe(
+      blockScriptVersion({ ...withScript, script: "block.dataset.ready = '2';" }),
+    );
   });
 });

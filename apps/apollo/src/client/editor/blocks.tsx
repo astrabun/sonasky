@@ -34,17 +34,17 @@ import type {
   ButtonsBlock,
   EventBlock,
   GalleryBlock,
-  GalleryItem,
   ImageBlock,
 } from "../../shared/records.ts";
 import { bskyUrlForUri, postUriFrom, profileDidFrom, starterPackUriFrom } from "../bsky.ts";
 import { Button, Card, Modal, Notice, Select, TextInput } from "../components/ui.tsx";
 import { CommunityBlockFields } from "./CommunityBlockFields.tsx";
-import { AltField, fromLocalInput, LinkHint, toLocalInput } from "./fieldParts.tsx";
+import { AltField, LinkHint } from "./fieldParts.tsx";
+import { fromLocalInput, toLocalInput } from "./localDate.ts";
 import { DEFAULT_LABELS_SETTINGS, LabelsFields } from "./LabelsFields.tsx";
 import { MarkdownEditor } from "./MarkdownEditor.tsx";
-import { MediaField, MediaLibrary, MediaThumb } from "./MediaLibrary.tsx";
-import { useEditorState } from "./context.tsx";
+import { MediaListEditor } from "./MediaListEditor.tsx";
+import { MediaField } from "./MediaLibrary.tsx";
 
 const D = "app.sonasky.apollo.defs";
 
@@ -263,73 +263,12 @@ function GalleryEditor({
   block: GalleryBlock;
   onChange: (b: GalleryBlock) => void;
 }) {
-  const { bundle } = useEditorState();
-  const [open, setOpen] = useState(false);
   return (
-    <div className="space-y-3">
-      {block.items.length === 0 ? (
-        <p className="text-sm text-neutral-500">No pictures yet.</p>
-      ) : null}
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {block.items.map((it, i) => {
-          const media = bundle.media.find((m) => m.rkey === it.media);
-          const set = (patch: Partial<GalleryItem>) =>
-            onChange({
-              ...block,
-              items: block.items.map((x, j) => (j === i ? { ...x, ...patch } : x)),
-            });
-          return (
-            <li
-              key={`${it.media}-${i}`}
-              className="flex gap-3 rounded-md border border-neutral-200 p-2 dark:border-neutral-800"
-            >
-              {media ? (
-                <MediaThumb media={media} className="h-20 w-20 flex-none rounded-md" />
-              ) : (
-                <div className="flex h-20 w-20 flex-none items-center justify-center rounded-md bg-neutral-100 text-xs text-neutral-500 dark:bg-neutral-800">
-                  Deleted
-                </div>
-              )}
-              <div className="min-w-0 flex-1 space-y-2">
-                <AltField value={it.alt} noAlt={it.noAlt} onChange={(alt) => set({ alt })} />
-
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() =>
-                    onChange({ ...block, items: block.items.filter((_, j) => j !== i) })
-                  }
-                >
-                  Remove
-                </Button>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-      <Button
-        size="sm"
-        disabled={block.items.length >= LIMITS.galleryItems}
-        onClick={() => setOpen(true)}
-      >
-        <Plus size={14} /> Add a picture
-      </Button>
-      <Modal open={open} onClose={() => setOpen(false)} title="Add a picture" wide>
-        <MediaLibrary
-          only="image"
-          onPick={(m) => {
-            onChange({
-              ...block,
-              items: [
-                ...block.items,
-                { media: m.rkey, alt: m.value.alt, ...(m.value.noAlt ? { noAlt: true } : {}) },
-              ],
-            });
-            setOpen(false);
-          }}
-        />
-      </Modal>
-    </div>
+    <MediaListEditor
+      items={block.items}
+      max={LIMITS.galleryItems}
+      onChange={(items) => onChange({ ...block, items })}
+    />
   );
 }
 

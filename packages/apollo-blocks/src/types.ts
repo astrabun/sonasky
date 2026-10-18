@@ -69,6 +69,16 @@ export interface MediaField extends FieldBase {
   required?: boolean;
 }
 
+/**
+ * Several uploaded pictures, each with its description. Always a list in
+ * `render` (empty when there are none). `max` defaults to 24.
+ */
+export interface MediaListField extends FieldBase {
+  type: "mediaList";
+  required?: boolean;
+  max?: number;
+}
+
 export type FieldDef =
   | TextField
   | LongTextField
@@ -78,7 +88,8 @@ export type FieldDef =
   | SelectField
   | NumberField
   | BooleanField
-  | MediaField;
+  | MediaField
+  | MediaListField;
 
 export type FieldType = FieldDef["type"];
 
@@ -93,7 +104,7 @@ export interface MediaValue {
   noAlt?: true;
 }
 
-export type FieldValue = string | number | boolean | MediaValue;
+export type FieldValue = string | number | boolean | MediaValue | MediaValue[];
 
 type ValueOf<F extends FieldDef> = F extends NumberField
   ? number
@@ -101,10 +112,16 @@ type ValueOf<F extends FieldDef> = F extends NumberField
     ? boolean
     : F extends MediaField
       ? MediaValue
-      : string;
+      : F extends MediaListField
+        ? MediaValue[]
+        : string;
 
 /** Fields that always have a value after validation. */
-type AlwaysSet<F extends FieldDef> = F extends SelectField | NumberField | BooleanField
+type AlwaysSet<F extends FieldDef> = F extends
+  | SelectField
+  | NumberField
+  | BooleanField
+  | MediaListField
   ? true
   : F extends { required: true }
     ? true
@@ -155,6 +172,13 @@ export interface CommunityBlockDefinition<F extends Fields = Fields> {
    * `.title { ... }` for things inside the block and `& { ... }` for the block itself.
    */
   css?: string;
+  /**
+   * Optional JavaScript that makes the block interactive. It runs once for
+   * each of this block on the page, with `block` set to that block's wrapper
+   * element. The block must still work without it (Apollo's editor preview
+   * doesn't run scripts). See the README for what scripts may do.
+   */
+  script?: string;
   /**
    * The block's HTML. The same values must always give the same HTML: use only
    * `fields` and `h` (no fetching, current time, randomness or saved state).

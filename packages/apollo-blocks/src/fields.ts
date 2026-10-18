@@ -4,6 +4,8 @@ import type { CommunityBlockDefinition, FieldDef, FieldValue, MediaValue } from 
 export const FIELD_MAX_BYTES = { text: 300, longText: 3000, markdown: 8192, url: 2048 } as const;
 export const MAX_DATETIME_LENGTH = 64;
 export const MAX_ALT_BYTES = 2000;
+/** Pictures in one `mediaList` field, matching the built-in Gallery block. */
+export const MAX_MEDIA_LIST = 24;
 
 export interface FieldError {
   /** Field key, e.g. "quote" or "photo.alt". */
@@ -88,27 +90,43 @@ function normalizeField(
       if (empty(value) || (isObject(value) && empty(value.media))) {
         return def.required ? { error: "Pick an uploaded image." } : {};
       }
-      if (!isObject(value) || typeof value.media !== "string") {
-        return { error: "Pick an uploaded image." };
+      return normalizeMedia(value);
+    }
+    case "mediaList": {
+      if (empty(value) || (Array.isArray(value) && value.length === 0)) {
+        return def.required ? { error: "Add at least one picture." } : { value: [] };
       }
-      const alt = value.alt;
-      if (alt !== undefined && typeof alt !== "string") {
-        return { error: "Expected text.", path: "alt" };
+      if (!Array.isArray(value)) return { error: "Expected a list of pictures." };
+      const max = def.max ?? MAX_MEDIA_LIST;
+      if (value.length > max) return { error: `Too many pictures (max ${max}).` };
+      const items: MediaValue[] = [];
+      for (const [i, item] of value.entries()) {
+        const result = normalizeMedia(item);
+        if (result.error) {
+          return { error: result.error, path: result.path ? `${i}.${result.path}` : `${i}` };
+        }
+        items.push(result.value as MediaValue);
       }
-      if (alt && utf8Bytes(alt) > MAX_ALT_BYTES) {
-        return { error: `Too long (max ${MAX_ALT_BYTES} bytes).`, path: "alt" };
-      }
-      const media: MediaValue = alt
-        ? { media: value.media, alt }
-        : value.noAlt === true
-          ? { media: value.media, alt: "", noAlt: true }
-          : { media: value.media, alt: "" };
-      if (!media.alt && !media.noAlt) {
-        return { error: "Add a description of the picture.", path: "alt" };
-      }
-      return { value: media };
+      return { value: items };
     }
   }
+}
+
+/** One picture: an rkey plus a description, unless it was uploaded as "no description". */
+function normalizeMedia(value: unknown): { value?: MediaValue; error?: string; path?: string } {
+  if (!isObject(value) || typeof value.media !== "string" || !value.media) {
+    return { error: "Pick an uploaded image." };
+  }
+  const alt = value.alt;
+  if (alt !== undefined && typeof alt !== "string") {
+    return { error: "Expected text.", path: "alt" };
+  }
+  if (alt && utf8Bytes(alt) > MAX_ALT_BYTES) {
+    return { error: `Too long (max ${MAX_ALT_BYTES} bytes).`, path: "alt" };
+  }
+  if (alt) return { value: { media: value.media, alt } };
+  if (value.noAlt === true) return { value: { media: value.media, alt: "", noAlt: true } };
+  return { error: "Add a description of the picture.", path: "alt" };
 }
 
 /**

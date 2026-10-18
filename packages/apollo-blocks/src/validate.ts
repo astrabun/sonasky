@@ -1,5 +1,6 @@
 import { cssProblems } from "./css.ts";
-import { normalizeFields } from "./fields.ts";
+import { MAX_MEDIA_LIST, normalizeFields } from "./fields.ts";
+import { scriptProblems } from "./script.ts";
 import type { CommunityBlockDefinition, FieldValues, Fields, RenderHelpers } from "./types.ts";
 
 export const BLOCK_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
@@ -59,6 +60,13 @@ export function validateBlockDefinition(def: CommunityBlockDefinition): string[]
       errors.push(`${where}: field "${key}" must be a camelCase name like "title" (max 32)`);
     }
     if (!field.label?.trim()) errors.push(`${where}: field "${key}" needs a label`);
+    if (
+      field.type === "mediaList" &&
+      field.max !== undefined &&
+      (field.max < 1 || field.max > MAX_MEDIA_LIST)
+    ) {
+      errors.push(`${where}: field "${key}" max must be 1-${MAX_MEDIA_LIST}`);
+    }
     if (field.type === "select") {
       if (!field.options.length) errors.push(`${where}: field "${key}" needs options`);
       if (!field.options.some((o) => o.value === field.default)) {
@@ -93,6 +101,9 @@ export function validateBlockDefinition(def: CommunityBlockDefinition): string[]
 
   if (def.css !== undefined) {
     for (const problem of cssProblems(def.css)) errors.push(`${where}: ${problem}`);
+  }
+  if (def.script !== undefined) {
+    for (const problem of scriptProblems(def.script)) errors.push(`${where}: ${problem}`);
   }
   return errors;
 }

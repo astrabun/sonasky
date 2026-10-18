@@ -5,7 +5,8 @@ block here shows up in Apollo's **Add a block** menu under **Community blocks**,
 author, after the official blocks.
 
 A block is one small file: the form people fill in (its **fields**), what a new block starts with
-(its **example**), optional **CSS**, and a **render** function that turns the values into HTML.
+(its **example**), optional **CSS**, a **render** function that turns the values into HTML, and
+optionally a small **script** to make it interactive.
 Apollo builds the editor form from your fields, checks what people type, and renders the block on
 the published page.
 
@@ -67,17 +68,18 @@ You can run the checks yourself with `pnpm -F @sonasky/apollo-blocks test`.
 
 ### Field types
 
-| `type`     | Editor shows                 | `render` gets                          | Options                            |
-| ---------- | ---------------------------- | -------------------------------------- | ---------------------------------- |
-| `text`     | one line of text             | `string` (or `undefined` if empty)     | `required`, `max` (bytes, 300)     |
-| `longText` | a few lines, no formatting   | `string` / `undefined`                 | `required`, `max` (3000), `rows`   |
-| `markdown` | the Text block's editor      | use `h.html("key")` for the HTML       | `required`, `max` (8192)           |
-| `url`      | a link, with Apollo's checks | `string` / `undefined`                 | `required`                         |
-| `datetime` | a date and time picker       | ISO `string` / `undefined`             | `required`                         |
-| `select`   | a dropdown                   | `string`, always set                   | `options`, `default` (required)    |
-| `number`   | a number                     | `number`, always set                   | `default` (required), `min`, `max` |
-| `boolean`  | a checkbox                   | `boolean`, always set                  | `default`                          |
-| `media`    | an uploaded picture + alt    | `{ media, alt, noAlt? }` / `undefined` | `required`                         |
+| `type`      | Editor shows                 | `render` gets                          | Options                            |
+| ----------- | ---------------------------- | -------------------------------------- | ---------------------------------- |
+| `text`      | one line of text             | `string` (or `undefined` if empty)     | `required`, `max` (bytes, 300)     |
+| `longText`  | a few lines, no formatting   | `string` / `undefined`                 | `required`, `max` (3000), `rows`   |
+| `markdown`  | the Text block's editor      | use `h.html("key")` for the HTML       | `required`, `max` (8192)           |
+| `url`       | a link, with Apollo's checks | `string` / `undefined`                 | `required`                         |
+| `datetime`  | a date and time picker       | ISO `string` / `undefined`             | `required`                         |
+| `select`    | a dropdown                   | `string`, always set                   | `options`, `default` (required)    |
+| `number`    | a number                     | `number`, always set                   | `default` (required), `min`, `max` |
+| `boolean`   | a checkbox                   | `boolean`, always set                  | `default`                          |
+| `media`     | an uploaded picture + alt    | `{ media, alt, noAlt? }` / `undefined` | `required`                         |
+| `mediaList` | several pictures, each + alt | `{ media, alt, noAlt? }[]`, always set | `required`, `max` (24)             |
 
 Every field also takes a `label` and an optional `help` line. A block can have up to 12 fields.
 `required` text fields are always a non-empty `string` in `render`.
@@ -97,6 +99,46 @@ Apollo's base styles and theme variables apply inside blocks. You can reuse clas
 `--apollo-surface`, `--apollo-accent`, `--apollo-accent-text`, `--apollo-link`, `--apollo-radius`,
 `--apollo-font-body` and `--apollo-font-heading` in your CSS.
 
+### Scripts (optional)
+
+Some blocks need a little JavaScript. Add it as `script`. Your code runs once for each of
+your blocks on the page, after the page loads, with `block` set to that block's wrapper element.
+[`hello-wave.ts`](src/community/hello-wave.ts) is the smallest example to copy:
+
+```ts
+render: (f, h) =>
+  `<p class="greeting">${h.esc(f.greeting)}</p><button type="button" class="wave" hidden>Wave back</button><p class="count" aria-live="polite" hidden></p>`,
+script: `
+const button = block.querySelector(".wave");
+const count = block.querySelector(".count");
+if (!button || !count) return;
+
+let waves = 0;
+button.addEventListener("click", () => {
+  waves += 1;
+  count.textContent = waves === 1 ? "You waved once." : "You waved " + waves + " times.";
+  count.hidden = false;
+});
+button.hidden = false;
+`,
+```
+
+- **Work without it first.** Apollo's editor preview doesn't run scripts, and some visitors won't
+  either. Render something that's already useful (in the example, the greeting), and use the
+  script to add to it. Render buttons that only work with the script as `hidden`, and unhide
+  them from the script.
+- **Only touch your own block.** Find things with `block.querySelector(...)`, not `document`.
+  There may be several of your blocks on one page.
+- **Build elements, don't write HTML.** Use `document.createElement` and `textContent`, not
+  `innerHTML`. This keeps anything people typed from turning into code.
+- **No loading, storing or talking to the outside.** Sites run in a sandbox with no network, so
+  `fetch` and friends wouldn't work anyway. Don't use storage, `postMessage`, `eval`, or `\u`
+  escapes. 8 KB max.
+- **Respect reduced motion.** If your block animates or scrolls, check
+  `matchMedia("(prefers-reduced-motion: reduce)")`.
+
+The checks catch the obvious mistakes, and a maintainer reads every script before it's merged.
+
 ### Rules
 
 - **`render` only turns values into HTML.** Given the same values, it should always return the
@@ -104,7 +146,7 @@ Apollo's base styles and theme variables apply inside blocks. You can reuse clas
   internet, read the current date or time, use random numbers, or store anything between calls.
   It runs on Apollo's server every time someone views a page, so it needs to be quick and
   predictable. Apollo also cleans up what it returns (removing scripts, iframes, forms and event
-  handlers), so blocks can't run JavaScript.
+  handlers). If your block needs JavaScript, use `script` (above).
 - **CSS stays inside your block.** Apollo wraps your CSS in `.apollo-cb-<id> { ... }` (CSS
   nesting), so `.title { ... }` means "a `.title` inside this block" and `& { ... }` is the block
   itself. Up to 4 KB, and only `@media`, `@container` and `@supports` at-rules. No `url()`,
@@ -137,3 +179,6 @@ When a community block becomes official:
   checks just the CSS.
 - `scopedCss(def)` is the CSS Apollo adds to pages that use the block; `blockClass(id)` is the
   wrapper's class.
+- `blockScriptSource(def)` is the file Apollo serves at `/_apollo/block/<id>.js` (your script
+  wrapped to run once per block), and `blockScriptVersion(def)` is its content hash for the URL.
+  `scriptProblems(js)` checks just the script.

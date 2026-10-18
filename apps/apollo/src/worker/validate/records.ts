@@ -264,6 +264,11 @@ function validateCommunityBlock(id: string, input: unknown, field: string): Comm
     if (value === undefined) continue;
     if (f.type === "url") fields[key] = link(value, `${field}.fields.${key}`);
     if (f.type === "media") mediaRef((value as MediaValue).media, `${field}.fields.${key}`);
+    if (f.type === "mediaList") {
+      (value as MediaValue[]).forEach((item, i) =>
+        mediaRef(item.media, `${field}.fields.${key}.${i}`),
+      );
+    }
   }
   if (jsonBytes(fields) > LIMITS.communityBlockBytes) {
     throw new ValidationError(`${field}.fields`, "This block has too much in it.");

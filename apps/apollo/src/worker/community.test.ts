@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { COMMUNITY_UPGRADES } from "../shared/communityUpgrades.ts";
 import type { CommunityBlock } from "../shared/records.ts";
 import { renderBlocks, type BlockContext } from "./render/blocks.ts";
-import { communityBlockCss } from "./render/document.ts";
+import { usercontentCsp } from "./render/csp.ts";
+import { communityBlockCss, communityBlockScripts } from "./render/document.ts";
 import { validatePage, ValidationError } from "./validate/records.ts";
 
 // The real catalog, plus a test block with link, picture and markdown fields
@@ -19,9 +20,11 @@ vi.mock("@sonasky/apollo-blocks", async (importActual) => {
       link: { type: "url", label: "Link" },
       photo: { type: "media", label: "Photo" },
       body: { type: "markdown", label: "Body" },
+      pics: { type: "mediaList", label: "Pictures" },
     },
     example: { title: "Hi" },
     css: ".t { color: red }",
+    script: "block.dataset.ready = '1';",
     render: (f, h) => {
       const href = h.href(f.link);
       const src = h.mediaUrl(f.photo?.media);
@@ -49,7 +52,7 @@ describe("community block validation", () => {
     ).toEqual({
       $type: `${D}#community`,
       block: "test-card",
-      fields: { title: "Hi", link: "https://example.com" },
+      fields: { title: "Hi", link: "https://example.com", pics: [] },
     });
   });
 
@@ -77,6 +80,18 @@ describe("community block validation", () => {
     expect(() =>
       page({ block: "test-card", fields: { title: "Hi", photo: { media: "3l2abc", alt: "" } } }),
     ).toThrow(/description/);
+    expect(() =>
+      page({
+        block: "test-card",
+        fields: {
+          title: "Hi",
+          pics: [
+            { media: "3l2abc", alt: "a" },
+            { media: "../x", alt: "b" },
+          ],
+        },
+      }),
+    ).toThrow(/Pick an uploaded image/);
   });
 });
 
@@ -125,6 +140,31 @@ describe("community block rendering", () => {
     expect(communityBlockCss([b("test-card"), b("test-card"), b("gone")])).toEqual([
       ".apollo-cb-test-card{.t { color: red }}",
     ]);
+  });
+});
+
+describe("community block scripts", () => {
+  const b = (block: string): CommunityBlock => ({ $type: `${D}#community`, block, fields: {} });
+
+  it("links each used block's script once, from Apollo's own origin, versioned", () => {
+    const tags = communityBlockScripts(
+      [b("test-card"), b("test-card"), b("gone")],
+      "https://u.example",
+    );
+    expect(tags.match(/<script /g)).toHaveLength(1);
+    expect(tags).toMatch(
+      /^<script src="https:\/\/u\.example\/_apollo\/block\/test-card\.js\?v=[0-9a-z]+"><\/script>$/,
+    );
+  });
+
+  it("leaves out blocks without a script", () => {
+    expect(communityBlockScripts([b("pull-quote")], "https://u.example")).toBe("");
+  });
+
+  it("allows block scripts in the page CSP", () => {
+    expect(usercontentCsp("https://u.example", "https://p.example", "did:plc:x")).toMatch(
+      /script-src [^;]*https:\/\/u\.example\/_apollo\/block\//,
+    );
   });
 });
 
