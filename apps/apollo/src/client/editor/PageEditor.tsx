@@ -16,7 +16,16 @@ import {
 } from "../../shared/records.ts";
 import { isSlug, RESERVED_PAGE_SLUGS, slugify } from "../../shared/slug.ts";
 import { api, ApiFailure } from "../api.ts";
-import { Button, Card, Notice, Select, SizeMeter, TextArea, TextInput } from "../components/ui.tsx";
+import {
+  Button,
+  Card,
+  Notice,
+  Select,
+  SizeMeter,
+  TagInput,
+  TextArea,
+  TextInput,
+} from "../components/ui.tsx";
 import { BlockList, CommentsPostField, CommentsSortField } from "./blocks.tsx";
 import { CodeEditor } from "./CodeEditor.tsx";
 import { editable, useEditorState } from "./context.tsx";
@@ -435,19 +444,12 @@ export function PageEditor({
               onChange={(e) => update({ description: e.target.value || undefined })}
             />
             {kind === "post" ? (
-              <TextInput
+              <TagInput
                 label="Tags (optional)"
-                help="Separate with commas."
-                value={(draft.tags ?? []).join(", ")}
-                onChange={(e) =>
-                  update({
-                    tags: e.target.value
-                      .split(",")
-                      .map((t) => t.trim())
-                      .filter(Boolean)
-                      .slice(0, LIMITS.tagsPerPost),
-                  })
-                }
+                help="Press comma or Enter after each tag."
+                value={draft.tags ?? []}
+                onChange={(tags) => update({ tags })}
+                max={LIMITS.tagsPerPost}
               />
             ) : null}
             <Select
