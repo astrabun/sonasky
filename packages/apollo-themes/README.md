@@ -2,7 +2,8 @@
 
 Color themes for [SonaSky Apollo](https://apollo.sonasky.app) sites. Every theme here shows up in
 Apollo's theme picker: **official** themes first, then **community** themes, credited to their
-authors.
+authors. (Have an idea for a new kind of block instead? See
+[`@sonasky/apollo-blocks`](../apollo-blocks).)
 
 When someone picks a theme, Apollo **copies** its colors and settings into their own site, along
 with a note of which theme it was based on. Their site never loads anything from this package

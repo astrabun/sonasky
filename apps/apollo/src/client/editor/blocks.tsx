@@ -17,6 +17,7 @@ import {
   Minus,
   MoveVertical,
   Plus,
+  Puzzle,
   Tags,
   TextAlignStart,
   Trash2,
@@ -24,23 +25,26 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import { COMMUNITY_BLOCKS, findCommunityBlock } from "@sonasky/apollo-blocks";
+import { upgradeBlock } from "../../shared/communityUpgrades.ts";
 import { LIMITS, utf8Bytes } from "../../shared/limits.ts";
-import { classifyLink, linkValueError } from "../../shared/links.ts";
 import type {
   Block,
   BlockType,
   ButtonsBlock,
   EventBlock,
   GalleryBlock,
-  GalleryItem,
   ImageBlock,
 } from "../../shared/records.ts";
 import { bskyUrlForUri, postUriFrom, profileDidFrom, starterPackUriFrom } from "../bsky.ts";
-import { Button, Card, Modal, Notice, Select, TextArea, TextInput } from "../components/ui.tsx";
+import { Button, Card, Modal, Notice, Select, TextInput } from "../components/ui.tsx";
+import { CommunityBlockFields } from "./CommunityBlockFields.tsx";
+import { AltField, LinkHint } from "./fieldParts.tsx";
+import { fromLocalInput, toLocalInput } from "./localDate.ts";
 import { DEFAULT_LABELS_SETTINGS, LabelsFields } from "./LabelsFields.tsx";
 import { MarkdownEditor } from "./MarkdownEditor.tsx";
-import { MediaField, MediaLibrary, MediaThumb } from "./MediaLibrary.tsx";
-import { useEditorState } from "./context.tsx";
+import { MediaListEditor } from "./MediaListEditor.tsx";
+import { MediaField } from "./MediaLibrary.tsx";
 
 const D = "app.sonasky.apollo.defs";
 
@@ -152,22 +156,26 @@ function catalogFor(type: BlockType): CatalogItem | undefined {
   return BLOCK_CATALOG.find((c) => c.type === type);
 }
 
-/** Small "visitors will see a warning" hint under link fields. */
-function LinkHint({ value }: { value: string }) {
-  const err = value.trim() && value.trim() !== "https://" ? linkValueError(value) : null;
-  if (err) return <p className="text-xs text-rose-600">{err}</p>;
-  if (
-    /^https?:/i.test(value.trim()) &&
-    classifyLink(value, globalThis.location.origin).kind === "external"
-  ) {
-    return (
-      <p className="text-xs text-neutral-500">
-        This goes outside Apollo and Bluesky, so visitors will see a “you're leaving” notice first.
-      </p>
-    );
+/** Name and icon for a block's header; community blocks are looked up by id. */
+function blockInfo(block: Block): { name: string; icon: LucideIcon; community: boolean } | null {
+  if (block.$type === `${D}#community`) {
+    const def = findCommunityBlock(block.block);
+    return { name: def?.name ?? "Community block", icon: Puzzle, community: true };
   }
-  return null;
+  const info = catalogFor(block.$type);
+  return info ? { name: info.name, icon: info.icon, community: false } : null;
 }
+
+function CommunityBadge() {
+  return (
+    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-violet-800 uppercase dark:bg-violet-950 dark:text-violet-200">
+      Community
+    </span>
+  );
+}
+
+const MENU_ITEM_CLASS =
+  "flex w-full items-start gap-3 rounded-lg border border-neutral-200 p-3 text-left hover:border-sky-400 hover:bg-sky-50 dark:border-neutral-800 dark:hover:bg-sky-950";
 
 function ButtonsEditor({
   block,
@@ -255,88 +263,13 @@ function GalleryEditor({
   block: GalleryBlock;
   onChange: (b: GalleryBlock) => void;
 }) {
-  const { bundle } = useEditorState();
-  const [open, setOpen] = useState(false);
   return (
-    <div className="space-y-3">
-      {block.items.length === 0 ? (
-        <p className="text-sm text-neutral-500">No pictures yet.</p>
-      ) : null}
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {block.items.map((it, i) => {
-          const media = bundle.media.find((m) => m.rkey === it.media);
-          const set = (patch: Partial<GalleryItem>) =>
-            onChange({
-              ...block,
-              items: block.items.map((x, j) => (j === i ? { ...x, ...patch } : x)),
-            });
-          return (
-            <li
-              key={`${it.media}-${i}`}
-              className="flex gap-3 rounded-md border border-neutral-200 p-2 dark:border-neutral-800"
-            >
-              {media ? (
-                <MediaThumb media={media} className="h-20 w-20 flex-none rounded-md" />
-              ) : (
-                <div className="flex h-20 w-20 flex-none items-center justify-center rounded-md bg-neutral-100 text-xs text-neutral-500 dark:bg-neutral-800">
-                  Deleted
-                </div>
-              )}
-              <div className="min-w-0 flex-1 space-y-2">
-                <AltField value={it.alt} noAlt={it.noAlt} onChange={(alt) => set({ alt })} />
-
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() =>
-                    onChange({ ...block, items: block.items.filter((_, j) => j !== i) })
-                  }
-                >
-                  Remove
-                </Button>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-      <Button
-        size="sm"
-        disabled={block.items.length >= LIMITS.galleryItems}
-        onClick={() => setOpen(true)}
-      >
-        <Plus size={14} /> Add a picture
-      </Button>
-      <Modal open={open} onClose={() => setOpen(false)} title="Add a picture" wide>
-        <MediaLibrary
-          only="image"
-          onPick={(m) => {
-            onChange({
-              ...block,
-              items: [
-                ...block.items,
-                { media: m.rkey, alt: m.value.alt, ...(m.value.noAlt ? { noAlt: true } : {}) },
-              ],
-            });
-            setOpen(false);
-          }}
-        />
-      </Modal>
-    </div>
+    <MediaListEditor
+      items={block.items}
+      max={LIMITS.galleryItems}
+      onChange={(items) => onChange({ ...block, items })}
+    />
   );
-}
-
-function toLocalInput(iso: string | undefined): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function fromLocalInput(value: string): string {
-  if (!value) return "";
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? "" : d.toISOString();
 }
 
 const TIMEZONES: string[] = (() => {
@@ -449,37 +382,6 @@ function BskyLinkField({
         </p>
       ) : null}
     </div>
-  );
-}
-
-/**
- * Alt text for a picture placed on a page. Prefilled from the upload; if the
- * uploader chose not to describe it, that choice carries over (and typing a
- * description here still wins).
- */
-function AltField({
-  value,
-  noAlt,
-  onChange,
-}: {
-  value: string;
-  noAlt?: boolean;
-  onChange: (alt: string) => void;
-}) {
-  return (
-    <TextArea
-      label="Description (alt text)"
-      rows={2}
-      value={value}
-      placeholder={noAlt ? "No description" : undefined}
-      help={
-        noAlt && !value.trim()
-          ? "You chose not to describe this picture when you uploaded it. People using screen readers won't know what it shows."
-          : "Describe the picture for people using screen readers."
-      }
-      error={!noAlt && !value.trim() ? "Add a description." : null}
-      onChange={(e) => onChange(e.target.value)}
-    />
   );
 }
 
@@ -622,6 +524,8 @@ function BlockFields({ block, onChange }: { block: Block; onChange: (b: Block) =
       );
     case `${D}#divider`:
       return <p className="text-sm text-neutral-500">A line across the page. Nothing to set up.</p>;
+    case `${D}#community`:
+      return <CommunityBlockFields block={block} onChange={onChange} />;
     default:
       return <Notice tone="warn">This block type isn't supported by this editor yet.</Notice>;
   }
@@ -645,7 +549,7 @@ function AddBlockMenu({ onAdd, disabled }: { onAdd: (b: Block) => void; disabled
             <li key={item.type}>
               <button
                 type="button"
-                className="flex w-full items-start gap-3 rounded-lg border border-neutral-200 p-3 text-left hover:border-sky-400 hover:bg-sky-50 dark:border-neutral-800 dark:hover:bg-sky-950"
+                className={MENU_ITEM_CLASS}
                 onClick={() => {
                   onAdd(item.create());
                   setOpen(false);
@@ -662,6 +566,45 @@ function AddBlockMenu({ onAdd, disabled }: { onAdd: (b: Block) => void; disabled
             </li>
           ))}
         </ul>
+        {COMMUNITY_BLOCKS.length ? (
+          <section className="mt-6 space-y-2">
+            <h3 className="text-sm font-semibold">Community blocks</h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              Made by people in the community and looked after on a best-effort basis.
+            </p>
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {COMMUNITY_BLOCKS.map((def) => (
+                <li key={def.id}>
+                  <button
+                    type="button"
+                    className={MENU_ITEM_CLASS}
+                    onClick={() => {
+                      onAdd({
+                        $type: `${D}#community`,
+                        block: def.id,
+                        fields: structuredClone(def.example) as Record<string, unknown>,
+                      });
+                      setOpen(false);
+                    }}
+                  >
+                    <Puzzle size={22} className="mt-0.5 flex-none text-violet-600" aria-hidden />
+                    <span>
+                      <span className="flex items-center gap-2 text-sm font-semibold">
+                        {def.name} <CommunityBadge />
+                      </span>
+                      <span className="block text-xs text-neutral-500 dark:text-neutral-400">
+                        {def.description}
+                      </span>
+                      <span className="block text-xs text-neutral-500 dark:text-neutral-400">
+                        by {def.author.name}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
       </Modal>
     </>
   );
@@ -676,12 +619,14 @@ const newBlockId = () => `b${nextBlockId++}`;
  * state (the WYSIWYG text editor) stay attached to the right block on reorder.
  */
 export function BlockList({
-  blocks,
+  blocks: input,
   onChange,
 }: {
   blocks: Block[];
   onChange: (blocks: Block[]) => void;
 }) {
+  // Graduated community blocks are edited (and saved) as their official block.
+  const blocks = input.map(upgradeBlock);
   const idsRef = useRef<string[]>([]);
   while (idsRef.current.length < blocks.length) idsRef.current.push(newBlockId());
   idsRef.current.length = blocks.length;
@@ -706,13 +651,14 @@ export function BlockList({
         </Notice>
       ) : null}
       {blocks.map((block, i) => {
-        const info = catalogFor(block.$type);
+        const info = blockInfo(block);
         return (
           <Card key={ids[i]}>
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="flex items-center gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-200">
                 {info ? <info.icon size={16} aria-hidden /> : null}
                 {info?.name ?? "Block"}
+                {info?.community ? <CommunityBadge /> : null}
               </span>
               <div className="flex gap-1">
                 <Button

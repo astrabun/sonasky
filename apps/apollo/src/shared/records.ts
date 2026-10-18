@@ -170,6 +170,17 @@ export interface SpacerBlock {
   size: "small" | "medium" | "large";
 }
 
+/**
+ * A block type from @sonasky/apollo-blocks. `fields` is checked against that
+ * block's definition on write; unknown ids are skipped when rendering.
+ */
+export interface CommunityBlock {
+  $type: "app.sonasky.apollo.defs#community";
+  /** Community block id, e.g. "pull-quote". */
+  block: string;
+  fields: Record<string, unknown>;
+}
+
 export type Block =
   | HeadingBlock
   | TextBlock
@@ -182,7 +193,8 @@ export type Block =
   | EventBlock
   | LabelsBlock
   | DividerBlock
-  | SpacerBlock;
+  | SpacerBlock
+  | CommunityBlock;
 export type BlockType = Block["$type"];
 
 // Content records

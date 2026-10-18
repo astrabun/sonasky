@@ -4,7 +4,8 @@
  * Usercontent documents (the user's site, inside the sandboxed iframe):
  *  - `sandbox allow-scripts` even when opened top-level, so the document always
  *    runs in an opaque origin with no storage/cookies, popups or top navigation
- *  - scripts only from Apollo's bootstrap and the site's own script records
+ *  - scripts only from Apollo's bootstrap, community block scripts (reviewed
+ *    code from @sonasky/apollo-blocks) and the site's own script records
  *  - images/media only from the site's own media records (+ Bluesky's CDN for
  *    avatars in Bluesky cards), fonts only via Apollo's Google Fonts proxy; no
  *    fetch/XHR/WebSocket at all, no form posts
@@ -26,7 +27,7 @@ export function usercontentCsp(
   return [
     "sandbox allow-scripts",
     "default-src 'none'",
-    `script-src ${usercontentOrigin}/_apollo/bootstrap.js ${site}script/`,
+    `script-src ${usercontentOrigin}/_apollo/bootstrap.js ${usercontentOrigin}/_apollo/block/ ${site}script/`,
     // Fonts: only Apollo's own Google Fonts proxy (never Google directly).
     `style-src 'unsafe-inline' ${usercontentOrigin}/_apollo/fonts.css`,
     `img-src ${media} data: https://cdn.bsky.app`,

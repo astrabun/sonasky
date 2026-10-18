@@ -13,6 +13,8 @@ export const LIMITS = {
   scriptJsBytes: 32 * 1024,
   layoutHtmlBytes: 32 * 1024,
   textBlockBytes: 8 * 1024,
+  /** A community block's fields, JSON-encoded. */
+  communityBlockBytes: 8 * 1024,
 
   blocksPerPage: 128,
   pagesPerSite: 64,

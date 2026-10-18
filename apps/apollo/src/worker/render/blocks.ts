@@ -1,4 +1,12 @@
-import type { Block, BskyPostBlock, EventBlock, StarterPackBlock } from "../../shared/records.ts";
+import { blockClass, findCommunityBlock, type RenderHelpers } from "@sonasky/apollo-blocks";
+import { upgradeBlock } from "../../shared/communityUpgrades.ts";
+import type {
+  Block,
+  BskyPostBlock,
+  CommunityBlock,
+  EventBlock,
+  StarterPackBlock,
+} from "../../shared/records.ts";
 import {
   fetchPostCards,
   fetchProfileCard,
@@ -87,8 +95,40 @@ function renderEvent(block: EventBlock, ctx: BlockContext): string {
   }</section>`;
 }
 
+/**
+ * A block from @sonasky/apollo-blocks. Its markdown fields are rendered first
+ * (sanitizing is async, a block's `render` isn't), and its output is
+ * sanitized like any other author HTML.
+ */
+export async function renderCommunityBlock(
+  block: CommunityBlock,
+  ctx: BlockContext,
+): Promise<string> {
+  const def = findCommunityBlock(block.block);
+  if (!def) return "";
+  const fields = block.fields ?? {};
+  const html = new Map<string, string>();
+  for (const [key, f] of Object.entries(def.fields)) {
+    const value = fields[key];
+    if (f.type === "markdown" && typeof value === "string" && value) {
+      html.set(key, await ctx.sanitize(markdownToHtml(value)));
+    }
+  }
+  const h: RenderHelpers = {
+    esc,
+    html: (key) => html.get(key) ?? "",
+    href: (url) => (url ? ctx.rewriteHref(url) : null),
+    mediaUrl: (rkey) => (rkey ? ctx.mediaUrl(rkey) : null),
+    formatDate: (iso, timezone) => (iso ? formatEventTime(iso, timezone) : null),
+  };
+  // Values were checked on write; render with them as the block declared.
+  const out = def.render(fields as Parameters<typeof def.render>[0], h);
+  return `<div class="apollo-cb ${blockClass(def.id)}">${await ctx.sanitize(out)}</div>`;
+}
+
 /** Render a page's blocks to (sanitized) HTML. */
-export async function renderBlocks(blocks: Block[], ctx: BlockContext): Promise<string> {
+export async function renderBlocks(input: Block[], ctx: BlockContext): Promise<string> {
+  const blocks = input.map(upgradeBlock);
   const postUris = blocks
     .filter((b): b is BskyPostBlock => b.$type === "app.sonasky.apollo.defs#bskyPost")
     .map((b) => b.uri);
@@ -165,6 +205,8 @@ async function renderBlock(
       const size = SPACER_SIZES.has(block.size) ? block.size : "medium";
       return `<div class="apollo-spacer-${size}" aria-hidden="true"></div>`;
     }
+    case "app.sonasky.apollo.defs#community":
+      return renderCommunityBlock(block, ctx);
     default:
       // Unknown block type (newer client, or a hand-written record): skip it.
       return "";
