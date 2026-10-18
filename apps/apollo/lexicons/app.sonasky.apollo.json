@@ -40,6 +40,14 @@
           },
           "lang": { "type": "string", "format": "language" },
           "blogEnabled": { "type": "boolean" },
+          "commentsDefaults": {
+            "type": "object",
+            "description": "Whether new posts / pages start with Bluesky comments turned on (read by the editor only).",
+            "properties": {
+              "posts": { "type": "boolean" },
+              "pages": { "type": "boolean" }
+            }
+          },
           "labels": {
             "type": "union",
             "description": "Author-applied content warnings for the whole site.",

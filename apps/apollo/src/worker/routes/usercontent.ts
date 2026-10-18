@@ -93,10 +93,13 @@ async function renderDoc(c: Ctx, did: string, spec: TargetSpec): Promise<Respons
     }
 
     const rings = await siteRings(c.env, identity.pds, did);
-    const html = await renderSiteDocument(toRenderInput(loaded, did, actor, rings), {
-      publicOrigin,
-      usercontentOrigin: origin(c.env.USERCONTENT_URL),
-    });
+    const html = await renderSiteDocument(
+      toRenderInput(loaded, did, actor, rings, identity.handle),
+      {
+        publicOrigin,
+        usercontentOrigin: origin(c.env.USERCONTENT_URL),
+      },
+    );
     return new Response(html, {
       headers: {
         "content-type": "text/html; charset=utf-8",

@@ -7,15 +7,17 @@ import { jsonBytes, LIMITS, utf8Bytes } from "../../shared/limits.ts";
 import { NSID_PAGE, NSID_POST } from "../../shared/nsid.ts";
 import {
   SELF_LABEL_OPTIONS,
+  type ContentComments,
   type PageFormat,
   type PageRecord,
   type PostRecord,
   type SelfLabels,
+  type SiteRecord,
 } from "../../shared/records.ts";
 import { isSlug, RESERVED_PAGE_SLUGS, slugify } from "../../shared/slug.ts";
 import { api, ApiFailure } from "../api.ts";
 import { Button, Card, Notice, Select, SizeMeter, TextArea, TextInput } from "../components/ui.tsx";
-import { BlockList } from "./blocks.tsx";
+import { BlockList, CommentsPostField, CommentsSortField } from "./blocks.tsx";
 import { CodeEditor } from "./CodeEditor.tsx";
 import { editable, useEditorState } from "./context.tsx";
 import { useLabelsPicker } from "./LabelsFields.tsx";
@@ -57,8 +59,10 @@ function clearDraft(key: string): void {
   }
 }
 
-function emptyDraft(kind: Kind): Draft {
+function emptyDraft(kind: Kind, site: SiteRecord): Draft {
+  const commentsOn = kind === "post" ? site.commentsDefaults?.posts : site.commentsDefaults?.pages;
   return {
+    ...(commentsOn ? { comments: {} } : {}),
     title: "",
     format: kind === "post" ? "markdown" : "blocks",
     blocks: kind === "post" ? undefined : [],
@@ -74,6 +78,42 @@ const FORMAT_OPTIONS: { value: PageFormat; label: string }[] = [
   { value: "markdown", label: "Writing (formatted text / Markdown)" },
   { value: "html", label: "HTML code (advanced)" },
 ];
+
+function CommentsSetting({
+  kind,
+  comments,
+  onChange,
+}: {
+  kind: Kind;
+  comments?: ContentComments;
+  onChange: (c?: ContentComments) => void;
+}) {
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium">Comments</legend>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={Boolean(comments)}
+          onChange={(e) => onChange(e.target.checked ? {} : undefined)}
+        />
+        Show replies from Bluesky as comments under this {kind}
+      </label>
+      {comments ? (
+        <>
+          <CommentsPostField
+            post={comments.post}
+            onChange={(post) => onChange({ ...comments, post })}
+          />
+          <CommentsSortField
+            sort={comments.sort}
+            onChange={(sort) => onChange({ ...comments, sort })}
+          />
+        </>
+      ) : null}
+    </fieldset>
+  );
+}
 
 function ContentWarnings({
   labels,
@@ -136,7 +176,7 @@ export function PageEditor({
   const [slug, setSlug] = useState(entry?.rkey ?? "");
   const [slugTouched, setSlugTouched] = useState(false);
   const [draft, setDraft] = useState<Draft>(() =>
-    entry ? editable(entry.value) : emptyDraft(kind),
+    entry ? editable(entry.value) : emptyDraft(kind, site.value),
   );
   const [blocksKey, setBlocksKey] = useState(0);
   const [dirty, setDirty] = useState(false);
@@ -469,6 +509,11 @@ export function PageEditor({
 
           <Card className="space-y-4">
             <SizeMeter label="Total size" used={recordBytes} max={LIMITS.recordJsonBytes} />
+            <CommentsSetting
+              kind={kind}
+              comments={draft.comments}
+              onChange={(comments) => update({ comments })}
+            />
             <ContentWarnings labels={draft.labels} onChange={(labels) => update({ labels })} />
             <MediaField
               label="Share image (optional)"

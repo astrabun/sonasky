@@ -14,6 +14,7 @@ import {
   LayoutGrid,
   Link,
   MessageSquare,
+  MessagesSquare,
   Minus,
   MoveVertical,
   Plus,
@@ -31,7 +32,9 @@ import { LIMITS, utf8Bytes } from "../../shared/limits.ts";
 import type {
   Block,
   BlockType,
+  BskyCommentsBlock,
   ButtonsBlock,
+  CommentsSort,
   EventBlock,
   GalleryBlock,
   ImageBlock,
@@ -135,6 +138,13 @@ export const BLOCK_CATALOG: CatalogItem[] = [
       ...DEFAULT_LABELS_SETTINGS,
       labelers: [...DEFAULT_LABELS_SETTINGS.labelers],
     }),
+  },
+  {
+    type: `${D}#bskyComments`,
+    name: "Bluesky comments",
+    description: "Replies to your Bluesky post about this page, shown as comments.",
+    icon: MessagesSquare,
+    create: () => ({ $type: `${D}#bskyComments`, sort: "oldest" }),
   },
   {
     type: `${D}#divider`,
@@ -336,19 +346,24 @@ function EventEditor({
   );
 }
 
-/** Paste-a-Bluesky-link field that resolves to the stored identifier. */
-function BskyLinkField({
+/**
+ * Paste-a-Bluesky-link field that resolves to the stored identifier. With
+ * `optional`, emptying it reports "" (unset).
+ */
+export function BskyLinkField({
   label,
   help,
   current,
   resolve,
   onResolved,
+  optional = false,
 }: {
   label: string;
   help: string;
   current: string;
   resolve: (input: string) => Promise<string>;
   onResolved: (value: string) => void;
+  optional?: boolean;
 }) {
   const [input, setInput] = useState(current ? bskyUrlForUri(current) : "");
   const [busy, setBusy] = useState(false);
@@ -372,7 +387,13 @@ function BskyLinkField({
         error={error}
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        onBlur={() => input.trim() && void run()}
+        onBlur={() => {
+          if (input.trim()) void run();
+          else if (optional && current) {
+            setError(null);
+            onResolved("");
+          }
+        }}
         placeholder="https://bsky.app/..."
       />
       {busy ? <p className="text-xs text-neutral-500">Checking...</p> : null}
@@ -381,6 +402,75 @@ function BskyLinkField({
           <Check size={14} aria-hidden /> Linked
         </p>
       ) : null}
+    </div>
+  );
+}
+
+/** Which Bluesky post's replies to show. Shared with the page settings' Comments option. */
+export function CommentsPostField({
+  post,
+  onChange,
+}: {
+  post: string | undefined;
+  onChange: (post: string | undefined) => void;
+}) {
+  return (
+    <BskyLinkField
+      label="Bluesky post (optional)"
+      help="Leave empty to use your own Bluesky post that links to this page (the first one, if you shared it more than once). Comments only show once you've shared it. Paste a post's link to use that one instead."
+      current={post ?? ""}
+      resolve={postUriFrom}
+      onResolved={(uri) => onChange(uri || undefined)}
+      optional
+    />
+  );
+}
+
+/** Comment order. Shared with the page settings' Comments option. */
+export function CommentsSortField({
+  sort,
+  onChange,
+}: {
+  sort: CommentsSort | undefined;
+  onChange: (sort: CommentsSort) => void;
+}) {
+  return (
+    <Select
+      label="Order"
+      value={sort ?? "oldest"}
+      onChange={(e) => onChange(e.target.value as CommentsSort)}
+      options={[
+        { value: "oldest", label: "Oldest first" },
+        { value: "newest", label: "Newest first" },
+        { value: "likes", label: "Most liked first" },
+      ]}
+    />
+  );
+}
+
+function BskyCommentsFields({
+  block,
+  onChange,
+}: {
+  block: BskyCommentsBlock;
+  onChange: (b: BskyCommentsBlock) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <CommentsPostField post={block.post} onChange={(post) => onChange({ ...block, post })} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <TextInput
+          label="Heading (optional)"
+          placeholder="Comments"
+          value={block.title ?? ""}
+          onChange={(e) => onChange({ ...block, title: e.target.value || undefined })}
+        />
+        <CommentsSortField sort={block.sort} onChange={(sort) => onChange({ ...block, sort })} />
+      </div>
+      <p className="text-xs text-neutral-500 dark:text-neutral-400">
+        Replies the post's author hid on Bluesky, and replies labeled as adult or graphic, aren't
+        shown.
+      </p>
     </div>
   );
 }
@@ -505,6 +595,8 @@ function BlockFields({ block, onChange }: { block: Block; onChange: (b: Block) =
           onResolved={(uri) => onChange({ ...block, uri })}
         />
       );
+    case `${D}#bskyComments`:
+      return <BskyCommentsFields block={block} onChange={onChange} />;
     case `${D}#labels`:
       return <LabelsFields value={block} onChange={(v) => onChange({ ...block, ...v })} />;
     case `${D}#spacer`:

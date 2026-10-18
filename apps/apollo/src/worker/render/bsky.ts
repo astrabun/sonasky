@@ -1,5 +1,6 @@
 /**
- * Static Bluesky cards for the bskyPost / bskyProfile / starterPack blocks.
+ * Static Bluesky cards for the bskyPost / bskyProfile / starterPack blocks, and
+ * reply threads for Bluesky comments.
  * Data comes from the public AppView at render time - no third-party iframes or
  * scripts in the page. Content Bluesky has labeled as adult/graphic is not
  * reproduced; the card just links out.
@@ -8,6 +9,7 @@
 import { WARN_LABELS } from "../moderation.ts";
 
 const APPVIEW = "https://public.api.bsky.app";
+const CONSTELLATION = "https://constellation.microcosm.blue";
 const HIDE = new Set(["!hide", "!takedown", "!warn"]);
 
 interface Label {
@@ -46,6 +48,9 @@ export interface StarterPackCard {
   memberCount?: number;
   hidden: boolean;
 }
+
+/** atproto record key timestamp: 13 base32-sortable characters. */
+const TID_RE = /^[234567abcdefghij][234567abcdefghijklmnopqrstuvwxyz]{12}$/;
 
 function flagged(labels: Label[] | undefined): boolean {
   return (labels ?? []).some((l) => !l.neg && (WARN_LABELS.has(l.val) || HIDE.has(l.val)));
@@ -104,6 +109,176 @@ export async function fetchPostCards(uris: string[]): Promise<Map<string, PostCa
     }
   }
   return out;
+}
+
+/** One reply shown as a comment, with the replies to it. Text is plain. */
+export interface Comment {
+  url: string;
+  author: {
+    did: string;
+    handle: string;
+    displayName?: string;
+    /** Always a cdn.bsky.app address when set. */
+    avatar?: string;
+    url: string;
+  };
+  text: string;
+  createdAt: string;
+  likeCount: number;
+  /** The reply is by whoever wrote the post. */
+  byPostAuthor: boolean;
+  replies: Comment[];
+}
+
+export interface CommentThread {
+  postUrl: string;
+  replyCount: number;
+  comments: Comment[];
+}
+
+interface ThreadNode {
+  $type?: string;
+  post?: {
+    uri: string;
+    author: ProfileView;
+    record: { text?: string; createdAt?: string };
+    indexedAt?: string;
+    labels?: Label[];
+    likeCount?: number;
+    replyCount?: number;
+    threadgate?: Threadgate;
+  };
+  replies?: ThreadNode[];
+}
+
+interface Threadgate {
+  record?: { hiddenReplies?: unknown };
+}
+
+const THREAD_VIEW = "app.bsky.feed.defs#threadViewPost";
+
+/**
+ * Replies to a post, as a tree of comments. Left out, along with the replies
+ * under them: replies the post's author hid (threadgate), deleted or blocked
+ * posts, and replies labeled (or by accounts labeled) as adult, graphic or
+ * hidden. `limit` is filled breadth-first, so one long side thread can't push
+ * out other top-level replies.
+ */
+export async function fetchComments(
+  uri: string,
+  opts: { depth: number; limit: number },
+): Promise<CommentThread | null> {
+  const parts = parseAtUri(uri);
+  if (!parts || parts.collection !== "app.bsky.feed.post") return null;
+  const res = await appview<{ thread?: ThreadNode; threadgate?: Threadgate }>(
+    "app.bsky.feed.getPostThread",
+    [
+      ["uri", uri],
+      ["depth", String(opts.depth)],
+      ["parentHeight", "0"],
+    ],
+  );
+  const root = res?.thread;
+  if (!root?.post || (root.$type && root.$type !== THREAD_VIEW)) return null;
+  const hiddenList = (res?.threadgate ?? root.post.threadgate)?.record?.hiddenReplies;
+  const hidden = new Set(Array.isArray(hiddenList) ? hiddenList : []);
+  const rootAuthor = root.post.author.did;
+
+  const visible = (n: ThreadNode): boolean =>
+    Boolean(n.post) &&
+    (!n.$type || n.$type === THREAD_VIEW) &&
+    !hidden.has(n.post!.uri) &&
+    !flagged(n.post!.labels) &&
+    !flagged(n.post!.author.labels) &&
+    parseAtUri(n.post!.uri) !== null;
+
+  // Pick which replies to show, a level at a time, up to the limit.
+  const picked = new Set<ThreadNode>();
+  let level: ThreadNode[] = root.replies ?? [];
+  for (let d = 1; d <= opts.depth && level.length && picked.size < opts.limit; d++) {
+    const next: ThreadNode[] = [];
+    for (const n of level) {
+      if (picked.size >= opts.limit) break;
+      if (!visible(n)) continue;
+      picked.add(n);
+      next.push(...(n.replies ?? []));
+    }
+    level = next;
+  }
+
+  const build = (nodes: ThreadNode[] | undefined): Comment[] =>
+    (nodes ?? []).flatMap((n) => {
+      if (!picked.has(n) || !n.post) return [];
+      const p = n.post;
+      const rkey = parseAtUri(p.uri)?.rkey ?? "";
+      return [
+        {
+          url: `https://bsky.app/profile/${p.author.did}/post/${rkey}`,
+          author: {
+            did: p.author.did,
+            handle: p.author.handle,
+            displayName: p.author.displayName || undefined,
+            avatar: safeAvatar(p.author.avatar),
+            url: `https://bsky.app/profile/${p.author.did}`,
+          },
+          text: p.record.text ?? "",
+          createdAt: p.record.createdAt ?? p.indexedAt ?? "",
+          likeCount: p.likeCount ?? 0,
+          byPostAuthor: p.author.did === rootAuthor,
+          replies: build(n.replies),
+        },
+      ];
+    });
+
+  return {
+    postUrl: `https://bsky.app/profile/${root.post.author.did}/post/${parts.rkey}`,
+    replyCount: root.post.replyCount ?? 0,
+    comments: build(root.replies),
+  };
+}
+
+/** Where a Bluesky post can link to a page: a link card, or a link in the text. */
+const LINK_PATHS = [
+  ".embed.external.uri",
+  ".embed.media.external.uri",
+  ".facets[].features[app.bsky.richtext.facet#link].uri",
+  ".facets[app.bsky.richtext.facet].features[app.bsky.richtext.facet#link].uri",
+];
+
+/**
+ * The earliest post by `did` that links to any of `urls`, from the
+ * Constellation backlink index, as an at:// uri. Null when there isn't one
+ * (or the index can't be reached).
+ */
+export async function findSharePost(did: string, urls: string[]): Promise<string | null> {
+  const lookups = urls.flatMap((target) =>
+    LINK_PATHS.map(async (path) => {
+      const url = new URL("/links", CONSTELLATION);
+      url.searchParams.set("target", target);
+      url.searchParams.set("collection", "app.bsky.feed.post");
+      url.searchParams.set("path", path);
+      url.searchParams.set("did", did);
+      url.searchParams.set("limit", "100");
+      try {
+        const res = await fetch(url, {
+          headers: { accept: "application/json", "user-agent": "SonaSky Apollo (comments)" },
+        });
+        if (!res.ok) return [];
+        const body = (await res.json()) as {
+          linking_records?: { did: string; collection: string; rkey: string }[];
+        };
+        return (body.linking_records ?? []).filter(
+          (r) => r.did === did && r.collection === "app.bsky.feed.post" && TID_RE.test(r.rkey),
+        );
+      } catch {
+        return [];
+      }
+    }),
+  );
+  // Post rkeys are TIDs, which sort by creation time.
+  const rkeys = (await Promise.all(lookups)).flat().map((r) => r.rkey);
+  const earliest = rkeys.sort()[0];
+  return earliest ? `at://${did}/app.bsky.feed.post/${earliest}` : null;
 }
 
 export async function fetchProfileCard(did: string): Promise<ProfileCard | null> {
