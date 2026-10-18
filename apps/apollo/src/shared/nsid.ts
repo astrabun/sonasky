@@ -12,6 +12,8 @@ export const NSID_MEDIA = "app.sonasky.apollo.media";
 export const NSID_RING = "app.sonasky.apollo.ring";
 /** A site's side of a ring membership, in the member's repo. rkey derived from the ring uri. */
 export const NSID_RING_MEMBER = "app.sonasky.apollo.ringMember";
+/** A like of someone's site, in the liker's repo. rkey derived from the site uri. */
+export const NSID_LIKE = "app.sonasky.apollo.like";
 /** Shared defs (block union). Not a collection. */
 export const NSID_DEFS = "app.sonasky.apollo.defs";
 
@@ -28,6 +30,7 @@ export const APOLLO_COLLECTIONS = [
   NSID_MEDIA,
   NSID_RING,
   NSID_RING_MEMBER,
+  NSID_LIKE,
 ] as const;
 
 export type ApolloCollection = (typeof APOLLO_COLLECTIONS)[number];

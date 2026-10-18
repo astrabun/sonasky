@@ -1,8 +1,10 @@
 /**
- * Editor API (Apollo host only). Every route needs a session; mutations also
- * need a same-origin `Origin` header, a session with Apollo's full scopes, a
- * clean blocklist entry and write budget. All record bodies pass through
- * `validate/records.ts` before they reach the PDS.
+ * Editor API (Apollo host only). Apart from the public Discover, stats and
+ * like-count routes, every route needs a session; mutations also need a
+ * same-origin `Origin` header, a session with the right scopes (Apollo's full
+ * scopes, or the visitor scope for likes), a clean blocklist entry and write
+ * budget. All record bodies pass through `validate/records.ts` before they
+ * reach the PDS.
  */
 
 import type { Agent } from "@atproto/api";
@@ -13,6 +15,7 @@ import type {
   DiscoverResponse,
   DiscoverSite,
   Entry,
+  LikeStatusResponse,
   MediaEntry,
   MediaUploadResponse,
   MeResponse,
@@ -26,6 +29,8 @@ import type {
   RingRef,
   RingsResponse,
   SiteBundle,
+  SiteDirectoryResponse,
+  SiteLookupResponse,
   StatsResponse,
 } from "../../shared/dto.ts";
 import { LIMITS, utf8Bytes } from "../../shared/limits.ts";
@@ -33,6 +38,7 @@ import { BSKY_LABELER_DID, SONASKY_DID } from "../../shared/moderation.ts";
 import {
   isApolloCollection,
   NSID_LAYOUT,
+  NSID_LIKE,
   NSID_MEDIA,
   NSID_PAGE,
   NSID_POST,
@@ -47,6 +53,7 @@ import {
 } from "../../shared/nsid.ts";
 import type {
   LayoutRecord,
+  LikeRecord,
   MediaRecord,
   PageRecord,
   PostRecord,
@@ -56,11 +63,15 @@ import type {
   SiteRecord,
   StyleRecord,
 } from "../../shared/records.ts";
+import { DEFAULT_SITE_SORT, isSiteSort, paginate, sortSites } from "../../shared/siteDirectory.ts";
 import { isSlug, RESERVED_PAGE_SLUGS } from "../../shared/slug.ts";
 import { origin, type AppEnv } from "../env.ts";
-import { discoverSite } from "../discover.ts";
+import { discoverSite, featureable } from "../discover.ts";
+import { likeCount, likeRkey, siteUri } from "../likes.ts";
 import { ringDirectory } from "../ring-directory.ts";
-import { resolveActor } from "../atproto/identity.ts";
+import { forgetLikeCounts, siteDirectory } from "../site-directory.ts";
+import { isDid, resolveActor } from "../atproto/identity.ts";
+import { getPublicRecord } from "../atproto/repo.ts";
 import { isBlocked } from "../moderation.ts";
 import {
   forgetRoster,
@@ -82,6 +93,7 @@ import {
   SLUG_VALIDATORS,
   parseRingUri,
   validateLayout,
+  validateLike,
   validatePage,
   validatePost,
   validateRing,
@@ -207,6 +219,23 @@ const requireEditor: MiddlewareHandler<Env> = async (c, next) => {
   await next();
 };
 
+/** Liking: a session that may write likes (visitor or full scope), not blocked, within rate limit. */
+const requireLiker: MiddlewareHandler<Env> = async (c, next) => {
+  const session = c.get("session");
+  if (!session.canLike) return fail(c, 403, { error: "reauth_required" });
+  if (await isBlocked(c.env, session.did)) {
+    return fail(c, 403, { error: "blocked", message: "This account can't like sites on Apollo." });
+  }
+  const { success } = await c.env.WRITE_LIMITER.limit({ key: `like:${session.did}` });
+  if (!success) {
+    return fail(c, 429, {
+      error: "rate_limited",
+      message: "Slow down a little and try again in a minute.",
+    });
+  }
+  await next();
+};
+
 apiRoutes.onError((err, c) => {
   if (err instanceof ValidationError) {
     return c.json<ApiError>(
@@ -233,6 +262,7 @@ apiRoutes.get("/api/me", async (c) => {
     did: session.did,
     handle,
     reauthRequired: !session.scopesOk,
+    canLike: session.canLike,
     siteUrl: siteUrlFor(c.env, session.did, handle),
   });
 });
@@ -263,6 +293,102 @@ apiRoutes.get("/api/discover/rings", async (c) => {
     console.error("ring directory error", err);
     return c.json<RingDirectoryResponse>({ rings: null }, 200, { "cache-control": "no-store" });
   }
+});
+
+/** Public: one page of the site directory. `?sort=` (see SITE_SORTS) and 1-based `?page=`. */
+apiRoutes.get("/api/discover/sites", async (c) => {
+  const rawSort = c.req.query("sort");
+  const sort = isSiteSort(rawSort) ? rawSort : DEFAULT_SITE_SORT;
+  try {
+    const sites = sortSites(await siteDirectory(c.env), sort);
+    const { items, page, pages } = paginate(sites, Number(c.req.query("page") ?? 1));
+    // Short: like counts (and so the "most liked" order) change within a minute.
+    return c.json<SiteDirectoryResponse>({ sites: items, page, pages, total: sites.length }, 200, {
+      "cache-control": "public, max-age=30",
+    });
+  } catch (err) {
+    console.error("site directory error", err);
+    return c.json<SiteDirectoryResponse>({ sites: null, page: 1, pages: 1, total: 0 }, 200, {
+      "cache-control": "no-store",
+    });
+  }
+});
+
+/** Public: does this handle (or DID) have a site we can show? */
+apiRoutes.get("/api/discover/lookup", async (c) => {
+  const raw = (c.req.query("actor") ?? "").trim().replace(/^@/, "");
+  const actor = isDid(raw) ? raw : raw.toLowerCase();
+  const headers = { "cache-control": "public, max-age=60" };
+  const identity = actor
+    ? await resolveActor(actor, c.env.HANDLE_RESOLVER_URL ?? "https://bsky.social")
+    : null;
+  if (!identity)
+    return c.json<SiteLookupResponse>({ site: null, reason: "not_found" }, 200, headers);
+  const handle = identity.handle ? { handle: identity.handle } : {};
+  const found = await featureable(c.env, identity.did, identity);
+  if (found) return c.json<SiteLookupResponse>({ site: found.card, ...handle }, 200, headers);
+  const record = await getPublicRecord<SiteRecord>(
+    identity.pds,
+    identity.did,
+    NSID_SITE,
+    SITE_RKEY,
+  ).catch(() => null);
+  const reason = record?.value?.$type === NSID_SITE ? "unavailable" : "no_site";
+  return c.json<SiteLookupResponse>({ site: null, reason, ...handle }, 200, headers);
+});
+
+// Likes
+
+function siteDidFrom(value: unknown): string {
+  if (typeof value !== "string" || !isDid(value)) {
+    throw new ValidationError("site", "That isn't a valid site.");
+  }
+  return value;
+}
+
+/** Public: a site's like count, and whether the caller likes it. */
+apiRoutes.get("/api/likes", async (c) => {
+  const site = siteDidFrom(c.req.query("site"));
+  const session = await getSessionAgent(c);
+  const [count, liked] = await Promise.all([
+    likeCount(site),
+    session?.canLike
+      ? likeRkey(site).then(async (rkey) => {
+          const own = await getOwn<LikeRecord>(session.agent, NSID_LIKE, rkey);
+          return own?.value.subject === siteUri(site);
+        })
+      : false,
+  ]);
+  return c.json<LikeStatusResponse>({ count, liked }, 200, { "cache-control": "no-store" });
+});
+
+apiRoutes.post("/api/likes", requireSession, requireSameOrigin, requireLiker, async (c) => {
+  const { agent } = c.get("session");
+  const body = (await c.req.json()) as { site?: unknown };
+  const site = siteDidFrom(body.site);
+  const owner = await resolveActor(site, c.env.HANDLE_RESOLVER_URL ?? "https://bsky.social");
+  const record = owner
+    ? await getPublicRecord<SiteRecord>(owner.pds, site, NSID_SITE, SITE_RKEY).catch(() => null)
+    : null;
+  if (record?.value?.$type !== NSID_SITE || (await isBlocked(c.env, site))) {
+    return fail(c, 404, { error: "not_found", message: "This site doesn't exist." });
+  }
+  const like = validateLike({ subject: siteUri(site), createdAt: new Date().toISOString() });
+  const res = await put(agent, NSID_LIKE, await likeRkey(site), like);
+  await forgetLikeCounts();
+  return c.json<PutResponse>(res);
+});
+
+apiRoutes.delete("/api/likes", requireSession, requireSameOrigin, requireLiker, async (c) => {
+  const { agent, did } = c.get("session");
+  const site = siteDidFrom(c.req.query("site"));
+  await agent.com.atproto.repo.deleteRecord({
+    repo: did,
+    collection: NSID_LIKE,
+    rkey: await likeRkey(site),
+  });
+  await forgetLikeCounts();
+  return c.json({ ok: true });
 });
 
 // Site bundle

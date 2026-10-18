@@ -1,0 +1,24 @@
+{
+  "lexicon": 1,
+  "id": "app.sonasky.apollo.like",
+  "description": "Documentation only. A like of someone's Apollo site, in the liker's repo. Deleting it removes the like.",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "any",
+      "description": "rkey is the first 26 base32 characters of sha256(subject at-uri), so an account likes a site at most once and a like can be checked with one getRecord.",
+      "record": {
+        "type": "object",
+        "required": ["subject", "createdAt"],
+        "properties": {
+          "subject": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "at://<site owner did>/app.sonasky.apollo/self"
+          },
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}

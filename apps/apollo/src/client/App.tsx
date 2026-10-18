@@ -9,6 +9,7 @@ import { Card, Spinner } from "./components/ui.tsx";
 import { DiscoverPage } from "./pages/DiscoverPage.tsx";
 import { HelpPage } from "./pages/HelpPage.tsx";
 import { Landing } from "./pages/Landing.tsx";
+import { LikeSignInPage } from "./pages/LikeSignInPage.tsx";
 import { ReportPage } from "./pages/ReportPage.tsx";
 
 // The editor pulls in tiptap + CodeMirror; keep them out of the landing/report pages.
@@ -23,7 +24,7 @@ function ReauthNotice() {
       <h1 className="text-lg font-semibold">Please sign in again</h1>
       <p className="text-sm text-neutral-600 dark:text-neutral-300">
         Apollo needs updated permission to edit your site (for example, if you last signed in only
-        to send a report).
+        to like a site or send a report).
       </p>
       <SignIn returnTo={pathname.startsWith("/edit") ? `${pathname}${search}` : "/edit"} />
     </Card>
@@ -125,9 +126,10 @@ export default function App() {
                 }
               />
               <Route path="/report" element={<ReportPage me={me} />} />
+              <Route path="/like" element={<LikeSignInPage me={me} />} />
               <Route path="/help" element={<HelpPage />} />
-              <Route path="/discover" element={<DiscoverPage tab="sites" />} />
-              <Route path="/discover/rings" element={<DiscoverPage tab="rings" />} />
+              <Route path="/discover" element={<DiscoverPage tab="sites" me={me} />} />
+              <Route path="/discover/rings" element={<DiscoverPage tab="rings" me={me} />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           )}

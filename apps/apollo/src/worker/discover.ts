@@ -5,7 +5,8 @@
  */
 
 import type { DiscoverSite } from "../shared/dto.ts";
-import { resolveActor } from "./atproto/identity.ts";
+import type { SiteRecord } from "../shared/records.ts";
+import { resolveActor, type ResolvedIdentity } from "./atproto/identity.ts";
 import { origin, type AppEnv } from "./env.ts";
 import { checkModeration, isBlocked } from "./moderation.ts";
 import { fetchProfileCard, safeAvatar } from "./render/bsky.ts";
@@ -15,9 +16,22 @@ import { listSiteDids } from "./stats.ts";
 /** Candidates tried per request before giving up. */
 const MAX_TRIES = 6;
 
-async function featureable(env: AppEnv, did: string): Promise<DiscoverSite | null> {
+export interface FeaturedSite {
+  card: DiscoverSite;
+  record: SiteRecord;
+}
+
+/**
+ * The site's card if it can be featured, else null. Shared by the random pick,
+ * the directory and handle lookup. Pass `identity` when it's already resolved.
+ */
+export async function featureable(
+  env: AppEnv,
+  did: string,
+  identity?: ResolvedIdentity | null,
+): Promise<FeaturedSite | null> {
   if (await isBlocked(env, did)) return null;
-  const identity = await resolveActor(did, env.HANDLE_RESOLVER_URL ?? "https://bsky.social");
+  identity ??= await resolveActor(did, env.HANDLE_RESOLVER_URL ?? "https://bsky.social");
   if (!identity) return null;
   const [loaded, profile] = await Promise.all([
     loadSite(identity.pds, did, { kind: "page" }),
@@ -30,13 +44,16 @@ async function featureable(env: AppEnv, did: string): Promise<DiscoverSite | nul
   const site = loaded.site.value;
   const description = site.og?.description ?? site.description;
   return {
-    did,
-    handle: identity.handle,
-    url: `${origin(env.PUBLIC_URL)}/@${identity.handle ?? did}`,
-    title: site.og?.title || site.title,
-    ...(description ? { description } : {}),
-    ...(profile?.profile.displayName ? { displayName: profile.profile.displayName } : {}),
-    ...(safeAvatar(profile?.profile.avatar) ? { avatar: profile?.profile.avatar } : {}),
+    card: {
+      did,
+      handle: identity.handle,
+      url: `${origin(env.PUBLIC_URL)}/@${identity.handle ?? did}`,
+      title: site.og?.title || site.title,
+      ...(description ? { description } : {}),
+      ...(profile?.profile.displayName ? { displayName: profile.profile.displayName } : {}),
+      ...(safeAvatar(profile?.profile.avatar) ? { avatar: profile?.profile.avatar } : {}),
+    },
+    record: site,
   };
 }
 
@@ -54,7 +71,7 @@ export async function discoverSite(env: AppEnv, exclude?: string): Promise<Disco
   for (const did of picks.slice(0, n)) {
     try {
       const found = await featureable(env, did);
-      if (found) return found;
+      if (found) return found.card;
     } catch (err) {
       console.warn("discover: candidate failed", did, err);
     }

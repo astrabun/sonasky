@@ -27,7 +27,7 @@ import { buildAtprotoLoopbackClientMetadata } from "@atproto/oauth-types";
 import type { AppEnv } from "../env.ts";
 import { edgeFetch } from "./fetch.ts";
 import { makeSessionStore, makeStateStore } from "./kv-store.ts";
-import { APOLLO_COLLECTIONS } from "../../shared/nsid.ts";
+import { APOLLO_COLLECTIONS, NSID_LIKE } from "../../shared/nsid.ts";
 
 /**
  * Granular scopes: write access to Apollo's own collections only, blob uploads
@@ -45,18 +45,25 @@ const OAUTH_SCOPE = [
   "rpc:com.atproto.moderation.createReport?aud=*",
 ].join(" ");
 
+const LIKE_SCOPE = `repo:${NSID_LIKE}`;
+
 /**
- * Narrower scope for visitors who only want to report a site: no repo or blob
- * access at all. Such a session can report, and is asked to sign in again
- * (with OAUTH_SCOPE) if it tries to edit.
+ * Narrower scope for visitors who only want to like or report sites: write
+ * access to likes only, no blobs. Such a session can like and report, and is
+ * asked to sign in again (with OAUTH_SCOPE) if it tries to edit.
  */
-const REPORT_SCOPE = "atproto rpc:com.atproto.moderation.createReport?aud=*";
+const VISITOR_SCOPE = `atproto ${LIKE_SCOPE} rpc:com.atproto.moderation.createReport?aud=*`;
 
 /** True when a session's granted scope covers everything Apollo currently asks for. */
 export function hasRequiredScopes(granted: string | undefined): boolean {
   if (!granted) return false;
   const have = new Set(granted.split(/\s+/));
   return OAUTH_SCOPE.split(" ").every((scope) => have.has(scope));
+}
+
+/** True when a session may write likes (full or visitor scope). */
+export function canLike(granted: string | undefined): boolean {
+  return !!granted && granted.split(/\s+/).includes(LIKE_SCOPE);
 }
 const SIGNING_ALG = "ES256";
 
@@ -161,4 +168,4 @@ export async function getOAuthClient(env: AppEnv): Promise<OAuthClient> {
   });
 }
 
-export { OAUTH_SCOPE, REPORT_SCOPE };
+export { OAUTH_SCOPE, VISITOR_SCOPE };

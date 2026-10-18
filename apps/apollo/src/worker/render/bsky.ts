@@ -51,6 +51,17 @@ export interface StarterPackCard {
 
 /** atproto record key timestamp: 13 base32-sortable characters. */
 const TID_RE = /^[234567abcdefghij][234567abcdefghijklmnopqrstuvwxyz]{12}$/;
+const TID_CHARS = "234567abcdefghijklmnopqrstuvwxyz";
+
+/**
+ * A TID's timestamp, as an ISO time. The last 2 chars (10 bits) are the clock
+ * id; the first 11 are microseconds since the epoch.
+ */
+export function tidTime(tid: string): string {
+  let micros = 0;
+  for (const ch of tid.slice(0, 11)) micros = micros * 32 + TID_CHARS.indexOf(ch);
+  return new Date(Math.floor(micros / 1000)).toISOString();
+}
 
 function flagged(labels: Label[] | undefined): boolean {
   return (labels ?? []).some((l) => !l.neg && (WARN_LABELS.has(l.val) || HIDE.has(l.val)));
@@ -245,40 +256,87 @@ const LINK_PATHS = [
   ".facets[app.bsky.richtext.facet].features[app.bsky.richtext.facet#link].uri",
 ];
 
+interface LinkingRecord {
+  did: string;
+  collection: string;
+  rkey: string;
+}
+
 /**
- * The earliest post by `did` that links to any of `urls`, from the
- * Constellation backlink index, as an at:// uri. Null when there isn't one
- * (or the index can't be reached).
+ * Posts that link to any of `urls`, from the Constellation backlink index,
+ * optionally only those by `did`. Empty when there are none (or the index
+ * can't be reached).
  */
-export async function findSharePost(did: string, urls: string[]): Promise<string | null> {
+async function linkingPosts(urls: string[], did?: string): Promise<LinkingRecord[]> {
   const lookups = urls.flatMap((target) =>
     LINK_PATHS.map(async (path) => {
       const url = new URL("/links", CONSTELLATION);
       url.searchParams.set("target", target);
       url.searchParams.set("collection", "app.bsky.feed.post");
       url.searchParams.set("path", path);
-      url.searchParams.set("did", did);
+      if (did) url.searchParams.set("did", did);
       url.searchParams.set("limit", "100");
       try {
         const res = await fetch(url, {
-          headers: { accept: "application/json", "user-agent": "SonaSky Apollo (comments)" },
+          headers: { accept: "application/json", "user-agent": "SonaSky Apollo (links)" },
         });
         if (!res.ok) return [];
-        const body = (await res.json()) as {
-          linking_records?: { did: string; collection: string; rkey: string }[];
-        };
+        const body = (await res.json()) as { linking_records?: LinkingRecord[] };
         return (body.linking_records ?? []).filter(
-          (r) => r.did === did && r.collection === "app.bsky.feed.post" && TID_RE.test(r.rkey),
+          (r) =>
+            (!did || r.did === did) && r.collection === "app.bsky.feed.post" && TID_RE.test(r.rkey),
         );
       } catch {
         return [];
       }
     }),
   );
+  return (await Promise.all(lookups)).flat();
+}
+
+/**
+ * The earliest post by `did` that links to any of `urls`, from the
+ * Constellation backlink index, as an at:// uri. Null when there isn't one
+ * (or the index can't be reached).
+ */
+export async function findSharePost(did: string, urls: string[]): Promise<string | null> {
   // Post rkeys are TIDs, which sort by creation time.
-  const rkeys = (await Promise.all(lookups)).flat().map((r) => r.rkey);
-  const earliest = rkeys.sort()[0];
+  const earliest = (await linkingPosts(urls, did)).map((r) => r.rkey).sort()[0];
   return earliest ? `at://${did}/app.bsky.feed.post/${earliest}` : null;
+}
+
+/** Newest candidate posts checked against the AppView for `lastLinkedAt`. */
+const LINKED_CANDIDATES = 5;
+/** Allowance for clock skew before a TID counts as "in the future". */
+const TID_SKEW_MS = 5 * 60_000;
+
+/**
+ * When anyone last posted a link to any of `urls`, as an ISO time; null when
+ * nobody has. rkeys are user-chosen, so TIDs only pick the candidates (future
+ * ones are dropped) and the time is the AppView's `indexedAt`, which also
+ * confirms the post still exists.
+ */
+export async function lastLinkedAt(urls: string[]): Promise<string | null> {
+  const now = Date.now() + TID_SKEW_MS;
+  // A post can match more than one link path, hence the Set.
+  const candidates = [
+    ...new Set(
+      (await linkingPosts(urls))
+        .filter((r) => Date.parse(tidTime(r.rkey)) <= now)
+        .sort((a, b) => b.rkey.localeCompare(a.rkey))
+        .map((r) => `at://${r.did}/app.bsky.feed.post/${r.rkey}`),
+    ),
+  ].slice(0, LINKED_CANDIDATES);
+  if (candidates.length === 0) return null;
+  const res = await appview<{ posts: { indexedAt?: string; labels?: Label[] }[] }>(
+    "app.bsky.feed.getPosts",
+    candidates.map((uri) => ["uris", uri]),
+  );
+  const times = (res?.posts ?? [])
+    .filter((p) => !flagged(p.labels) && p.indexedAt && !Number.isNaN(Date.parse(p.indexedAt)))
+    .map((p) => p.indexedAt as string)
+    .sort();
+  return times.at(-1) ?? null;
 }
 
 export async function fetchProfileCard(did: string): Promise<ProfileCard | null> {

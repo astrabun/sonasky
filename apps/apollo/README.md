@@ -56,6 +56,7 @@ byte caps in `src/shared/limits.ts`).
 - `app.sonasky.apollo.ring` / `<slug>`: a webring (name, index page content, ordered member DIDs).
   Lives in the owner's repo; owning one doesn't need a site
 - `app.sonasky.apollo.ringMember` / `<hash of ring uri>`: a site's acceptance of a ring invite
+- `app.sonasky.apollo.like` / `<hash of site uri>`: a like of someone's site, in the liker's repo
 
 References between records are same-repo rkeys only. Records stay small (<=100 KB JSON, <=64 KB page
 body, <=32 KB CSS/JS/layout). Use more pages rather than bigger ones.
@@ -81,6 +82,37 @@ appended even after custom layouts, since showing it is the point of membership.
   `listReposByCollection`, and acceptances are counted from Constellation backlinks. The result is
   cached for 10 minutes. Sorting, search and random picks run in the browser
   (`src/shared/ringDirectory.ts`).
+
+## Discover
+
+`/discover` has three ways in:
+
+- **Look up a handle**: Bluesky's handle typeahead (public AppView), then
+  `GET /api/discover/lookup?actor=` says whether that account has a site Apollo will show, and
+  links to it.
+- **Random site**: `GET /api/discover` (`src/worker/discover.ts`). Only sites that pass the same
+  gate as the directory (not blocked, no hide/warn labels, a working home page) are picked.
+- **Directory**: `GET /api/discover/sites?sort=&page=` (`src/worker/site-directory.ts`). The
+  site pool comes from `listReposByCollection`, each site goes through the same gate, and the result
+  is cached for 10 minutes. Sorting and paging (`src/shared/siteDirectory.ts`) run per request:
+  most liked, newest, oldest, recently updated, or recently shared on Bluesky. "Recently shared" is
+  the newest Bluesky post by anyone linking to the site's root URL, found with Constellation. Post
+  rkeys are user-chosen, so a TID only picks the candidates (future-dated ones are dropped), and the
+  time used is the AppView's `indexedAt`.
+
+## Likes
+
+A like is an `app.sonasky.apollo.like` record in the liker's repo, with `subject` set to the site's
+`at://<did>/app.sonasky.apollo/self`. Its rkey is a hash of that uri, so an account has at most
+one like per site and checking for it is one `getRecord`. Counts come from Constellation
+(`/links/count/distinct-dids`, `src/worker/likes.ts`), so extra records written by other clients
+count only once per account.
+
+- **Where:** the viewer's top bar (`/_apollo/shell.js` calls `/api/likes`; the shell CSP allows
+  `connect-src 'self'` for it) and Discover cards.
+- **Who:** anyone with a Bluesky account. Visitors sign in at `/like` (`purpose=like`) with the
+  visitor scope: `repo:app.sonasky.apollo.like` and `createReport`, with no other repo or blob access.
+  The same scope is used for report-only sign-ins. Editors' full scope includes likes.
 
 ## Bluesky comments
 
@@ -145,7 +177,7 @@ browsers only contact Apollo, and the site CSP allows fonts and font CSS only fr
 - Every page, post, site and the account itself can be reported from the viewer's **Report** link
   (`/report`). This sends `com.atproto.moderation.createReport` with a strongRef subject to
   Bluesky's moderation service (default) or SonaSky's. Visitors who only want to report can sign in
-  with a report-only scope (`purpose=report`), which grants no repo access.
+  with the visitor scope (`purpose=report`), which grants no repo access beyond likes.
 - On view: `!takedown` / `!suspend` / `!hide` labels (Bluesky labeler + AppView) or an inactive repo
   --> 451. Adult/graphic labels, including the author's self-labels --> click-through warning.
 - Admin blocklist: `wrangler kv key put --binding APOLLO_ADMIN "block:<did>" "<reason>"` blocks

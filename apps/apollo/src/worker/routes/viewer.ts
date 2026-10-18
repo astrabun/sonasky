@@ -56,6 +56,11 @@ body{display:flex;flex-direction:column}
 .bar .home{display:inline-flex;align-items:center;gap:4px}
 .bar .title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
 .bar .title a{color:var(--muted)}
+.bar .like{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border:1px solid var(--border);border-radius:999px;background:none;color:var(--muted);font:inherit;cursor:pointer}
+.bar .like:hover{color:var(--text)}
+.bar .like[aria-pressed="true"]{color:#e11d48;border-color:#e11d48}
+.bar .like[aria-pressed="true"] svg{fill:currentColor}
+.bar .like:disabled{opacity:.6;cursor:default}
 iframe{flex:1;width:100%;border:0;display:block;background:#fff}`;
 
 async function renderShell(c: Ctx, rawActor: string, spec: TargetSpec): Promise<Response> {
@@ -157,6 +162,7 @@ async function renderShell(c: Ctx, rawActor: string, spec: TargetSpec): Promise<
     favicon,
     frameSrc,
     reportHref: `/report?${reportParams.toString()}`,
+    likeable: true,
     identity,
     ucOrigin,
     analytics: swetrixConfig(c.env),
@@ -215,6 +221,8 @@ function shellResponse(opts: {
   favicon: string;
   frameSrc: string;
   reportHref: string;
+  /** Show the Like button for this site (site pages only, not ring pages). */
+  likeable?: boolean;
   identity: { did: string; handle?: string };
   ucOrigin: string;
   analytics: SwetrixConfig | null;
@@ -234,9 +242,11 @@ function shellResponse(opts: {
     opts.favicon,
   )}"><style>${SHELL_STYLES}</style></head><body><div class="bar"><a href="/" title="SonaSky Apollo" class="home">${icon("sun")} Apollo</a><span class="title">${esc(
     opts.barTitle,
-  )} <a href="${esc(`https://bsky.app/profile/${identity.did}`)}">@${esc(identity.handle ?? identity.did)}</a></span><a href="${esc(
-    opts.reportHref,
-  )}">Report</a></div><iframe id="apollo-site" title="${esc(
+  )} <a href="${esc(`https://bsky.app/profile/${identity.did}`)}">@${esc(identity.handle ?? identity.did)}</a></span>${
+    opts.likeable
+      ? `<button type="button" class="like" id="apollo-like" data-site="${esc(identity.did)}" aria-pressed="false" aria-label="Like this site">${icon("heart")}<span></span></button>`
+      : ""
+  }<a href="${esc(opts.reportHref)}">Report</a></div><iframe id="apollo-site" title="${esc(
     opts.barTitle,
   )}" sandbox="allow-scripts" referrerpolicy="no-referrer" src="${esc(
     opts.frameSrc,
@@ -439,6 +449,55 @@ function shellSource(): string {
         }),
       }).catch(function () {});
     } catch (e) {}
+  }
+  var like = document.getElementById("apollo-like");
+  if (like) {
+    var site = like.getAttribute("data-site");
+    var count = like.querySelector("span");
+    var n = 0;
+    var show = function (liked) {
+      like.setAttribute("aria-pressed", liked ? "true" : "false");
+      like.setAttribute("aria-label", liked ? "Unlike this site" : "Like this site");
+      count.textContent = String(n);
+    };
+    var signIn = function () {
+      window.location.assign("/like?return=" + encodeURIComponent(location.pathname + location.search));
+    };
+    fetch("/api/likes?site=" + encodeURIComponent(site), { credentials: "same-origin" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        // The backlink index lags a little; never show fewer likes than the viewer's own.
+        n = Math.max(d.count, d.liked ? 1 : 0);
+        show(d.liked);
+      })
+      .catch(function () {});
+    like.addEventListener("click", function () {
+      var liked = like.getAttribute("aria-pressed") !== "true";
+      like.disabled = true;
+      n = Math.max(0, n + (liked ? 1 : -1));
+      show(liked);
+      var req = liked
+        ? fetch("/api/likes", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ site: site }),
+          })
+        : fetch("/api/likes?site=" + encodeURIComponent(site), { method: "DELETE", credentials: "same-origin" });
+      req
+        .then(function (r) {
+          if (r.ok) return;
+          n = Math.max(0, n + (liked ? -1 : 1));
+          show(!liked);
+          if (r.status === 401 || r.status === 403) signIn();
+        })
+        .catch(function () {
+          n = Math.max(0, n + (liked ? -1 : 1));
+          show(!liked);
+        })
+        .finally(function () { like.disabled = false; });
+    });
   }
   var frame = document.getElementById("apollo-site");
   if (!frame) return;
