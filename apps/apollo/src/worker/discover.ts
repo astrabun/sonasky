@@ -1,20 +1,19 @@
 /**
- * Discover: pick a random site from the pool to feature. Only sites the viewer
- * would show without any gate qualify - not blocked, no hide or warn labels
- * (Bluesky's or self-applied), a resolvable PDS and a working home page.
+ * Discover: a random site to feature, and the check behind handle lookup. Only
+ * sites the viewer would show without any gate qualify - not blocked, no hide
+ * or warn labels (Bluesky's or self-applied), a resolvable PDS and a working
+ * home page.
  */
 
 import type { DiscoverSite } from "../shared/dto.ts";
+import { pickRandom } from "../shared/random.ts";
 import type { SiteRecord } from "../shared/records.ts";
 import { resolveActor, type ResolvedIdentity } from "./atproto/identity.ts";
 import { origin, type AppEnv } from "./env.ts";
 import { checkModeration, isBlocked } from "./moderation.ts";
 import { fetchProfileCard, safeAvatar } from "./render/bsky.ts";
+import { siteDirectory } from "./site-directory.ts";
 import { loadSite } from "./site-loader.ts";
-import { listSiteDids } from "./stats.ts";
-
-/** Candidates tried per request before giving up. */
-const MAX_TRIES = 6;
 
 export interface FeaturedSite {
   card: DiscoverSite;
@@ -57,24 +56,23 @@ export async function featureable(
   };
 }
 
-/** A random featureable site, skipping `exclude` when there's anything else. */
+/**
+ * A random featureable site from the directory index, skipping `exclude` when
+ * there's anything else. Reading the index also advances its refresh, so a
+ * cold index has something to offer after a request or two.
+ */
 export async function discoverSite(env: AppEnv, exclude?: string): Promise<DiscoverSite | null> {
-  const pool = await listSiteDids();
-  const candidates = pool.length > 1 ? pool.filter((d) => d !== exclude) : pool;
-  // Partial Fisher-Yates: only the first MAX_TRIES slots are ever needed.
-  const picks = [...candidates];
-  const n = Math.min(MAX_TRIES, picks.length);
-  for (let i = 0; i < n; i++) {
-    const j = i + Math.floor(Math.random() * (picks.length - i));
-    [picks[i], picks[j]] = [picks[j], picks[i]];
-  }
-  for (const did of picks.slice(0, n)) {
-    try {
-      const found = await featureable(env, did);
-      if (found) return found.card;
-    } catch (err) {
-      console.warn("discover: candidate failed", did, err);
-    }
-  }
-  return null;
+  const { sites } = await siteDirectory(env);
+  const pick = pickRandom(sites, (s) => s.did, exclude);
+  if (!pick) return null;
+  const { did, handle, url, title, description, displayName, avatar } = pick;
+  return {
+    did,
+    url,
+    title,
+    ...(handle ? { handle } : {}),
+    ...(description ? { description } : {}),
+    ...(displayName ? { displayName } : {}),
+    ...(avatar ? { avatar } : {}),
+  };
 }

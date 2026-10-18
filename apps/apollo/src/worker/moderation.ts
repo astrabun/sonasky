@@ -21,7 +21,7 @@ const BSKY_MOD_SERVICE = "https://mod.bsky.app";
 const BSKY_APPVIEW = "https://public.api.bsky.app";
 
 /** Labels that mean "do not serve this". */
-const HIDE_LABELS = new Set(["!takedown", "!suspend", "!hide"]);
+export const HIDE_LABELS = new Set(["!takedown", "!suspend", "!hide"]);
 /** Labels that mean "warn before showing". */
 export const WARN_LABELS = new Set(["porn", "sexual", "nudity", "graphic-media", "gore"]);
 
@@ -60,6 +60,22 @@ async function bskyLabels(did: string): Promise<LabelRow[]> {
   const url = new URL("/xrpc/com.atproto.label.queryLabels", BSKY_MOD_SERVICE);
   url.searchParams.append("uriPatterns", did);
   url.searchParams.append("uriPatterns", `at://${did}/app.sonasky.apollo*`);
+  url.searchParams.append("sources", BSKY_LABELER_DID);
+  url.searchParams.set("limit", "250");
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`queryLabels ${res.status}`);
+  return ((await res.json()) as { labels?: LabelRow[] }).labels ?? [];
+}
+
+/**
+ * Bluesky moderation labels on any of `subjects` (DIDs or exact record uris) in
+ * one request, for checking many sites at once. Throws when the labeler can't
+ * be reached.
+ */
+export async function bskyLabelsFor(subjects: string[]): Promise<LabelRow[]> {
+  if (subjects.length === 0) return [];
+  const url = new URL("/xrpc/com.atproto.label.queryLabels", BSKY_MOD_SERVICE);
+  for (const s of subjects) url.searchParams.append("uriPatterns", s);
   url.searchParams.append("sources", BSKY_LABELER_DID);
   url.searchParams.set("limit", "250");
   const res = await fetch(url);

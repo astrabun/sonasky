@@ -16,6 +16,8 @@ import { Button, Card, Notice, Select, Spinner } from "../components/ui.tsx";
 import { RingsTab } from "./RingsTab.tsx";
 
 const SORT_OPTIONS = Object.entries(SITE_SORTS).map(([value, label]) => ({ value, label }));
+const POLL_MS = 3000;
+const MAX_POLLS = 15;
 
 function SiteCard({ site, me }: { site: DiscoverSite; me: MeResponse | null }) {
   const byline = site.handle ? `@${site.handle}` : site.did;
@@ -186,6 +188,10 @@ function SiteDirectory({ me }: { me: MeResponse | null }) {
   const [error, setError] = useState<string | null>(null);
   const top = useRef<HTMLHeadingElement>(null);
 
+  // While the server is still indexing sites, each fetch checks a couple more,
+  // so poll a few times to fill the directory in.
+  const [poll, setPoll] = useState(0);
+
   useEffect(() => {
     let live = true;
     setLoading(true);
@@ -202,7 +208,14 @@ function SiteDirectory({ me }: { me: MeResponse | null }) {
     return () => {
       live = false;
     };
-  }, [sort, page]);
+  }, [sort, page, poll]);
+
+  const pending = data?.pending ?? 0;
+  useEffect(() => {
+    if (pending === 0 || poll >= MAX_POLLS) return;
+    const timer = setTimeout(() => setPoll((n) => n + 1), POLL_MS);
+    return () => clearTimeout(timer);
+  }, [pending, poll]);
 
   const update = (changes: Record<string, string | null>) => {
     setParams(
@@ -245,13 +258,20 @@ function SiteDirectory({ me }: { me: MeResponse | null }) {
       </div>
 
       {error ? <Notice tone="error">{error}</Notice> : null}
+      {pending > 0 ? (
+        <Notice tone="info">
+          Still checking {pending} more {pending === 1 ? "site" : "sites"}. They'll show up here in
+          a moment.
+        </Notice>
+      ) : null}
       {loading && !data ? (
         <Spinner label="Loading sites..." />
-      ) : data && data.total === 0 ? (
+      ) : data && data.total === 0 && pending === 0 ? (
         <Notice tone="info">No sites to list yet. Check back soon!</Notice>
       ) : data?.sites ? (
         <div
-          className={`space-y-4 ${loading ? "opacity-60 transition-opacity" : "transition-opacity"}`}
+          // Background polls while indexing shouldn't dim the list.
+          className={`space-y-4 ${loading && pending === 0 ? "opacity-60 transition-opacity" : "transition-opacity"}`}
         >
           {data.sites.map((site) => (
             <DirectoryRow key={site.did} site={site} me={me} />

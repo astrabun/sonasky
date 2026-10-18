@@ -13,11 +13,15 @@ const CONSTELLATION = "https://constellation.microcosm.blue";
 const HIDE = new Set(["!hide", "!takedown", "!warn"]);
 
 interface Label {
+  src?: string;
+  uri?: string;
   val: string;
   neg?: boolean;
+  cts?: string;
+  exp?: string;
 }
 
-interface ProfileView {
+export interface ProfileView {
   did: string;
   handle: string;
   displayName?: string;
@@ -311,32 +315,77 @@ const LINKED_CANDIDATES = 5;
 const TID_SKEW_MS = 5 * 60_000;
 
 /**
- * When anyone last posted a link to any of `urls`, as an ISO time; null when
- * nobody has. rkeys are user-chosen, so TIDs only pick the candidates (future
- * ones are dropped) and the time is the AppView's `indexedAt`, which also
- * confirms the post still exists.
+ * Posts linking to any of `urls`, newest first by rkey, as at:// uris (at most
+ * `limit`). rkeys are user-chosen, so this only picks candidates: future-dated
+ * TIDs are dropped, and `postTimes` gives the real times.
  */
-export async function lastLinkedAt(urls: string[]): Promise<string | null> {
+export async function linkCandidates(urls: string[], limit = LINKED_CANDIDATES): Promise<string[]> {
   const now = Date.now() + TID_SKEW_MS;
   // A post can match more than one link path, hence the Set.
-  const candidates = [
+  return [
     ...new Set(
       (await linkingPosts(urls))
         .filter((r) => Date.parse(tidTime(r.rkey)) <= now)
         .sort((a, b) => b.rkey.localeCompare(a.rkey))
         .map((r) => `at://${r.did}/app.bsky.feed.post/${r.rkey}`),
     ),
-  ].slice(0, LINKED_CANDIDATES);
-  if (candidates.length === 0) return null;
-  const res = await appview<{ posts: { indexedAt?: string; labels?: Label[] }[] }>(
-    "app.bsky.feed.getPosts",
-    candidates.map((uri) => ["uris", uri]),
+  ].slice(0, limit);
+}
+
+/**
+ * The AppView's `indexedAt` for each post that still exists and isn't labeled,
+ * 25 per request. Missing from the map when deleted, hidden or unreachable.
+ */
+export async function postTimes(uris: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  for (let i = 0; i < uris.length; i += 25) {
+    const res = await appview<{ posts: { uri: string; indexedAt?: string; labels?: Label[] }[] }>(
+      "app.bsky.feed.getPosts",
+      uris.slice(i, i + 25).map((uri) => ["uris", uri]),
+    );
+    for (const p of res?.posts ?? []) {
+      if (!flagged(p.labels) && p.indexedAt && !Number.isNaN(Date.parse(p.indexedAt))) {
+        out.set(p.uri, p.indexedAt);
+      }
+    }
+  }
+  return out;
+}
+
+/** The latest of `uris`' times in `times`, or null. */
+export function latestTime(uris: string[], times: Map<string, string>): string | null {
+  return (
+    uris
+      .map((u) => times.get(u))
+      .filter((t): t is string => !!t)
+      .sort()
+      .at(-1) ?? null
   );
-  const times = (res?.posts ?? [])
-    .filter((p) => !flagged(p.labels) && p.indexedAt && !Number.isNaN(Date.parse(p.indexedAt)))
-    .map((p) => p.indexedAt as string)
-    .sort();
-  return times.at(-1) ?? null;
+}
+
+/**
+ * When anyone last posted a link to any of `urls`, as an ISO time; null when
+ * nobody has. The time is the AppView's `indexedAt` (not the rkey), which also
+ * confirms the post still exists.
+ */
+export async function lastLinkedAt(urls: string[]): Promise<string | null> {
+  const candidates = await linkCandidates(urls);
+  if (candidates.length === 0) return null;
+  return latestTime(candidates, await postTimes(candidates));
+}
+
+/** Profiles by DID, 25 per request. Accounts the AppView won't show are missing. Null on failure. */
+export async function fetchProfiles(dids: string[]): Promise<Map<string, ProfileView> | null> {
+  const out = new Map<string, ProfileView>();
+  for (let i = 0; i < dids.length; i += 25) {
+    const res = await appview<{ profiles: ProfileView[] }>(
+      "app.bsky.actor.getProfiles",
+      dids.slice(i, i + 25).map((d) => ["actors", d]),
+    );
+    if (!res) return null;
+    for (const p of res.profiles) out.set(p.did, p);
+  }
+  return out;
 }
 
 export async function fetchProfileCard(did: string): Promise<ProfileCard | null> {
