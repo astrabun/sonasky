@@ -18,8 +18,8 @@ export function likeRkey(did: string): Promise<string> {
   return hashRkey(siteUri(did));
 }
 
-/** Accounts with a like record pointing at `did`'s site. 0 when the index can't be reached. */
-export async function likeCount(did: string): Promise<number> {
+/** Accounts with a like record pointing at `did`'s site. Null when the index can't be reached. */
+export async function likeCount(did: string): Promise<number | null> {
   const url = new URL("/links/count/distinct-dids", CONSTELLATION_URL);
   url.searchParams.set("target", siteUri(did));
   url.searchParams.set("collection", NSID_LIKE);
@@ -28,11 +28,11 @@ export async function likeCount(did: string): Promise<number> {
     const res = await fetch(url, {
       headers: { accept: "application/json", "user-agent": "SonaSky Apollo (likes)" },
     });
-    if (!res.ok) return 0;
+    if (!res.ok) return null;
     const body = (await res.json()) as { total?: number };
-    return typeof body.total === "number" ? body.total : 0;
+    return typeof body.total === "number" ? body.total : null;
   } catch (err) {
     console.warn("like count failed", did, err);
-    return 0;
+    return null;
   }
 }

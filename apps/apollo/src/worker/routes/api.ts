@@ -69,7 +69,7 @@ import { origin, type AppEnv } from "../env.ts";
 import { discoverSite, featureable } from "../discover.ts";
 import { likeCount, likeRkey, siteUri } from "../likes.ts";
 import { ringDirectory } from "../ring-directory.ts";
-import { forgetLikeCounts, siteDirectory } from "../site-directory.ts";
+import { noteLike, siteDirectory } from "../site-directory.ts";
 import { isDid, resolveActor } from "../atproto/identity.ts";
 import { getPublicRecord } from "../atproto/repo.ts";
 import { isBlocked } from "../moderation.ts";
@@ -300,17 +300,23 @@ apiRoutes.get("/api/discover/sites", async (c) => {
   const rawSort = c.req.query("sort");
   const sort = isSiteSort(rawSort) ? rawSort : DEFAULT_SITE_SORT;
   try {
-    const sites = sortSites(await siteDirectory(c.env), sort);
+    const directory = await siteDirectory(c.env);
+    const sites = sortSites(directory.sites, sort);
     const { items, page, pages } = paginate(sites, Number(c.req.query("page") ?? 1));
-    // Short: like counts (and so the "most liked" order) change within a minute.
-    return c.json<SiteDirectoryResponse>({ sites: items, page, pages, total: sites.length }, 200, {
-      "cache-control": "public, max-age=30",
-    });
+    return c.json<SiteDirectoryResponse>(
+      { sites: items, page, pages, total: sites.length, pending: directory.pending },
+      200,
+      // Short: like counts (and so the "most liked" order) change within a few
+      // minutes. Not at all while the index is still filling in.
+      { "cache-control": directory.pending > 0 ? "no-store" : "public, max-age=30" },
+    );
   } catch (err) {
     console.error("site directory error", err);
-    return c.json<SiteDirectoryResponse>({ sites: null, page: 1, pages: 1, total: 0 }, 200, {
-      "cache-control": "no-store",
-    });
+    return c.json<SiteDirectoryResponse>(
+      { sites: null, page: 1, pages: 1, total: 0, pending: 0 },
+      200,
+      { "cache-control": "no-store" },
+    );
   }
 });
 
@@ -351,7 +357,7 @@ apiRoutes.get("/api/likes", async (c) => {
   const site = siteDidFrom(c.req.query("site"));
   const session = await getSessionAgent(c);
   const [count, liked] = await Promise.all([
-    likeCount(site),
+    likeCount(site).then((n) => n ?? 0),
     session?.canLike
       ? likeRkey(site).then(async (rkey) => {
           const own = await getOwn<LikeRecord>(session.agent, NSID_LIKE, rkey);
@@ -374,8 +380,10 @@ apiRoutes.post("/api/likes", requireSession, requireSameOrigin, requireLiker, as
     return fail(c, 404, { error: "not_found", message: "This site doesn't exist." });
   }
   const like = validateLike({ subject: siteUri(site), createdAt: new Date().toISOString() });
-  const res = await put(agent, NSID_LIKE, await likeRkey(site), like);
-  await forgetLikeCounts();
+  const rkey = await likeRkey(site);
+  const existing = await getOwn<LikeRecord>(agent, NSID_LIKE, rkey);
+  const res = await put(agent, NSID_LIKE, rkey, like);
+  if (!existing) await noteLike(site, 1);
   return c.json<PutResponse>(res);
 });
 
@@ -387,7 +395,7 @@ apiRoutes.delete("/api/likes", requireSession, requireSameOrigin, requireLiker, 
     collection: NSID_LIKE,
     rkey: await likeRkey(site),
   });
-  await forgetLikeCounts();
+  await noteLike(site, -1);
   return c.json({ ok: true });
 });
 

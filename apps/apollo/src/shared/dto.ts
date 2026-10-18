@@ -134,6 +134,8 @@ export interface SiteDirectoryResponse {
   page: number;
   pages: number;
   total: number;
+  /** Sites not checked yet; the directory fills in over a few requests. */
+  pending: number;
 }
 
 export interface SiteLookupResponse {
