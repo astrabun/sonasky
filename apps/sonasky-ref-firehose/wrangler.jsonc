@@ -1,5 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
+  // Opt out of Wrangler's usage telemetry for everyone working on this project.
+  "send_metrics": false,
   "name": "sonasky-ref-firehose",
   "main": "src/worker.ts",
   "compatibility_date": "2026-09-08",
