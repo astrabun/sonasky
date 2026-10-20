@@ -526,7 +526,7 @@ function RingEditor({
                 }}
               />
             </div>
-            <div className="xl:sticky xl:top-4 xl:self-start">
+            <div className="xl:sticky xl:top-[calc(var(--banner-h,0px)+1rem)] xl:self-start">
               <RingLookPreview tokens={tokens} name={name} />
               <p className="mt-2 text-xs text-neutral-500">
                 Saved as a style in your account, so it counts toward your {LIMITS.stylesPerSite}{" "}
