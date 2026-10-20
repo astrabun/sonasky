@@ -6,6 +6,13 @@ on:
       - main
   pull_request:
 
+# Opt out of Turborepo and Wrangler telemetry. `turbo telemetry disable` only
+# affects the machine it's run on, so CI has to opt out via the environment.
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  DO_NOT_TRACK: 1
+  WRANGLER_SEND_METRICS: false
+
 jobs:
   checks:
     runs-on: ubuntu-latest
@@ -21,19 +28,26 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm lint
+      # Turborepo's local cache, carried between runs. A new entry is saved per
+      # commit; restores fall back to the most recent one for this workflow.
+      - uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: turbo-${{ github.workflow }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ github.workflow }}-
 
-      - run: pnpm fmt:check
-
-      - run: pnpm typecheck
-
-      # Every Apollo theme (including community contributions) must pass the
-      # catalog checks: valid tokens, unique ids, readable contrast.
-      - run: pnpm -F @sonasky/apollo-themes test
-
-      # Every community Apollo block must pass the catalog checks: valid fields,
-      # an example that renders, unique ids and CSS that stays inside the block.
-      - run: pnpm -F @sonasky/apollo-blocks test
+      # Lints, format-checks, typechecks every package and runs every package's
+      # tests in parallel, skipping any whose inputs haven't changed since a
+      # cached run; --continue reports every failure instead of stopping at the
+      # first. Tests include:
+      # - @sonasky/apollo-themes: every theme (including community
+      #   contributions) must pass the catalog checks: valid tokens, unique ids,
+      #   readable contrast.
+      # - @sonasky/apollo-blocks: every community block must pass the catalog
+      #   checks: valid fields, an example that renders, unique ids and CSS that
+      #   stays inside the block.
+      - run: pnpm turbo run oxlint oxfmt:check typecheck test --continue
 
       # The @sonasky/feeds-def catalog is generated from @sonasky/labels-def; fail
       # if it wasn't regenerated (pnpm feeds-def:gen) after a label change.

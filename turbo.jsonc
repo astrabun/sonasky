@@ -1,0 +1,39 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "tasks": {
+    // Workspace packages export their TS source directly, so nothing has to be
+    // built before anything else. `transit` exists only so a change in a
+    // dependency (e.g. @sonasky/labels-def) still invalidates its dependents'
+    // cached results, without forcing tasks to run in sequence.
+    "transit": {
+      "dependsOn": ["^transit"],
+    },
+    "typecheck": {
+      "dependsOn": ["transit"],
+      "outputs": [],
+    },
+    "test": {
+      "dependsOn": ["transit"],
+      "outputs": [],
+    },
+    "build": {
+      "dependsOn": ["transit"],
+      "outputs": ["dist/**"],
+      // Baked into bundles at build time; VITE_* is also picked up automatically
+      // but is listed so the cache key never silently ignores it.
+      "env": ["SWETRIX_BASE_URL", "SWETRIX_PROJECT_ID", "VITE_*"],
+    },
+    // oxlint and oxfmt run once over the whole repo from the root, so these are
+    // root tasks. For a root task $TURBO_DEFAULT$ is every git-tracked file in
+    // the repo, which also covers what type-aware lint depends on (tsconfigs and
+    // the lockfile). Explicit globs would pull in node_modules instead.
+    "//#oxlint": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": [],
+    },
+    "//#oxfmt:check": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": [],
+    },
+  },
+}

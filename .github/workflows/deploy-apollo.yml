@@ -21,6 +21,13 @@ concurrency:
   group: deploy-apollo-${{ github.ref }}
   cancel-in-progress: true
 
+# Opt out of Turborepo and Wrangler telemetry. `turbo telemetry disable` only
+# affects the machine it's run on, so CI has to opt out via the environment.
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  DO_NOT_TRACK: 1
+  WRANGLER_SEND_METRICS: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -38,9 +45,18 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm -F @sonasky/app-apollo test
+      # Turborepo's local cache, carried between runs. A new entry is saved per
+      # commit; restores fall back to the most recent one for this workflow.
+      - uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: turbo-${{ github.workflow }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ github.workflow }}-
 
-      - run: pnpm -F @sonasky/app-apollo build
+      - run: pnpm turbo run test --filter=@sonasky/app-apollo
+
+      - run: pnpm turbo run build --filter=@sonasky/app-apollo
 
       # PRs only validate the bundle; pushes to main deploy for real.
       - name: Validate bundle (PR)
