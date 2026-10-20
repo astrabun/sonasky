@@ -5,11 +5,15 @@
   "author": "Astra Bun",
   "type": "module",
   "scripts": {
-    "lint": "oxlint",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run oxlint",
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt",
-    "fmt:check": "oxfmt --check",
-    "typecheck": "pnpm -r run typecheck",
+    "fmt:check": "turbo run oxfmt:check",
+    "oxlint": "oxlint",
+    "oxfmt:check": "oxfmt --check",
+    "typecheck": "turbo run typecheck",
     "label-bot:start": "pnpm -F @sonasky/app-label-bot start",
     "cursor-status:start": "pnpm -F @sonasky/app-cursor-status start",
     "label-browser:dev": "pnpm -F @sonasky/app-label-browser dev",
@@ -57,6 +61,7 @@
     "oxfmt": "^0.60.0",
     "oxlint": "^1.75.0",
     "oxlint-tsgolint": "^7.0.2001",
+    "turbo": "^2.11.9",
     "wrangler": "^4.114.0"
   },
   "lint-staged": {

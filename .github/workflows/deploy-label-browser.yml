@@ -38,7 +38,16 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm -F @sonasky/app-label-browser build
+      # Turborepo's local cache, carried between runs. A new entry is saved per
+      # commit; restores fall back to the most recent one for this workflow.
+      - uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: turbo-${{ github.workflow }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ github.workflow }}-
+
+      - run: pnpm turbo run build --filter=@sonasky/app-label-browser
         env:
           SWETRIX_BASE_URL: ${{ vars.SWETRIX_BASE_URL || secrets.SWETRIX_BASE_URL }}
           SWETRIX_PROJECT_ID: ${{ vars.SWETRIX_PROJECT_ID || secrets.SWETRIX_PROJECT_ID }}
