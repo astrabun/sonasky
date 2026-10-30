@@ -86,6 +86,8 @@ hr,.apollo-divider{border:0;border-top:1px solid color-mix(in srgb,var(--apollo-
 .apollo-buttons{display:flex;flex-direction:column;gap:10px;margin:1.5em 0}
 .apollo-button{display:block;padding:14px 18px;background:var(--apollo-accent);color:var(--apollo-accent-text);border-radius:var(--apollo-radius);text-align:center;text-decoration:none;font-weight:600}
 .apollo-button:hover{filter:brightness(1.08)}
+.apollo-badges{display:flex;flex-wrap:wrap;gap:4px;margin:1.5em 0}.apollo-badges-center{justify-content:center}
+.apollo-badges a{display:block;line-height:0}.apollo-badges img{display:block;max-width:100%;height:auto;border-radius:0;image-rendering:pixelated}
 .apollo-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:1.5em 0}
 .apollo-gallery img{width:100%;aspect-ratio:1;object-fit:cover}
 .apollo-card{display:block;background:var(--apollo-surface);color:var(--apollo-text);border-radius:var(--apollo-radius);padding:16px;margin:1.5em 0;text-decoration:none;border:1px solid color-mix(in srgb,var(--apollo-muted) 25%,transparent)}

@@ -332,7 +332,11 @@ export function Modal({
   return (
     <dialog
       ref={ref}
-      onClose={onClose}
+      // React bubbles `close` through the component tree, so a modal opened from
+      // inside this one (e.g. a media picker) would close this one too.
+      onClose={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
       className={`m-auto w-[calc(100%-2rem)] ${wide ? "max-w-3xl" : "max-w-lg"} rounded-xl border border-neutral-200 bg-white p-0 text-neutral-900 shadow-xl backdrop:bg-black/40 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100`}
     >
       <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">

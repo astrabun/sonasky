@@ -1,5 +1,8 @@
 import type {
   ApiError,
+  BadgeResponse,
+  BadgesOfResponse,
+  BadgesResolveResponse,
   DiscoverResponse,
   LikeStatusResponse,
   MediaUploadResponse,
@@ -17,7 +20,10 @@ import type {
   StatsResponse,
 } from "../shared/dto.ts";
 import type { SlugCollection } from "../shared/nsid.ts";
-import type { RingRecord, SiteRecord } from "../shared/records.ts";
+import type { BadgeRecord, RingRecord, SiteRecord } from "../shared/records.ts";
+
+/** What the editor sends for a badge; the server stamps the rest. */
+export type BadgeInput = Omit<BadgeRecord, "$type" | "createdAt" | "updatedAt">;
 
 /** A failed API call, carrying the server's user-facing message when there is one. */
 export class ApiFailure extends Error {
@@ -113,6 +119,15 @@ export const api = {
   },
   updateMediaAlt: (rkey: string, alt: string) =>
     call<PutResponse>(`/api/media/${encodeURIComponent(rkey)}`, json("PUT", { alt })),
+  createBadge: (badge: BadgeInput) => call<BadgeResponse>("/api/badges", json("POST", badge)),
+  updateBadge: (rkey: string, badge: BadgeInput) =>
+    call<BadgeResponse>(`/api/badges/${encodeURIComponent(rkey)}`, json("PUT", badge)),
+  badgesOf: (actor: string) =>
+    call<BadgesOfResponse>(`/api/badges/of?actor=${encodeURIComponent(actor)}`),
+  resolveBadges: (uris: string[]) =>
+    call<BadgesResolveResponse>(
+      `/api/badges/resolve?${new URLSearchParams(uris.map((u) => ["uri", u])).toString()}`,
+    ),
   preview: (req: PreviewRequest) => call<PreviewResponse>("/api/preview", json("POST", req)),
   rings: () => call<RingsResponse>("/api/rings"),
   putRing: (

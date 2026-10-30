@@ -23,6 +23,7 @@ import type {
   StyleRecord,
 } from "../../shared/records.ts";
 import type { RecordEntry } from "../atproto/repo.ts";
+import type { LoadedBadge } from "../badges.ts";
 import type { RingNav, RosterMember } from "../rings.ts";
 import { renderBlocks, type BlockContext } from "./blocks.ts";
 import { renderComments } from "./comments.ts";
@@ -52,6 +53,8 @@ export interface RenderInput {
   scripts: { rkey: string; cid: string }[];
   /** Rings this site belongs to. Their navs are always rendered, whatever the layout. */
   rings?: RingNav[];
+  /** 88x31 badges used by badges blocks, by at:// uri (see `loadBadges`). */
+  badges?: Map<string, LoadedBadge>;
 }
 
 export interface RenderOrigins {
@@ -219,6 +222,9 @@ export async function renderSiteDocument(
     mediaUrl: urls.mediaUrl,
     rewriteHref: urls.rewriteHref,
     sanitize,
+    badges: input.badges ?? new Map(),
+    // Another account's links and media resolve against their own site.
+    urlsFor: (other) => (other === did ? urls : urlRewriters(origins, other, other, "")),
   };
   const comments = async (record: PageRecord | PostRecord) =>
     record.comments ? renderComments(record.comments, ctx) : "";

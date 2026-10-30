@@ -15,6 +15,8 @@ export const LIMITS = {
   textBlockBytes: 8 * 1024,
   /** A community block's fields, JSON-encoded. */
   communityBlockBytes: 8 * 1024,
+  /** A badge's editable design (`source`), JSON-encoded. */
+  badgeSourceBytes: 4 * 1024,
 
   blocksPerPage: 128,
   pagesPerSite: 64,
@@ -33,6 +35,10 @@ export const LIMITS = {
   ringMembers: 100,
   /** Rings one site can belong to (each adds a footer nav). */
   ringsPerSite: 8,
+  /** 88x31 badges one account can have. */
+  badgesPerSite: 200,
+  /** Badges shown by one 88x31 Badges block. */
+  badgesPerBlock: 60,
 
   titleBytes: 300,
   descriptionBytes: 3000,

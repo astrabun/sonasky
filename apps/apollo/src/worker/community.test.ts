@@ -107,6 +107,8 @@ describe("community block rendering", () => {
       sanitized.push(html);
       return html.replace(/<script>.*?<\/script>/g, "");
     },
+    badges: new Map(),
+    urlsFor: () => ({ mediaUrl: () => null, rewriteHref: () => null }),
   };
 
   it("wraps the block in its class and sanitizes its output", async () => {

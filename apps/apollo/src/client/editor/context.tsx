@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import type { Entry, MediaEntry, SiteBundle } from "../../shared/dto.ts";
+import type { BadgeEntry, Entry, MediaEntry, SiteBundle } from "../../shared/dto.ts";
 import {
   NSID_LAYOUT,
   NSID_PAGE,
@@ -25,8 +25,9 @@ export interface EditorState {
   site: Entry<SiteRecord>;
   setSite: (entry: Entry<SiteRecord>) => void;
   upsert: (collection: SlugCollection, entry: Entry<unknown>) => void;
-  remove: (collection: SlugCollection | "media", rkey: string) => void;
+  remove: (collection: SlugCollection | "media" | "badges", rkey: string) => void;
   upsertMedia: (entry: MediaEntry) => void;
+  upsertBadge: (entry: BadgeEntry) => void;
   reload: () => void;
 }
 
@@ -56,8 +57,9 @@ export function EditorProvider({
     });
   }, []);
 
-  const remove = useCallback((collection: SlugCollection | "media", rkey: string) => {
-    const key = collection === "media" ? "media" : LIST_FOR[collection];
+  const remove = useCallback((collection: SlugCollection | "media" | "badges", rkey: string) => {
+    const key =
+      collection === "media" || collection === "badges" ? collection : LIST_FOR[collection];
     setBundle((b) => ({
       ...b,
       [key]: (b[key] as Entry<unknown>[]).filter((e) => e.rkey !== rkey),
@@ -73,9 +75,27 @@ export function EditorProvider({
     }));
   }, []);
 
+  const upsertBadge = useCallback((entry: BadgeEntry) => {
+    setBundle((b) => ({
+      ...b,
+      badges: b.badges.some((e) => e.rkey === entry.rkey)
+        ? b.badges.map((e) => (e.rkey === entry.rkey ? entry : e))
+        : [entry, ...b.badges],
+    }));
+  }, []);
+
   const value = useMemo(
-    () => ({ bundle, site: bundle.site, setSite, upsert, remove, upsertMedia, reload }),
-    [bundle, setSite, upsert, remove, upsertMedia, reload],
+    () => ({
+      bundle,
+      site: bundle.site,
+      setSite,
+      upsert,
+      remove,
+      upsertMedia,
+      upsertBadge,
+      reload,
+    }),
+    [bundle, setSite, upsert, remove, upsertMedia, upsertBadge, reload],
   );
   return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;
 }

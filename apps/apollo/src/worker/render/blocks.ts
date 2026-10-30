@@ -1,6 +1,8 @@
 import { blockClass, findCommunityBlock, type RenderHelpers } from "@sonasky/apollo-blocks";
 import { upgradeBlock } from "../../shared/communityUpgrades.ts";
+import { BADGE_HEIGHT, BADGE_WIDTH } from "../../shared/badges.ts";
 import type {
+  BadgesBlock,
   Block,
   BskyPostBlock,
   CommunityBlock,
@@ -19,6 +21,7 @@ import { icon } from "./icons.ts";
 import { renderComments } from "./comments.ts";
 import { renderLabels } from "./labels.ts";
 import { markdownToHtml } from "./markdown.ts";
+import type { LoadedBadge } from "../badges.ts";
 
 export interface BlockContext {
   /** DID of the site owner (whose labels the labels block shows). */
@@ -30,6 +33,13 @@ export interface BlockContext {
   /** Same rules as the sanitizer's href rewriting; null drops the link. */
   rewriteHref: (href: string) => string | null;
   sanitize: (html: string) => Promise<string>;
+  /** Badges for badges blocks, loaded before rendering. */
+  badges: Map<string, LoadedBadge>;
+  /** Media and link rewriting for an account's own site (this one, or a badge's owner). */
+  urlsFor: (did: string) => {
+    mediaUrl: (rkey: string) => string | null;
+    rewriteHref: (href: string) => string | null;
+  };
 }
 
 const IMAGE_SIZES = new Set(["small", "medium", "full"]);
@@ -91,7 +101,7 @@ function renderEvent(block: EventBlock, ctx: BlockContext): string {
   const href = block.url ? ctx.rewriteHref(block.url) : null;
   return `<section class="apollo-card apollo-event"><p class="apollo-event-name">${esc(block.name)}</p>${
     start
-      ? `<p class="apollo-event-meta">${icon("calendarDays")} ${esc(start)}${end ? ` – ${esc(end)}` : ""}</p>`
+      ? `<p class="apollo-event-meta">${icon("calendarDays")} ${esc(start)}${end ? ` - ${esc(end)}` : ""}</p>`
       : ""
   }${block.location ? `<p class="apollo-event-meta">${icon("mapPin")} ${esc(block.location)}</p>` : ""}${
     href ? `<a class="apollo-card-cta" href="${esc(href)}">Event details</a>` : ""
@@ -127,6 +137,28 @@ export async function renderCommunityBlock(
   // Values were checked on write; render with them as the block declared.
   const out = def.render(fields as Parameters<typeof def.render>[0], h);
   return `<div class="apollo-cb ${blockClass(def.id)}">${await ctx.sanitize(out)}</div>`;
+}
+
+function renderBadges(block: BadgesBlock, ctx: BlockContext): string {
+  const scale = block.scale === 2 ? 2 : 1;
+  const items = (Array.isArray(block.items) ? block.items : [])
+    .map((item) => {
+      const badge = ctx.badges.get(item?.uri);
+      if (!badge) return "";
+      const urls = ctx.urlsFor(badge.did);
+      const src = urls.mediaUrl(badge.media);
+      if (!src) return "";
+      const img = `<img src="${esc(src)}" alt="${esc(badge.alt)}" width="${BADGE_WIDTH * scale}" height="${BADGE_HEIGHT * scale}" loading="lazy">`;
+      const href = badge.href ? urls.rewriteHref(badge.href) : null;
+      return href
+        ? `<a href="${esc(href)}"${badge.alt ? ` title="${esc(badge.alt)}"` : ""}>${img}</a>`
+        : img;
+    })
+    .join("");
+  if (!items) return "";
+  const classes = ["apollo-badges"];
+  if (block.align === "center") classes.push("apollo-badges-center");
+  return `<div class="${classes.join(" ")}">${items}</div>`;
 }
 
 /** Render a page's blocks to (sanitized) HTML. */
@@ -177,6 +209,8 @@ async function renderBlock(
           return href ? `<a class="apollo-button" href="${esc(href)}">${esc(item.label)}</a>` : "";
         })
         .join("")}</nav>`;
+    case "app.sonasky.apollo.defs#badges":
+      return renderBadges(block, ctx);
     case "app.sonasky.apollo.defs#gallery":
       return `<div class="apollo-gallery">${(block.items ?? [])
         .map((item) => {

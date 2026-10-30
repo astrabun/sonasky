@@ -8,10 +8,12 @@
 
 import { findCommunityBlock, normalizeFields, type MediaValue } from "@sonasky/apollo-blocks";
 import { isGoogleFontFamily } from "@sonasky/apollo-themes";
+import { badgeHrefError, normalizeBadgeSource, parseBadgeUri } from "../../shared/badges.ts";
 import { COMMUNITY_UPGRADES } from "../../shared/communityUpgrades.ts";
 import { jsonBytes, LIMITS, utf8Bytes } from "../../shared/limits.ts";
 import { linkValueError } from "../../shared/links.ts";
 import {
+  NSID_BADGE,
   NSID_LAYOUT,
   NSID_LIKE,
   NSID_PAGE,
@@ -27,6 +29,7 @@ import {
 import {
   SELF_LABEL_OPTIONS,
   type Block,
+  type BadgeRecord,
   type CommunityBlock,
   type ContentComments,
   type LayoutRecord,
@@ -418,6 +421,27 @@ function validateBlock(input: unknown, field: string): Block {
         title: str(b, "title", `${field}.title`, LIMITS.titleBytes),
         sort: oneOf(b, "sort", `${field}.sort`, ["oldest", "newest", "likes"] as const, "oldest"),
       };
+    case "app.sonasky.apollo.defs#badges": {
+      const seen = new Set<string>();
+      const items = arr(b, "items", `${field}.items`, LIMITS.badgesPerBlock).flatMap((item, i) => {
+        const uri = obj(item, `${field}.items[${i}]`).uri;
+        if (!parseBadgeUri(uri)) {
+          throw new ValidationError(
+            `${field}.items[${i}].uri`,
+            "That isn't a link to an 88x31 badge.",
+          );
+        }
+        if (seen.has(uri as string)) return [];
+        seen.add(uri as string);
+        return [{ uri: uri as string }];
+      });
+      return {
+        $type: b.$type,
+        items,
+        ...(b.scale === 2 ? { scale: 2 as const } : {}),
+        ...(b.align === "center" ? { align: "center" as const } : {}),
+      };
+    }
     case "app.sonasky.apollo.defs#divider":
       return { $type: b.$type };
     case "app.sonasky.apollo.defs#spacer":
@@ -658,6 +682,45 @@ export function validateLike(input: unknown): LikeRecord {
     subject: o.subject as string,
     createdAt: timestamps(o).createdAt,
   };
+}
+
+/** See `badgeHrefError`. */
+function badgeHref(value: unknown, field: string): string | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (typeof value !== "string") throw new ValidationError(field, "Add a link.");
+  if (utf8Bytes(value) > LIMITS.urlBytes) throw new ValidationError(field, "Link is too long.");
+  const err = badgeHrefError(value);
+  if (err) throw new ValidationError(field, err);
+  return value.trim();
+}
+
+export function validateBadge(input: unknown): BadgeRecord {
+  const o = obj(input, "badge");
+  let source: BadgeRecord["source"];
+  if (o.source !== undefined && o.source !== null) {
+    source = normalizeBadgeSource(o.source) ?? undefined;
+    if (!source) throw new ValidationError("source", "Couldn't read the badge design.");
+    if (jsonBytes(source) > LIMITS.badgeSourceBytes) {
+      throw new ValidationError("source", "This badge design has too much in it.");
+    }
+  }
+  const alt = str(o, "alt", "alt", LIMITS.altBytes);
+  if (!alt && o.noAlt !== true) {
+    throw new ValidationError(
+      "alt",
+      "Describe the badge (what it says), for people who can't see it.",
+    );
+  }
+  const record: BadgeRecord = {
+    $type: NSID_BADGE,
+    media: mediaRef(o.media, "media"),
+    ...(alt ? { alt } : { alt: "", noAlt: true }),
+    href: badgeHref(o.href, "href"),
+    source,
+    ...timestamps(o),
+  };
+  checkSize(record);
+  return record;
 }
 
 export const SLUG_VALIDATORS: Record<SlugCollection, (input: unknown) => unknown> = {

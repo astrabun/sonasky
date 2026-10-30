@@ -21,7 +21,9 @@ export function imageMarkdown(media: MediaEntry): string {
 
 const ACCEPT = "image/png,image/jpeg,image/gif,image/webp,image/avif,video/mp4,video/webm";
 
-async function imageSize(file: File): Promise<{ width: number; height: number } | undefined> {
+export async function imageSize(
+  file: File,
+): Promise<{ width: number; height: number } | undefined> {
   if (!file.type.startsWith("image/")) return undefined;
   try {
     const bitmap = await createImageBitmap(file);

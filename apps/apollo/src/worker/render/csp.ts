@@ -7,7 +7,8 @@
  *  - scripts only from Apollo's bootstrap, community block scripts (reviewed
  *    code from @sonasky/apollo-blocks) and the site's own script records
  *  - images/media only from the site's own media records (+ Bluesky's CDN for
- *    avatars in Bluesky cards), fonts only via Apollo's Google Fonts proxy; no
+ *    avatars in Bluesky cards, and the media of accounts whose 88x31 badges
+ *    the page shows), fonts only via Apollo's Google Fonts proxy; no
  *    fetch/XHR/WebSocket at all, no form posts
  *  - embeddable only by the Apollo viewer shell
  *
@@ -22,16 +23,19 @@ export function usercontentCsp(
   usercontentOrigin: string,
   publicOrigin: string,
   did: string,
+  /** Other accounts whose 88x31 badges the page shows (images only). */
+  badgeDids: string[] = [],
 ): string {
   const site = `${usercontentOrigin}/s/${did}/`;
   const media = `${usercontentOrigin}/m/${did}/`;
+  const badges = badgeDids.map((d) => ` ${usercontentOrigin}/m/${d}/`).join("");
   return [
     "sandbox allow-scripts",
     "default-src 'none'",
     `script-src ${usercontentOrigin}/_apollo/bootstrap.js ${usercontentOrigin}/_apollo/block/ ${site}script/`,
     // Fonts: only Apollo's own Google Fonts proxy (never Google directly).
     `style-src 'unsafe-inline' ${usercontentOrigin}/_apollo/fonts.css`,
-    `img-src ${media} data: https://cdn.bsky.app`,
+    `img-src ${media}${badges} data: https://cdn.bsky.app`,
     `media-src ${media}`,
     `font-src ${usercontentOrigin}/_apollo/font/`,
     "connect-src 'none'",

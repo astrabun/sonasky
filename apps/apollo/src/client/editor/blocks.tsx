@@ -19,6 +19,7 @@ import {
   MoveVertical,
   Plus,
   Puzzle,
+  RectangleHorizontal,
   Tags,
   TextAlignStart,
   Trash2,
@@ -42,6 +43,7 @@ import type {
 import { bskyUrlForUri, postUriFrom, profileDidFrom, starterPackUriFrom } from "../bsky.ts";
 import { Button, Card, Modal, Notice, Select, TextInput } from "../components/ui.tsx";
 import { CommunityBlockFields } from "./CommunityBlockFields.tsx";
+import { BadgesEditor } from "./badges/BadgesEditor.tsx";
 import { AltField, LinkHint } from "./fieldParts.tsx";
 import { fromLocalInput, toLocalInput } from "./localDate.ts";
 import { DEFAULT_LABELS_SETTINGS, LabelsFields } from "./LabelsFields.tsx";
@@ -94,6 +96,13 @@ export const BLOCK_CATALOG: CatalogItem[] = [
     description: "A grid of pictures.",
     icon: LayoutGrid,
     create: () => ({ $type: `${D}#gallery`, items: [] }),
+  },
+  {
+    type: `${D}#badges`,
+    name: "88x31 Badges",
+    description: "Little 88x31 web buttons - yours and your friends' - in a row.",
+    icon: RectangleHorizontal,
+    create: () => ({ $type: `${D}#badges`, items: [] }),
   },
   {
     type: `${D}#event`,
@@ -563,6 +572,8 @@ function BlockFields({ block, onChange }: { block: Block; onChange: (b: Block) =
       return <ButtonsEditor block={block} onChange={onChange} />;
     case `${D}#gallery`:
       return <GalleryEditor block={block} onChange={onChange} />;
+    case `${D}#badges`:
+      return <BadgesEditor block={block} onChange={onChange} />;
     case `${D}#event`:
       return <EventEditor block={block} onChange={onChange} />;
     case `${D}#bskyProfile`:

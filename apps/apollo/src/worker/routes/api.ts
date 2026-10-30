@@ -12,6 +12,10 @@ import { TID } from "@atproto/common-web";
 import { Hono, type Context, type MiddlewareHandler } from "hono";
 import type {
   ApiError,
+  BadgeEntry,
+  BadgeResponse,
+  BadgesOfResponse,
+  BadgesResolveResponse,
   DiscoverResponse,
   DiscoverSite,
   Entry,
@@ -19,6 +23,7 @@ import type {
   MediaEntry,
   MediaUploadResponse,
   MeResponse,
+  PublicBadge,
   PreviewRequest,
   PreviewResponse,
   RingDirectoryResponse,
@@ -33,10 +38,12 @@ import type {
   SiteLookupResponse,
   StatsResponse,
 } from "../../shared/dto.ts";
+import { badgeUri } from "../../shared/badges.ts";
 import { LIMITS, utf8Bytes } from "../../shared/limits.ts";
 import { BSKY_LABELER_DID, SONASKY_DID } from "../../shared/moderation.ts";
 import {
   isApolloCollection,
+  NSID_BADGE,
   NSID_LAYOUT,
   NSID_LIKE,
   NSID_MEDIA,
@@ -52,6 +59,7 @@ import {
   type SlugCollection,
 } from "../../shared/nsid.ts";
 import type {
+  BadgeRecord,
   LayoutRecord,
   LikeRecord,
   MediaRecord,
@@ -72,6 +80,7 @@ import { ringDirectory } from "../ring-directory.ts";
 import { noteLike, siteDirectory } from "../site-directory.ts";
 import { isDid, resolveActor } from "../atproto/identity.ts";
 import { getPublicRecord } from "../atproto/repo.ts";
+import { badgeUris, listBadgesOf, loadBadges, type LoadedBadge } from "../badges.ts";
 import { isBlocked } from "../moderation.ts";
 import {
   forgetRoster,
@@ -92,6 +101,7 @@ import { ALLOWED_MEDIA, sniffMime } from "../validate/media.ts";
 import {
   SLUG_VALIDATORS,
   parseRingUri,
+  validateBadge,
   validateLayout,
   validateLike,
   validatePage,
@@ -404,7 +414,7 @@ apiRoutes.delete("/api/likes", requireSession, requireSameOrigin, requireLiker, 
 apiRoutes.get("/api/site", requireSession, requireEditor, async (c) => {
   const { agent, did } = c.get("session");
   const uc = origin(c.env.USERCONTENT_URL);
-  const [handle, site, pages, posts, styles, scripts, layouts, media] = await Promise.all([
+  const [handle, site, pages, posts, styles, scripts, layouts, media, badges] = await Promise.all([
     handleOf(agent, did),
     getOwn<SiteRecord>(agent, NSID_SITE, SITE_RKEY),
     listAll<PageRecord>(agent, NSID_PAGE, LIMITS.pagesPerSite),
@@ -413,6 +423,7 @@ apiRoutes.get("/api/site", requireSession, requireEditor, async (c) => {
     listAll<ScriptRecord>(agent, NSID_SCRIPT, LIMITS.scriptsPerSite),
     listAll<LayoutRecord>(agent, NSID_LAYOUT, LIMITS.layoutsPerSite),
     listAll<MediaRecord>(agent, NSID_MEDIA, 1000),
+    listAll<BadgeRecord>(agent, NSID_BADGE, LIMITS.badgesPerSite),
   ]);
   return c.json<SiteBundle>({
     did,
@@ -426,6 +437,7 @@ apiRoutes.get("/api/site", requireSession, requireEditor, async (c) => {
     scripts,
     layouts,
     media: media.map((m): MediaEntry => ({ ...m, url: `${uc}/m/${did}/${m.rkey}` })),
+    badges: badges.map((b): BadgeEntry => ({ ...b, uri: badgeUri(did, b.rkey) })),
   });
 });
 
@@ -441,7 +453,7 @@ apiRoutes.delete("/api/site", requireSession, requireSameOrigin, requireEditor, 
   const targets: { collection: string; rkey: string }[] = [];
   // Ring memberships go with the site (a ring needs a site to link to); rings
   // this account owns are kept.
-  for (const collection of [...SLUG_COLLECTIONS, NSID_MEDIA, NSID_RING_MEMBER]) {
+  for (const collection of [...SLUG_COLLECTIONS, NSID_MEDIA, NSID_BADGE, NSID_RING_MEMBER]) {
     for (const e of await listAll(agent, collection, 2000))
       targets.push({ collection, rkey: e.rkey });
   }
@@ -614,6 +626,76 @@ apiRoutes.put("/api/media/:rkey", requireSession, requireSameOrigin, requireEdit
   return c.json<PutResponse>(await put(agent, NSID_MEDIA, rkey, record));
 });
 
+// 88x31 badges (TID rkeys, so not the slug-keyed /api/records routes)
+
+apiRoutes.post("/api/badges", requireSession, requireSameOrigin, requireEditor, async (c) => {
+  const { agent } = c.get("session");
+  const record = validateBadge(await c.req.json());
+  const count = (await listAll(agent, NSID_BADGE, LIMITS.badgesPerSite + 1)).length;
+  if (count >= LIMITS.badgesPerSite) {
+    return fail(c, 409, {
+      error: "limit",
+      message: `You've reached the limit of ${LIMITS.badgesPerSite} badges.`,
+    });
+  }
+  const rkey = TID.nextStr();
+  const res = await put(agent, NSID_BADGE, rkey, record);
+  return c.json<BadgeResponse>({
+    ok: true,
+    badge: { rkey, cid: res.cid, value: record, uri: res.uri },
+  });
+});
+
+apiRoutes.put("/api/badges/:rkey", requireSession, requireSameOrigin, requireEditor, async (c) => {
+  const { agent } = c.get("session");
+  const rkey = c.req.param("rkey");
+  const existing = await getOwn<BadgeRecord>(agent, NSID_BADGE, rkey);
+  if (!existing) return fail(c, 404, { error: "not_found" });
+  const record = validateBadge({
+    ...((await c.req.json()) as object),
+    createdAt: existing.value.createdAt,
+  });
+  const res = await put(agent, NSID_BADGE, rkey, record);
+  return c.json<BadgeResponse>({
+    ok: true,
+    badge: { rkey, cid: res.cid, value: record, uri: res.uri },
+  });
+});
+
+function publicBadge(c: Ctx, uri: string, b: LoadedBadge): PublicBadge | null {
+  if (!/^[a-zA-Z0-9._~:-]{1,512}$/.test(b.media)) return null;
+  return {
+    uri,
+    did: b.did,
+    alt: b.alt,
+    href: b.href,
+    imageUrl: `${origin(c.env.USERCONTENT_URL)}/m/${b.did}/${b.media}`,
+  };
+}
+
+/** Someone's badges, for adding a friend's badge to a badges block. */
+apiRoutes.get("/api/badges/of", requireSession, async (c) => {
+  const { did } = c.get("session");
+  const raw = (c.req.query("actor") ?? "").trim().replace(/^@/, "");
+  const actor = isDid(raw) ? raw : raw.toLowerCase();
+  const found = actor ? await listBadgesOf(c.env, actor, did).catch(() => null) : null;
+  if (!found) return c.json<BadgesOfResponse>({ account: null, badges: [] });
+  return c.json<BadgesOfResponse>({
+    account: { did: found.did, handle: found.handle },
+    badges: found.badges.flatMap((b) => publicBadge(c, b.uri, b) ?? []),
+  });
+});
+
+/** Previews for the badges a badges block lists (`?uri=...&uri=...`). */
+apiRoutes.get("/api/badges/resolve", requireSession, async (c) => {
+  const { did } = c.get("session");
+  const uris = [...new Set(c.req.queries("uri") ?? [])].slice(0, LIMITS.badgesPerBlock);
+  const loaded = await loadBadges(c.env, did, uris);
+  return c.json<BadgesResolveResponse>({
+    badges: [...loaded].flatMap(([uri, b]) => publicBadge(c, uri, b) ?? []),
+  });
+});
+
 // Preview
 
 apiRoutes.post("/api/preview", requireSession, requireSameOrigin, requireEditor, async (c) => {
@@ -636,9 +718,12 @@ apiRoutes.post("/api/preview", requireSession, requireSameOrigin, requireEditor,
     handleOf(agent, did),
     resolveActor(did, c.env.HANDLE_RESOLVER_URL ?? "https://bsky.social"),
   ]);
-  const rings = identity ? await siteRings(c.env, identity.pds, did) : [];
+  const [rings, badges] = await Promise.all([
+    identity ? siteRings(c.env, identity.pds, did) : [],
+    loadBadges(c.env, did, badgeUris(target)),
+  ]);
   const html = await renderSiteDocument(
-    { did, actor: handle ?? did, site, target, styles, layout, scripts: [], rings },
+    { did, actor: handle ?? did, site, target, styles, layout, scripts: [], rings, badges },
     { publicOrigin: origin(c.env.PUBLIC_URL), usercontentOrigin: origin(c.env.USERCONTENT_URL) },
   );
   return c.json<PreviewResponse>({ ok: true, html });

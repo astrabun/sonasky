@@ -39,6 +39,7 @@
               "#bskyComments",
               "#divider",
               "#spacer",
+              "#badges",
               "#community"
             ]
           }
@@ -319,6 +320,26 @@
           "type": "string",
           "knownValues": ["small", "medium", "large"]
         }
+      }
+    },
+    "badges": {
+      "type": "object",
+      "description": "88x31 badges (little web buttons), by at-uri of app.sonasky.apollo.badge records in any repo. Missing or unavailable ones are skipped.",
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "maxLength": 60,
+          "items": {
+            "type": "object",
+            "required": ["uri"],
+            "properties": {
+              "uri": { "type": "string", "format": "at-uri" }
+            }
+          }
+        },
+        "scale": { "type": "integer", "enum": [1, 2], "description": "2 shows badges at 176x62." },
+        "align": { "type": "string", "knownValues": ["start", "center"] }
       }
     },
     "community": {
