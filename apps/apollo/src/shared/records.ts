@@ -3,12 +3,14 @@
  * documentation lexicons in `lexicons/`; records are written with
  * `validate: false` and checked by `src/worker/validate/records.ts` instead.
  *
- * References between records are bare rkeys in the SAME repo - a site can never
- * pull content from someone else's repo.
+ * References between records are bare rkeys in the SAME repo. The one exception
+ * is the badges block, which shows 88x31 badges by at:// uri (anyone's).
  */
 
 import type { ThemeTokens } from "@sonasky/apollo-themes";
+import type { BadgeSource } from "./badges.ts";
 import type {
+  NSID_BADGE,
   NSID_LAYOUT,
   NSID_LIKE,
   NSID_MEDIA,
@@ -192,6 +194,19 @@ export interface SpacerBlock {
 }
 
 /**
+ * 88x31 badges, by at:// uri of an `app.sonasky.apollo.badge` record. Unlike
+ * other references these may point into other repos (people show their
+ * friends' badges); missing or unavailable ones are skipped when rendering.
+ */
+export interface BadgesBlock {
+  $type: "app.sonasky.apollo.defs#badges";
+  items: { uri: string }[];
+  /** 2 shows them at 176x62. */
+  scale?: 1 | 2;
+  align?: "start" | "center";
+}
+
+/**
  * A block type from @sonasky/apollo-blocks. `fields` is checked against that
  * block's definition on write; unknown ids are skipped when rendering.
  */
@@ -216,6 +231,7 @@ export type Block =
   | BskyCommentsBlock
   | DividerBlock
   | SpacerBlock
+  | BadgesBlock
   | CommunityBlock;
 export type BlockType = Block["$type"];
 
@@ -304,6 +320,22 @@ export interface MediaRecord {
   width?: number;
   height?: number;
   createdAt: string;
+}
+
+/** An 88x31 badge (a little web button). Made in the badge maker or uploaded as-is. */
+export interface BadgeRecord {
+  $type: typeof NSID_BADGE;
+  /** Media rkey of the 88x31 image. */
+  media: string;
+  /** Required unless `noAlt` is set. Also the tooltip. */
+  alt: string;
+  noAlt?: boolean;
+  /** Where the badge links: http(s)/mailto, or a page slug on the owner's site. */
+  href?: string;
+  /** The editable design, for badges made in the badge maker. */
+  source?: BadgeSource;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Rings

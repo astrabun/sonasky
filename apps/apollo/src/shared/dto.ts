@@ -2,6 +2,7 @@
 
 import type { ReportDestination } from "./moderation.ts";
 import type {
+  BadgeRecord,
   LayoutRecord,
   MediaRecord,
   PageRecord,
@@ -38,6 +39,37 @@ export interface MediaEntry extends Entry<MediaRecord> {
   url: string;
 }
 
+export interface BadgeEntry extends Entry<BadgeRecord> {
+  /** at:// uri, for badges blocks. */
+  uri: string;
+}
+
+export interface BadgeResponse {
+  ok: true;
+  badge: BadgeEntry;
+}
+
+/** A badge from any account, as the block editor previews it. */
+export interface PublicBadge {
+  uri: string;
+  did: string;
+  alt: string;
+  href?: string;
+  /** Usercontent URL of the image. */
+  imageUrl: string;
+}
+
+export interface BadgesOfResponse {
+  /** null when the account doesn't exist or can't be shown. */
+  account: { did: string; handle?: string } | null;
+  badges: PublicBadge[];
+}
+
+export interface BadgesResolveResponse {
+  /** Only the badges that can be shown; missing uris were deleted or are unavailable. */
+  badges: PublicBadge[];
+}
+
 export interface SiteBundle {
   did: string;
   handle?: string;
@@ -50,6 +82,7 @@ export interface SiteBundle {
   scripts: Entry<ScriptRecord>[];
   layouts: Entry<LayoutRecord>[];
   media: MediaEntry[];
+  badges: BadgeEntry[];
 }
 
 export interface ApiError {

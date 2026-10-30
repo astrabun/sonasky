@@ -8,6 +8,8 @@ export const NSID_STYLE = "app.sonasky.apollo.style";
 export const NSID_SCRIPT = "app.sonasky.apollo.script";
 export const NSID_LAYOUT = "app.sonasky.apollo.layout";
 export const NSID_MEDIA = "app.sonasky.apollo.media";
+/** An 88x31 badge (a little web button): a media rkey plus a link. rkey is a TID. */
+export const NSID_BADGE = "app.sonasky.apollo.badge";
 /** A webring, in its owner's repo. rkey is a slug. */
 export const NSID_RING = "app.sonasky.apollo.ring";
 /** A site's side of a ring membership, in the member's repo. rkey derived from the ring uri. */
@@ -31,6 +33,7 @@ export const APOLLO_COLLECTIONS = [
   NSID_RING,
   NSID_RING_MEMBER,
   NSID_LIKE,
+  NSID_BADGE,
 ] as const;
 
 export type ApolloCollection = (typeof APOLLO_COLLECTIONS)[number];

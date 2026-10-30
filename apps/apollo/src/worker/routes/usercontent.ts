@@ -21,6 +21,7 @@ import type { MediaRecord, ScriptRecord, SiteRecord, StyleRecord } from "../../s
 import { isSlug } from "../../shared/slug.ts";
 import { isDid, isHandle, resolveActor } from "../atproto/identity.ts";
 import { fetchBlob, getPublicRecord } from "../atproto/repo.ts";
+import { badgeUris, badgeMediaDids, loadBadges } from "../badges.ts";
 import { origin, type AppEnv } from "../env.ts";
 import { fetchFontFile, googleFontsCss, GSTATIC_PATH_RE, parseFamilies } from "../fonts.ts";
 import { checkModeration } from "../moderation.ts";
@@ -92,9 +93,12 @@ async function renderDoc(c: Ctx, did: string, spec: TargetSpec): Promise<Respons
       return plain(403, "This site has a content warning.");
     }
 
-    const rings = await siteRings(c.env, identity.pds, did);
+    const [rings, badges] = await Promise.all([
+      siteRings(c.env, identity.pds, did),
+      loadBadges(c.env, did, badgeUris(loaded.target)),
+    ]);
     const html = await renderSiteDocument(
-      toRenderInput(loaded, did, actor, rings, identity.handle),
+      { ...toRenderInput(loaded, did, actor, rings, identity.handle), badges },
       {
         publicOrigin,
         usercontentOrigin: origin(c.env.USERCONTENT_URL),
@@ -103,7 +107,12 @@ async function renderDoc(c: Ctx, did: string, spec: TargetSpec): Promise<Respons
     return new Response(html, {
       headers: {
         "content-type": "text/html; charset=utf-8",
-        "content-security-policy": usercontentCsp(origin(c.env.USERCONTENT_URL), publicOrigin, did),
+        "content-security-policy": usercontentCsp(
+          origin(c.env.USERCONTENT_URL),
+          publicOrigin,
+          did,
+          badgeMediaDids(badges, did),
+        ),
         "cache-control": `public, max-age=${DOC_TTL_SECONDS}`,
         ...SECURITY_HEADERS,
       },
@@ -243,6 +252,9 @@ usercontentRoutes.get("/m/:did/:rkey", (c) => {
         "content-security-policy": "default-src 'none'; sandbox",
         "cache-control": "public, max-age=3600",
         "cross-origin-resource-policy": "cross-origin",
+        // Public anyway (the PDS serves the same blob with CORS); lets the
+        // badge maker draw library pictures on a canvas and still save it.
+        "access-control-allow-origin": "*",
         ...(blob.headers.get("content-length")
           ? { "content-length": blob.headers.get("content-length") as string }
           : {}),

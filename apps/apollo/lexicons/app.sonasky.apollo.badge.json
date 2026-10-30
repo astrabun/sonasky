@@ -1,0 +1,103 @@
+{
+  "lexicon": 1,
+  "id": "app.sonasky.apollo.badge",
+  "description": "Documentation only. An 88x31 badge (a little web button): an uploaded image (an app.sonasky.apollo.media record) and where it links. Shown on pages by the #badges block, including on other people's sites.",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["media", "alt", "createdAt", "updatedAt"],
+        "properties": {
+          "media": { "type": "string", "description": "Media rkey in the same repo." },
+          "alt": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Required (non-empty) unless noAlt is true. Also shown as the tooltip."
+          },
+          "noAlt": { "type": "boolean" },
+          "href": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "http(s) link, or a page slug on the owner's site."
+          },
+          "source": {
+            "type": "ref",
+            "ref": "#source",
+            "description": "The editable design, for badges made in Apollo's badge maker."
+          },
+          "createdAt": { "type": "string", "format": "datetime" },
+          "updatedAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "description": "Layers drawn onto an 88x31 canvas, in order: background, image, border, texts. Colors are #rrggbb.",
+      "required": ["background", "border", "borderColor", "texts"],
+      "properties": {
+        "background": {
+          "type": "object",
+          "required": ["from"],
+          "properties": {
+            "from": { "type": "string" },
+            "to": { "type": "string", "description": "Second gradient stop; unset means solid." },
+            "direction": { "type": "string", "knownValues": ["horizontal", "vertical"] }
+          }
+        },
+        "border": { "type": "string", "knownValues": ["none", "line", "bevel", "inset"] },
+        "borderColor": { "type": "string" },
+        "image": {
+          "type": "object",
+          "required": ["media", "fit", "x", "y", "w", "h"],
+          "properties": {
+            "media": { "type": "string", "description": "Media rkey in the same repo." },
+            "fit": { "type": "string", "knownValues": ["contain", "cover", "stretch"] },
+            "x": { "type": "integer" },
+            "y": { "type": "integer" },
+            "w": { "type": "integer" },
+            "h": { "type": "integer" },
+            "focusX": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Which part stays in view when the picture doesn't exactly fill its box: 0 = left edge, 100 = right. Default 50."
+            },
+            "focusY": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "0 = top edge, 100 = bottom. Default 50."
+            }
+          }
+        },
+        "texts": {
+          "type": "array",
+          "maxLength": 2,
+          "items": {
+            "type": "object",
+            "required": ["text", "color", "font", "size", "x", "y", "align"],
+            "properties": {
+              "text": { "type": "string" },
+              "color": { "type": "string" },
+              "shadow": { "type": "string" },
+              "font": {
+                "type": "string",
+                "knownValues": ["pixel", "tiny", "sans", "serif", "mono"]
+              },
+              "size": { "type": "integer" },
+              "x": { "type": "integer" },
+              "y": { "type": "integer" },
+              "align": { "type": "string", "knownValues": ["left", "center", "right"] }
+            }
+          }
+        },
+        "pixelEdited": {
+          "type": "boolean",
+          "description": "The image was edited pixel-by-pixel after composing, so this design alone no longer reproduces it."
+        }
+      }
+    }
+  }
+}

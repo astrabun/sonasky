@@ -7,6 +7,7 @@ import {
   Image,
   Palette,
   PenLine,
+  RectangleHorizontal,
   Settings,
   Wrench,
   type LucideIcon,
@@ -18,6 +19,7 @@ import { api, ApiFailure } from "../api.ts";
 import { SiteCount } from "../components/SiteCount.tsx";
 import { Notice, Spinner } from "../components/ui.tsx";
 import { AdvancedPanel } from "./AdvancedPanel.tsx";
+import { BadgesPanel } from "./badges/BadgesPanel.tsx";
 import { EditorProvider, useEditorState } from "./context.tsx";
 import { MediaLibrary } from "./MediaLibrary.tsx";
 import { BlogPanel, PageEditorRoute, PagesPanel } from "./PagesPanel.tsx";
@@ -31,6 +33,7 @@ const TABS: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/edit/blog", label: "Blog", icon: PenLine },
   { to: "/edit/theme", label: "Theme", icon: Palette },
   { to: "/edit/media", label: "Media", icon: Image },
+  { to: "/edit/badges", label: "Badges", icon: RectangleHorizontal },
   { to: "/edit/rings", label: "Rings", icon: CircleDot },
   { to: "/edit/settings", label: "Settings", icon: Settings },
   { to: "/edit/advanced", label: "Advanced", icon: Wrench },
@@ -105,6 +108,7 @@ function Editor() {
           <Route path="blog/:slug" element={<PageEditorRoute kind="post" />} />
           <Route path="theme" element={<ThemePanel />} />
           <Route path="media" element={<MediaPanel />} />
+          <Route path="badges" element={<BadgesPanel />} />
           <Route path="settings" element={<SettingsPanel />} />
           <Route path="advanced" element={<AdvancedPanel />} />
           <Route path="rings/*" element={<RingsRoutes />} />
