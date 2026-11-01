@@ -76,6 +76,12 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         },
       },
       {
+        id: "request-hybrid",
+        question: "Can you add a label for my hybrid species?",
+        answer:
+          "In almost all cases, no. Since 2024, the rule for hybrids has been to use the labels for each of the component species along with the \"hybrid\" label, rather than adding a dedicated label for the combination. I'll make an exception for a few edge cases, but otherwise I won't add specific hybrid labels. I want SonaSky to work for as many people as possible, but nearly any two species can be combined into a hybrid, so dedicated labels could eventually run into the millions. That would be hard to keep up with and much harder for new users to search through. There's also a technical limit: the labeler can only hold so much label data, so it couldn't support every hybrid combination even if I wanted it to. Combining labels isn't as specific as a dedicated label, but it covers every hybrid without running into those limits.",
+      },
+      {
         id: "give-feedback",
         question: "Can I give feedback about SonaSky?",
         answer:
