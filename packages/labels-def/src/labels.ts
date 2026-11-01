@@ -14339,7 +14339,7 @@ export const labels: LabelDefs = {
     ],
   },
   cobalion: {
-    post: "FIXME",
+    post: "3mzbr2rcuwv2l",
     realm: "pokemon",
     category: { en: "Pokemon", "pt-BR": "Pokemon" },
     locales: [
@@ -14351,7 +14351,7 @@ export const labels: LabelDefs = {
     ],
   },
   ditto: {
-    post: "FIXME",
+    post: "3mzbr2rkmlx23",
     realm: "pokemon",
     category: { en: "Pokemon", "pt-BR": "Pokemon" },
     locales: [
@@ -14363,7 +14363,7 @@ export const labels: LabelDefs = {
     ],
   },
   dragonite: {
-    post: "FIXME",
+    post: "3mzbr2rqak62w",
     realm: "pokemon",
     category: { en: "Pokemon", "pt-BR": "Pokemon" },
     locales: [
@@ -14375,7 +14375,7 @@ export const labels: LabelDefs = {
     ],
   },
   litten: {
-    post: "FIXME",
+    post: "3mzbr2rxktf26",
     realm: "pokemon",
     category: { en: "Pokemon", "pt-BR": "Pokemon" },
     locales: [
@@ -14387,7 +14387,7 @@ export const labels: LabelDefs = {
     ],
   },
   noivern: {
-    post: "FIXME",
+    post: "3mzbr2s4rnp23",
     realm: "pokemon",
     category: { en: "Pokemon", "pt-BR": "Pokemon" },
     locales: [
@@ -14399,7 +14399,7 @@ export const labels: LabelDefs = {
     ],
   },
   rattata: {
-    post: "FIXME",
+    post: "3mzbr2sc5k222",
     realm: "pokemon",
     category: { en: "Pokemon", "pt-BR": "Pokemon" },
     locales: [
@@ -14411,7 +14411,7 @@ export const labels: LabelDefs = {
     ],
   },
   rockruff: {
-    post: "FIXME",
+    post: "3mzbr2sk2pj2s",
     realm: "pokemon",
     category: { en: "Pokemon", "pt-BR": "Pokemon" },
     locales: [
@@ -14423,7 +14423,7 @@ export const labels: LabelDefs = {
     ],
   },
   rotom: {
-    post: "FIXME",
+    post: "3mzbr2spjb723",
     realm: "pokemon",
     category: { en: "Pokemon", "pt-BR": "Pokemon" },
     locales: [
@@ -14435,7 +14435,7 @@ export const labels: LabelDefs = {
     ],
   },
   rowlet: {
-    post: "FIXME",
+    post: "3mzbr2sxkcv2w",
     realm: "pokemon",
     category: { en: "Pokemon", "pt-BR": "Pokemon" },
     locales: [
@@ -14447,7 +14447,7 @@ export const labels: LabelDefs = {
     ],
   },
   sandshrew: {
-    post: "FIXME",
+    post: "3mzbr2t53th23",
     realm: "pokemon",
     category: { en: "Pokemon", "pt-BR": "Pokemon" },
     locales: [
@@ -14459,7 +14459,7 @@ export const labels: LabelDefs = {
     ],
   },
   sneasler: {
-    post: "FIXME",
+    post: "3mzbr2tcgz52m",
     realm: "pokemon",
     category: { en: "Pokemon", "pt-BR": "Pokemon" },
     locales: [
@@ -14471,7 +14471,7 @@ export const labels: LabelDefs = {
     ],
   },
   spheal: {
-    post: "FIXME",
+    post: "3mzbr2tkgzk2y",
     realm: "pokemon",
     category: { en: "Pokemon", "pt-BR": "Pokemon" },
     locales: [
@@ -14483,7 +14483,7 @@ export const labels: LabelDefs = {
     ],
   },
   spinda: {
-    post: "FIXME",
+    post: "3mzbr2tpwr72a",
     realm: "pokemon",
     category: { en: "Pokemon", "pt-BR": "Pokemon" },
     locales: [
