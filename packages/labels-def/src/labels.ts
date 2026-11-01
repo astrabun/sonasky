@@ -14338,6 +14338,162 @@ export const labels: LabelDefs = {
       },
     ],
   },
+  cobalion: {
+    post: "FIXME",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Cobalion",
+        description: "This user is a Cobalion!",
+      },
+    ],
+  },
+  ditto: {
+    post: "FIXME",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Ditto",
+        description: "This user is a Ditto!",
+      },
+    ],
+  },
+  dragonite: {
+    post: "FIXME",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Dragonite",
+        description: "This user is a Dragonite!",
+      },
+    ],
+  },
+  litten: {
+    post: "FIXME",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Litten",
+        description: "This user is a Litten!",
+      },
+    ],
+  },
+  noivern: {
+    post: "FIXME",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Noivern",
+        description: "This user is a Noivern!",
+      },
+    ],
+  },
+  rattata: {
+    post: "FIXME",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Rattata",
+        description: "This user is a Rattata!",
+      },
+    ],
+  },
+  rockruff: {
+    post: "FIXME",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Rockruff",
+        description: "This user is a Rockruff!",
+      },
+    ],
+  },
+  rotom: {
+    post: "FIXME",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Rotom",
+        description: "This user is a Rotom!",
+      },
+    ],
+  },
+  rowlet: {
+    post: "FIXME",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Rowlet",
+        description: "This user is a Rowlet!",
+      },
+    ],
+  },
+  sandshrew: {
+    post: "FIXME",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Sandshrew",
+        description: "This user is a Sandshrew!",
+      },
+    ],
+  },
+  sneasler: {
+    post: "FIXME",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Sneasler",
+        description: "This user is a Sneasler!",
+      },
+    ],
+  },
+  spheal: {
+    post: "FIXME",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Spheal",
+        description: "This user is a Spheal!",
+      },
+    ],
+  },
+  spinda: {
+    post: "FIXME",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Spinda",
+        description: "This user is a Spinda!",
+      },
+    ],
+  },
   "sonasky-ref-sheet-user": {
     realm: "prime",
     locales: [
