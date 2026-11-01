@@ -14338,6 +14338,162 @@ export const labels: LabelDefs = {
       },
     ],
   },
+  cobalion: {
+    post: "3mzbr2rcuwv2l",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Cobalion",
+        description: "This user is a Cobalion!",
+      },
+    ],
+  },
+  ditto: {
+    post: "3mzbr2rkmlx23",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Ditto",
+        description: "This user is a Ditto!",
+      },
+    ],
+  },
+  dragonite: {
+    post: "3mzbr2rqak62w",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Dragonite",
+        description: "This user is a Dragonite!",
+      },
+    ],
+  },
+  litten: {
+    post: "3mzbr2rxktf26",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Litten",
+        description: "This user is a Litten!",
+      },
+    ],
+  },
+  noivern: {
+    post: "3mzbr2s4rnp23",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Noivern",
+        description: "This user is a Noivern!",
+      },
+    ],
+  },
+  rattata: {
+    post: "3mzbr2sc5k222",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Rattata",
+        description: "This user is a Rattata!",
+      },
+    ],
+  },
+  rockruff: {
+    post: "3mzbr2sk2pj2s",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Rockruff",
+        description: "This user is a Rockruff!",
+      },
+    ],
+  },
+  rotom: {
+    post: "3mzbr2spjb723",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Rotom",
+        description: "This user is a Rotom!",
+      },
+    ],
+  },
+  rowlet: {
+    post: "3mzbr2sxkcv2w",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Rowlet",
+        description: "This user is a Rowlet!",
+      },
+    ],
+  },
+  sandshrew: {
+    post: "3mzbr2t53th23",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Sandshrew",
+        description: "This user is a Sandshrew!",
+      },
+    ],
+  },
+  sneasler: {
+    post: "3mzbr2tcgz52m",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Sneasler",
+        description: "This user is a Sneasler!",
+      },
+    ],
+  },
+  spheal: {
+    post: "3mzbr2tkgzk2y",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Spheal",
+        description: "This user is a Spheal!",
+      },
+    ],
+  },
+  spinda: {
+    post: "3mzbr2tpwr72a",
+    realm: "pokemon",
+    category: { en: "Pokemon", "pt-BR": "Pokemon" },
+    locales: [
+      {
+        lang: "en",
+        name: "Spinda",
+        description: "This user is a Spinda!",
+      },
+    ],
+  },
   "sonasky-ref-sheet-user": {
     realm: "prime",
     locales: [

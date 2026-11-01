@@ -13,7 +13,8 @@
   },
   "scripts": {
     "typecheck": "tsc -b",
-    "sync-from-yaml": "node scripts/sync-from-yaml.ts"
+    "sync-from-yaml": "node scripts/sync-from-yaml.ts",
+    "create-posts": "node scripts/create-posts.ts"
   },
   "devDependencies": {
     "@sonasky/tsconfig": "workspace:*",
