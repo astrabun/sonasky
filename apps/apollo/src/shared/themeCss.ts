@@ -78,6 +78,7 @@ pre,code{font-family:${THEME_FONTS.mono.stack};font-size:.9em}
 pre{background:var(--apollo-surface);padding:12px;border-radius:var(--apollo-radius);overflow-x:auto}
 table{border-collapse:collapse;width:100%;margin:1em 0}
 th,td{border:1px solid color-mix(in srgb,var(--apollo-muted) 35%,transparent);padding:6px 10px;text-align:left}
+th{font-weight:700}
 hr,.apollo-divider{border:0;border-top:1px solid color-mix(in srgb,var(--apollo-muted) 35%,transparent);margin:2em 0}
 .apollo-spacer-small{height:16px}.apollo-spacer-medium{height:40px}.apollo-spacer-large{height:80px}
 .apollo-image{margin:1.5em 0;text-align:center}

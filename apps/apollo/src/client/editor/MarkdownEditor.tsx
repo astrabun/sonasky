@@ -4,9 +4,12 @@
  * from apps/sonasky-ref/.../CharacterEditor/DescriptionEditor.tsx.
  */
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { EditorView } from "@codemirror/view";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, useEditor, type Editor } from "@tiptap/react";
+import type { Node as PMNode } from "@tiptap/pm/model";
+import type { Command } from "@tiptap/pm/state";
+import { isInTable, moveTableColumn, moveTableRow, selectedRect } from "@tiptap/pm/tables";
 import StarterKit from "@tiptap/starter-kit";
 import { TaskItem } from "@tiptap/extension-task-item";
 import { TaskList } from "@tiptap/extension-task-list";
@@ -17,6 +20,14 @@ import { TableCell } from "@tiptap/extension-table-cell";
 import { Image } from "@tiptap/extension-image";
 import { Markdown, type MarkdownStorage } from "tiptap-markdown";
 import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  BetweenHorizontalEnd,
+  BetweenHorizontalStart,
+  BetweenVerticalEnd,
+  BetweenVerticalStart,
   Bold,
   Heading1,
   Heading2,
@@ -28,6 +39,8 @@ import {
   ListOrdered,
   ListTodo,
   Minus,
+  PanelLeft,
+  PanelTop,
   Quote,
   Strikethrough,
   Table as TableIcon,
@@ -87,6 +100,255 @@ function imageExtension(urlFor: { current: MarkdownImages["urlFor"] | undefined 
       };
     },
   }).configure({ inline: true });
+}
+
+/** Largest table the size picker offers (more rows/columns can be added after). */
+const PICKER_ROWS = 8;
+const PICKER_COLS = 8;
+
+/**
+ * Size picker: hover (or arrow-key) over the grid to choose
+ * rows x columns, click (or Enter) to insert. The first row is a header row by default.
+ */
+function TableSizePicker({ onPick }: { onPick: (rows: number, cols: number) => void }) {
+  const [open, setOpen] = useState(false);
+  const [size, setSize] = useState({ rows: 1, cols: 1 });
+  const wrap = useRef<HTMLSpanElement>(null);
+  const grid = useRef<HTMLDivElement>(null);
+
+  const focusCell = (rows: number, cols: number) => {
+    setSize({ rows, cols });
+    grid.current?.querySelector<HTMLButtonElement>(`[data-cell="${rows}x${cols}"]`)?.focus();
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    focusCell(1, 1);
+    const onPointerDown = (e: PointerEvent) => {
+      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const onGridKey = (e: KeyboardEvent) => {
+    const moves: Record<string, [number, number]> = {
+      ArrowUp: [-1, 0],
+      ArrowDown: [1, 0],
+      ArrowLeft: [0, -1],
+      ArrowRight: [0, 1],
+    };
+    const move = moves[e.key];
+    if (!move) return;
+    e.preventDefault();
+    const rows = Math.min(PICKER_ROWS, Math.max(1, size.rows + move[0]));
+    const cols = Math.min(PICKER_COLS, Math.max(1, size.cols + move[1]));
+    focusCell(rows, cols);
+  };
+
+  return (
+    <span ref={wrap} className="relative inline-flex">
+      <ToolbarButton title="Insert table" active={open} onClick={() => setOpen((o) => !o)}>
+        <TableIcon size={16} />
+      </ToolbarButton>
+      {open ? (
+        <div
+          role="dialog"
+          aria-label="Choose table size"
+          className="absolute left-0 top-full z-20 mt-1 rounded-md border border-neutral-200 bg-white p-2 shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
+        >
+          <div
+            ref={grid}
+            role="grid"
+            className="grid gap-0.5"
+            style={{ gridTemplateColumns: `repeat(${PICKER_COLS}, 1rem)` }}
+            onKeyDown={onGridKey}
+          >
+            {Array.from({ length: PICKER_ROWS * PICKER_COLS }, (_, i) => {
+              const r = Math.floor(i / PICKER_COLS) + 1;
+              const c = (i % PICKER_COLS) + 1;
+              const lit = r <= size.rows && c <= size.cols;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  data-cell={`${r}x${c}`}
+                  aria-label={`${r} by ${c} table`}
+                  tabIndex={r === size.rows && c === size.cols ? 0 : -1}
+                  onMouseEnter={() => setSize({ rows: r, cols: c })}
+                  onClick={() => {
+                    setOpen(false);
+                    onPick(r, c);
+                  }}
+                  className={`h-4 w-4 rounded-sm border ${
+                    lit
+                      ? "border-sky-500 bg-sky-200 dark:bg-sky-800"
+                      : "border-neutral-300 bg-white dark:border-neutral-600 dark:bg-neutral-900"
+                  }`}
+                />
+              );
+            })}
+          </div>
+          <p
+            className="mt-1.5 text-center text-xs text-neutral-600 dark:text-neutral-300"
+            aria-live="polite"
+          >
+            {size.rows} {size.rows === 1 ? "row" : "rows"} × {size.cols}{" "}
+            {size.cols === 1 ? "column" : "columns"}
+          </p>
+        </div>
+      ) : null}
+    </span>
+  );
+}
+
+/**
+ * Where the cursor is in the surrounding table, and whether that table has a
+ * header row (first row all header cells) / header column (first cell of
+ * every row a header cell). Header cells render bold. A table with a header
+ * column or no header row can't be GFM, so tiptap-markdown saves it as HTML.
+ */
+function tableState(editor: Editor) {
+  const { state } = editor;
+  if (!isInTable(state)) return null;
+  const rect = selectedRect(state);
+  const isHeader = (cell: PMNode | null) => cell?.type.name === "tableHeader";
+  const firstRow = rect.table.firstChild;
+  let headerRow = Boolean(firstRow && firstRow.childCount > 0);
+  firstRow?.forEach((cell) => {
+    if (!isHeader(cell)) headerRow = false;
+  });
+  let headerColumn = rect.table.childCount > 0;
+  rect.table.forEach((row) => {
+    if (!isHeader(row.firstChild)) headerColumn = false;
+  });
+  return { ...rect, headerRow, headerColumn };
+}
+
+function GroupLabel({ children }: { children: ReactNode }) {
+  return (
+    <span className="ml-1 mr-0.5 text-xs font-medium text-neutral-500 first:ml-0 dark:text-neutral-400">
+      {children}
+    </span>
+  );
+}
+
+/** Second toolbar row, shown while the cursor is in a table. */
+function TableControls({ editor }: { editor: Editor }) {
+  const t = tableState(editor);
+  if (!t) return null;
+  const run = (command: Command) => {
+    command(editor.state, editor.view.dispatch);
+    editor.commands.focus();
+  };
+  return (
+    <div
+      className="mt-0.5 flex w-full flex-wrap items-center gap-0.5 border-t border-neutral-200 pt-1 dark:border-neutral-800"
+      role="group"
+      aria-label="Table"
+    >
+      <GroupLabel>Row</GroupLabel>
+      <ToolbarButton
+        title="Add row above"
+        onClick={() => editor.chain().focus().addRowBefore().run()}
+      >
+        <BetweenHorizontalStart size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        title="Add row below"
+        onClick={() => editor.chain().focus().addRowAfter().run()}
+      >
+        <BetweenHorizontalEnd size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        title="Move row up"
+        disabled={t.top === 0}
+        onClick={() => run(moveTableRow({ from: t.top, to: t.top - 1 }))}
+      >
+        <ArrowUp size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        title="Move row down"
+        disabled={t.bottom >= t.map.height}
+        onClick={() => run(moveTableRow({ from: t.top, to: t.top + 1 }))}
+      >
+        <ArrowDown size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        title="Delete row"
+        disabled={!editor.can().deleteRow()}
+        onClick={() => editor.chain().focus().deleteRow().run()}
+      >
+        <Trash2 size={16} />
+      </ToolbarButton>
+
+      <GroupLabel>Column</GroupLabel>
+      <ToolbarButton
+        title="Add column left"
+        onClick={() => editor.chain().focus().addColumnBefore().run()}
+      >
+        <BetweenVerticalStart size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        title="Add column right"
+        onClick={() => editor.chain().focus().addColumnAfter().run()}
+      >
+        <BetweenVerticalEnd size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        title="Move column left"
+        disabled={t.left === 0}
+        onClick={() => run(moveTableColumn({ from: t.left, to: t.left - 1 }))}
+      >
+        <ArrowLeft size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        title="Move column right"
+        disabled={t.right >= t.map.width}
+        onClick={() => run(moveTableColumn({ from: t.left, to: t.left + 1 }))}
+      >
+        <ArrowRight size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        title="Delete column"
+        disabled={!editor.can().deleteColumn()}
+        onClick={() => editor.chain().focus().deleteColumn().run()}
+      >
+        <Trash2 size={16} />
+      </ToolbarButton>
+
+      <GroupLabel>Headers</GroupLabel>
+      <ToolbarButton
+        title="Header row (bold first row)"
+        active={t.headerRow}
+        onClick={() => editor.chain().focus().toggleHeaderRow().run()}
+      >
+        <PanelTop size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        title="Header column (bold first column)"
+        active={t.headerColumn}
+        onClick={() => editor.chain().focus().toggleHeaderColumn().run()}
+      >
+        <PanelLeft size={16} />
+      </ToolbarButton>
+
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().deleteTable().run()}
+        className="ml-auto inline-flex items-center gap-1 rounded px-1.5 py-1 text-xs text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
+      >
+        <Trash2 size={14} aria-hidden /> Delete table
+      </button>
+    </div>
+  );
 }
 
 type EditorMode = "source" | "formatted";
@@ -267,22 +529,11 @@ function FormattedEditor({
         >
           <ListTodo size={16} />
         </ToolbarButton>
-        <ToolbarButton
-          title="Table"
-          onClick={() =>
-            editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+        <TableSizePicker
+          onPick={(rows, cols) =>
+            editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run()
           }
-        >
-          <TableIcon size={16} />
-        </ToolbarButton>
-        {editor.isActive("table") ? (
-          <ToolbarButton
-            title="Delete table"
-            onClick={() => editor.chain().focus().deleteTable().run()}
-          >
-            <Trash2 size={16} />
-          </ToolbarButton>
-        ) : null}
+        />
         <ToolbarButton
           title="Divider line"
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
@@ -329,6 +580,7 @@ function FormattedEditor({
         >
           <Unlink size={16} />
         </ToolbarButton>
+        <TableControls editor={editor} />
       </div>
       <EditorContent editor={editor} />
     </div>
