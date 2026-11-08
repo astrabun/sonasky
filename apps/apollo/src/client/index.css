@@ -79,6 +79,11 @@ body {
   border: 1px solid #d4d4d4;
   padding: 4px 8px;
 }
+.apollo-prose th {
+  font-weight: 700;
+  text-align: left;
+  background: rgb(163 163 163 / 0.12);
+}
 .apollo-prose ul[data-type="taskList"] {
   list-style: none;
   padding-left: 0.25rem;
