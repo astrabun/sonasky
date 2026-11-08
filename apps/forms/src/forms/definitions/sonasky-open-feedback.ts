@@ -13,7 +13,8 @@ import type { FormDefinition } from "../types.ts";
 export const openFeedback: FormDefinition = {
   id: "000-sonasky-open-feedback",
   title: "SonaSky Open Feedback",
-  description: "This form allows generic feedback at any time, not related to any ongoing surveys.",
+  description:
+    "This form allows generic feedback at any time, not related to any ongoing surveys. Please note: this is ***NOT*** a species request form. Check https://sonasky.app/faq to see if species requests are open and fill out the associated form linked there.",
   active: true,
   pinned: true,
   date: "2026-09-08",
