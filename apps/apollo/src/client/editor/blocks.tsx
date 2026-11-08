@@ -3,12 +3,15 @@
  * plain-language name and a small form; nothing here asks for markup.
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowDown,
+  ArrowDownToLine,
   ArrowUp,
+  ArrowUpToLine,
   CalendarDays,
   Check,
+  GripVertical,
   Heading,
   Image,
   LayoutGrid,
@@ -30,6 +33,7 @@ import {
 import { COMMUNITY_BLOCKS, findCommunityBlock } from "@sonasky/apollo-blocks";
 import { upgradeBlock } from "../../shared/communityUpgrades.ts";
 import { LIMITS, utf8Bytes } from "../../shared/limits.ts";
+import { moveItem } from "../../shared/reorder.ts";
 import type {
   Block,
   BlockType,
@@ -736,18 +740,59 @@ export function BlockList({
   const ids = idsRef.current;
 
   const set = (i: number, b: Block) => onChange(blocks.map((x, j) => (j === i ? b : x)));
-  const move = (i: number, d: -1 | 1) => {
-    const next = [...blocks];
-    [next[i], next[i + d]] = [next[i + d], next[i]];
-    [ids[i], ids[i + d]] = [ids[i + d], ids[i]];
-    onChange(next);
+  const moveTo = (from: number, to: number) => {
+    if (from === to || to < 0 || to >= blocks.length) return;
+    idsRef.current = moveItem(ids, from, to);
+    onChange(moveItem(blocks, from, to));
   };
   const removeAt = (i: number) => {
     ids.splice(i, 1);
     onChange(blocks.filter((_, j) => j !== i));
   };
+
+  // Drag-and-drop: a block only becomes draggable while its grip handle is
+  // held, so selecting text inside a block's fields still works.
+  const [armed, setArmed] = useState<number | null>(null);
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
+  // Insertion point, 0..blocks.length (before block i, or after the last).
+  const [dropAt, setDropAt] = useState<number | null>(null);
+  useEffect(() => {
+    if (armed === null || dragFrom !== null) return;
+    const disarm = () => setArmed(null);
+    document.addEventListener("pointerup", disarm);
+    document.addEventListener("pointercancel", disarm);
+    return () => {
+      document.removeEventListener("pointerup", disarm);
+      document.removeEventListener("pointercancel", disarm);
+    };
+  }, [armed, dragFrom]);
+  const endDrag = () => {
+    setArmed(null);
+    setDragFrom(null);
+    setDropAt(null);
+  };
+  const drop = () => {
+    if (dragFrom !== null && dropAt !== null) {
+      moveTo(dragFrom, dropAt > dragFrom ? dropAt - 1 : dropAt);
+    }
+    endDrag();
+  };
+  // Dropping right above or below the dragged block wouldn't change anything.
+  const showDropLine = (at: number) =>
+    dragFrom !== null && dropAt === at && at !== dragFrom && at !== dragFrom + 1;
+
   return (
-    <div className="space-y-3">
+    <div
+      className="space-y-3"
+      onDragOver={(e) => {
+        if (dragFrom !== null) e.preventDefault();
+      }}
+      onDrop={(e) => {
+        if (dragFrom === null) return;
+        e.preventDefault();
+        drop();
+      }}
+    >
       {blocks.length === 0 ? (
         <Notice>
           This page is empty. Add a block to get started - try a Heading and some Text.
@@ -755,45 +800,110 @@ export function BlockList({
       ) : null}
       {blocks.map((block, i) => {
         const info = blockInfo(block);
+        const name = info?.name ?? "block";
         return (
-          <Card key={ids[i]}>
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <span className="flex items-center gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-200">
-                {info ? <info.icon size={16} aria-hidden /> : null}
-                {info?.name ?? "Block"}
-                {info?.community ? <CommunityBadge /> : null}
-              </span>
-              <div className="flex gap-1">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={i === 0}
-                  onClick={() => move(i, -1)}
-                  aria-label={`Move ${info?.name ?? "block"} up`}
-                >
-                  <ArrowUp size={14} />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={i === blocks.length - 1}
-                  onClick={() => move(i, 1)}
-                  aria-label={`Move ${info?.name ?? "block"} down`}
-                >
-                  <ArrowDown size={14} />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => removeAt(i)}
-                  aria-label={`Remove ${info?.name ?? "block"}`}
-                >
-                  <Trash2 size={14} />
-                </Button>
+          <div
+            key={ids[i]}
+            className={`relative ${dragFrom === i ? "opacity-50" : ""}`}
+            draggable={armed === i}
+            onDragStart={(e) => {
+              if (armed !== i) return;
+              e.dataTransfer.effectAllowed = "move";
+              // Firefox won't start a drag without some data.
+              e.dataTransfer.setData("text/plain", "");
+              setDragFrom(i);
+            }}
+            onDragOver={(e) => {
+              if (dragFrom === null) return;
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              const rect = e.currentTarget.getBoundingClientRect();
+              setDropAt(e.clientY < rect.top + rect.height / 2 ? i : i + 1);
+            }}
+            onDragEnd={endDrag}
+          >
+            {showDropLine(i) ? (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 -top-2 h-0.5 rounded bg-sky-500"
+              />
+            ) : null}
+            <Card>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+                  <span
+                    className="-ml-1 cursor-grab touch-none rounded p-0.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 active:cursor-grabbing dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+                    title="Drag to reorder"
+                    aria-hidden
+                    onPointerDown={() => setArmed(i)}
+                  >
+                    <GripVertical size={16} />
+                  </span>
+                  {info ? <info.icon size={16} aria-hidden /> : null}
+                  {info?.name ?? "Block"}
+                  {info?.community ? <CommunityBadge /> : null}
+                </span>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={i === 0}
+                    onClick={() => moveTo(i, 0)}
+                    aria-label={`Move ${name} to top`}
+                    title="Move to top"
+                  >
+                    <ArrowUpToLine size={14} />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={i === 0}
+                    onClick={() => moveTo(i, i - 1)}
+                    aria-label={`Move ${name} up`}
+                    title="Move up"
+                  >
+                    <ArrowUp size={14} />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={i === blocks.length - 1}
+                    onClick={() => moveTo(i, i + 1)}
+                    aria-label={`Move ${name} down`}
+                    title="Move down"
+                  >
+                    <ArrowDown size={14} />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={i === blocks.length - 1}
+                    onClick={() => moveTo(i, blocks.length - 1)}
+                    aria-label={`Move ${name} to bottom`}
+                    title="Move to bottom"
+                  >
+                    <ArrowDownToLine size={14} />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => removeAt(i)}
+                    aria-label={`Remove ${name}`}
+                    title="Remove"
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
               </div>
-            </div>
-            <BlockFields block={block} onChange={(b) => set(i, b)} />
-          </Card>
+              <BlockFields block={block} onChange={(b) => set(i, b)} />
+            </Card>
+            {i === blocks.length - 1 && showDropLine(blocks.length) ? (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 -bottom-2 h-0.5 rounded bg-sky-500"
+              />
+            ) : null}
+          </div>
         );
       })}
       <AddBlockMenu
