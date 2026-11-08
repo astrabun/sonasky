@@ -232,11 +232,18 @@ function tableState(editor: Editor) {
   return { ...rect, headerRow, headerColumn };
 }
 
-function GroupLabel({ children }: { children: ReactNode }) {
+/** A labeled run of buttons that wraps as one unit (label never orphaned). */
+function ToolGroup({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <span className="ml-1 mr-0.5 text-xs font-medium text-neutral-500 first:ml-0 dark:text-neutral-400">
+    <div role="group" aria-label={label} className="flex items-center gap-0.5">
+      <span
+        aria-hidden
+        className="mr-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400"
+      >
+        {label}
+      </span>
       {children}
-    </span>
+    </div>
   );
 }
 
@@ -250,95 +257,98 @@ function TableControls({ editor }: { editor: Editor }) {
   };
   return (
     <div
-      className="mt-0.5 flex w-full flex-wrap items-center gap-0.5 border-t border-neutral-200 pt-1 dark:border-neutral-800"
+      className="mt-0.5 flex w-full flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-neutral-200 pt-1 dark:border-neutral-800"
       role="group"
       aria-label="Table"
     >
-      <GroupLabel>Row</GroupLabel>
-      <ToolbarButton
-        title="Add row above"
-        onClick={() => editor.chain().focus().addRowBefore().run()}
-      >
-        <BetweenHorizontalStart size={16} />
-      </ToolbarButton>
-      <ToolbarButton
-        title="Add row below"
-        onClick={() => editor.chain().focus().addRowAfter().run()}
-      >
-        <BetweenHorizontalEnd size={16} />
-      </ToolbarButton>
-      <ToolbarButton
-        title="Move row up"
-        disabled={t.top === 0}
-        onClick={() => run(moveTableRow({ from: t.top, to: t.top - 1 }))}
-      >
-        <ArrowUp size={16} />
-      </ToolbarButton>
-      <ToolbarButton
-        title="Move row down"
-        disabled={t.bottom >= t.map.height}
-        onClick={() => run(moveTableRow({ from: t.top, to: t.top + 1 }))}
-      >
-        <ArrowDown size={16} />
-      </ToolbarButton>
-      <ToolbarButton
-        title="Delete row"
-        disabled={!editor.can().deleteRow()}
-        onClick={() => editor.chain().focus().deleteRow().run()}
-      >
-        <Trash2 size={16} />
-      </ToolbarButton>
+      <ToolGroup label="Row">
+        <ToolbarButton
+          title="Add row above"
+          onClick={() => editor.chain().focus().addRowBefore().run()}
+        >
+          <BetweenHorizontalStart size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          title="Add row below"
+          onClick={() => editor.chain().focus().addRowAfter().run()}
+        >
+          <BetweenHorizontalEnd size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          title="Move row up"
+          disabled={t.top === 0}
+          onClick={() => run(moveTableRow({ from: t.top, to: t.top - 1 }))}
+        >
+          <ArrowUp size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          title="Move row down"
+          disabled={t.bottom >= t.map.height}
+          onClick={() => run(moveTableRow({ from: t.top, to: t.top + 1 }))}
+        >
+          <ArrowDown size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          title="Delete row"
+          disabled={!editor.can().deleteRow()}
+          onClick={() => editor.chain().focus().deleteRow().run()}
+        >
+          <Trash2 size={16} />
+        </ToolbarButton>
+      </ToolGroup>
 
-      <GroupLabel>Column</GroupLabel>
-      <ToolbarButton
-        title="Add column left"
-        onClick={() => editor.chain().focus().addColumnBefore().run()}
-      >
-        <BetweenVerticalStart size={16} />
-      </ToolbarButton>
-      <ToolbarButton
-        title="Add column right"
-        onClick={() => editor.chain().focus().addColumnAfter().run()}
-      >
-        <BetweenVerticalEnd size={16} />
-      </ToolbarButton>
-      <ToolbarButton
-        title="Move column left"
-        disabled={t.left === 0}
-        onClick={() => run(moveTableColumn({ from: t.left, to: t.left - 1 }))}
-      >
-        <ArrowLeft size={16} />
-      </ToolbarButton>
-      <ToolbarButton
-        title="Move column right"
-        disabled={t.right >= t.map.width}
-        onClick={() => run(moveTableColumn({ from: t.left, to: t.left + 1 }))}
-      >
-        <ArrowRight size={16} />
-      </ToolbarButton>
-      <ToolbarButton
-        title="Delete column"
-        disabled={!editor.can().deleteColumn()}
-        onClick={() => editor.chain().focus().deleteColumn().run()}
-      >
-        <Trash2 size={16} />
-      </ToolbarButton>
+      <ToolGroup label="Column">
+        <ToolbarButton
+          title="Add column left"
+          onClick={() => editor.chain().focus().addColumnBefore().run()}
+        >
+          <BetweenVerticalStart size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          title="Add column right"
+          onClick={() => editor.chain().focus().addColumnAfter().run()}
+        >
+          <BetweenVerticalEnd size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          title="Move column left"
+          disabled={t.left === 0}
+          onClick={() => run(moveTableColumn({ from: t.left, to: t.left - 1 }))}
+        >
+          <ArrowLeft size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          title="Move column right"
+          disabled={t.right >= t.map.width}
+          onClick={() => run(moveTableColumn({ from: t.left, to: t.left + 1 }))}
+        >
+          <ArrowRight size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          title="Delete column"
+          disabled={!editor.can().deleteColumn()}
+          onClick={() => editor.chain().focus().deleteColumn().run()}
+        >
+          <Trash2 size={16} />
+        </ToolbarButton>
+      </ToolGroup>
 
-      <GroupLabel>Headers</GroupLabel>
-      <ToolbarButton
-        title="Header row (bold first row)"
-        active={t.headerRow}
-        onClick={() => editor.chain().focus().toggleHeaderRow().run()}
-      >
-        <PanelTop size={16} />
-      </ToolbarButton>
-      <ToolbarButton
-        title="Header column (bold first column)"
-        active={t.headerColumn}
-        onClick={() => editor.chain().focus().toggleHeaderColumn().run()}
-      >
-        <PanelLeft size={16} />
-      </ToolbarButton>
+      <ToolGroup label="Headers">
+        <ToolbarButton
+          title="Header row (bold first row)"
+          active={t.headerRow}
+          onClick={() => editor.chain().focus().toggleHeaderRow().run()}
+        >
+          <PanelTop size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          title="Header column (bold first column)"
+          active={t.headerColumn}
+          onClick={() => editor.chain().focus().toggleHeaderColumn().run()}
+        >
+          <PanelLeft size={16} />
+        </ToolbarButton>
+      </ToolGroup>
 
       <button
         type="button"
