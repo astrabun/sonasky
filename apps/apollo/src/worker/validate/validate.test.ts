@@ -59,6 +59,11 @@ describe("validateSite", () => {
   it("requires a home page", () => {
     expect(() => validateSite({ title: "x" })).toThrow(/home page/);
   });
+  it("keeps unlisted only when true", () => {
+    expect(validateSite({ ...baseSite, unlisted: true }).unlisted).toBe(true);
+    expect(validateSite({ ...baseSite, unlisted: false }).unlisted).toBeUndefined();
+    expect(validateSite({ ...baseSite, unlisted: "yes" }).unlisted).toBeUndefined();
+  });
 });
 
 describe("validatePage", () => {

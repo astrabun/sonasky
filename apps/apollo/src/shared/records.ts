@@ -71,6 +71,11 @@ export interface SiteRecord {
   /** When true, `/@actor/blog` lists this site's posts. */
   blogEnabled?: boolean;
   /**
+   * When true, Discover leaves this site out of the random pick and the
+   * directory. It still counts toward the site total and handle lookup finds it.
+   */
+  unlisted?: boolean;
+  /**
    * Whether new posts / pages start with Bluesky comments turned on. Only
    * read by the editor when making something new; each page keeps its own
    * `comments` setting after that.

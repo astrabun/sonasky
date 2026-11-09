@@ -77,7 +77,7 @@ import { origin, type AppEnv } from "../env.ts";
 import { discoverSite, featureable } from "../discover.ts";
 import { likeCount, likeRkey, siteUri } from "../likes.ts";
 import { ringDirectory } from "../ring-directory.ts";
-import { noteLike, siteDirectory } from "../site-directory.ts";
+import { forgetSite, noteLike, siteDirectory } from "../site-directory.ts";
 import { isDid, resolveActor } from "../atproto/identity.ts";
 import { getPublicRecord } from "../atproto/repo.ts";
 import { badgeUris, listBadgesOf, loadBadges, type LoadedBadge } from "../badges.ts";
@@ -442,9 +442,12 @@ apiRoutes.get("/api/site", requireSession, requireEditor, async (c) => {
 });
 
 apiRoutes.put("/api/site", requireSession, requireSameOrigin, requireEditor, async (c) => {
-  const { agent } = c.get("session");
+  const { agent, did } = c.get("session");
   const record = validateSite(await c.req.json());
-  return c.json<PutResponse>(await put(agent, NSID_SITE, SITE_RKEY, record));
+  const res = await put(agent, NSID_SITE, SITE_RKEY, record);
+  // Let Discover pick up listing (and title) changes on its next read.
+  await forgetSite(did);
+  return c.json<PutResponse>(res);
 });
 
 /** Remove the whole site: the site record and every Apollo record in the repo. */
