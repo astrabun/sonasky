@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Opt out of Wrangler's usage telemetry for everyone working on this project.
+  "send_metrics": false,
+  "name": "sonasky-turbo-cache",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-08",
+  "observability": { "enabled": true },
+  // Served on the account's *.workers.dev subdomain; CI reads the URL from the
+  // TURBO_API repo variable, so a custom domain can be swapped in later.
+  "workers_dev": true,
+  "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "sonasky-turbo-cache" }],
+}

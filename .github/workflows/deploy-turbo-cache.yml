@@ -1,0 +1,68 @@
+name: Deploy Turbo Cache
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "apps/turbo-cache/**"
+      - "packages/tsconfig/**"
+      - ".github/workflows/deploy-turbo-cache.yml"
+  pull_request:
+    paths:
+      - "apps/turbo-cache/**"
+      - "packages/tsconfig/**"
+      - ".github/workflows/deploy-turbo-cache.yml"
+
+concurrency:
+  group: deploy-turbo-cache-${{ github.ref }}
+  cancel-in-progress: true
+
+# Opt out of Turborepo and Wrangler telemetry. `turbo telemetry disable` only
+# affects the machine it's run on, so CI has to opt out via the environment.
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  DO_NOT_TRACK: 1
+  WRANGLER_SEND_METRICS: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Deliberately not using the remote cache itself here, so a broken cache
+      # Worker can always be redeployed.
+      - run: pnpm turbo run typecheck test --filter=@sonasky/app-turbo-cache
+
+      # PRs only validate the bundle; pushes to main deploy for real.
+      - name: Validate bundle (PR)
+        if: github.event_name == 'pull_request'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/turbo-cache
+          command: deploy --dry-run
+
+      # Opt-in until the R2 bucket and TURBO_TOKEN secret exist (see
+      # apps/turbo-cache/README.md). Set the repo variable
+      # TURBO_CACHE_DEPLOY_ENABLED=true to turn on deploys from main.
+      - name: Deploy (main)
+        if: github.event_name == 'push' && vars.TURBO_CACHE_DEPLOY_ENABLED == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/turbo-cache
+          command: deploy

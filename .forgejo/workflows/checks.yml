@@ -12,6 +12,12 @@ env:
   TURBO_TELEMETRY_DISABLED: 1
   DO_NOT_TRACK: 1
   WRANGLER_SEND_METRICS: false
+  # Turborepo remote cache (apps/turbo-cache), shared by PR and main runs so a
+  # build cached on a PR is replayed after merge instead of rebuilt. Without a
+  # token (e.g. fork PRs) turbo quietly falls back to building locally.
+  TURBO_API: ${{ vars.TURBO_API }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
 
 jobs:
   checks:
