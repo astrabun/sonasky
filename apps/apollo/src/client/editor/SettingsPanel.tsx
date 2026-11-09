@@ -258,6 +258,22 @@ export function SettingsPanel() {
       </Card>
 
       <Card className="space-y-2">
+        <h3 className="text-sm font-semibold">Discover</h3>
+        <p className="text-xs text-neutral-500">
+          Unlisted sites don't appear in the random pick or the directory. They still work by link,
+          and people can still find them by handle.
+        </p>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={draft.unlisted !== true}
+            onChange={(e) => update({ unlisted: e.target.checked ? undefined : true })}
+          />
+          List my site on the Discover page
+        </label>
+      </Card>
+
+      <Card className="space-y-2">
         <h3 className="text-sm font-semibold">Comments</h3>
         <p className="text-xs text-neutral-500">
           Show replies from Bluesky as comments. Share a post or page on Bluesky, and replies to

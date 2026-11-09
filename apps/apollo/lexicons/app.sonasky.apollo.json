@@ -40,6 +40,10 @@
           },
           "lang": { "type": "string", "format": "language" },
           "blogEnabled": { "type": "boolean" },
+          "unlisted": {
+            "type": "boolean",
+            "description": "Keep this site out of Apollo's Discover page (random pick and directory). It still counts toward the site total and can be found by handle."
+          },
           "commentsDefaults": {
             "type": "object",
             "description": "Whether new posts / pages start with Bluesky comments turned on (read by the editor only).",

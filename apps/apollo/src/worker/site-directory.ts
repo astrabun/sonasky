@@ -106,6 +106,8 @@ async function probe(env: AppEnv, did: string): Promise<Probe | null> {
   if (!identity) return null;
   const site = await getPublicRecord<SiteRecord>(identity.pds, did, NSID_SITE, SITE_RKEY);
   if (site?.value?.$type !== NSID_SITE || !isSlug(site.value.homePage)) return null;
+  // Opted out of Discover; still counted in the site total.
+  if (site.value.unlisted === true) return null;
   const actor = identity.handle ?? did;
   const [home, status, likes, links] = await Promise.all([
     getPublicRecord<PageRecord>(identity.pds, did, NSID_PAGE, site.value.homePage),
@@ -261,5 +263,17 @@ export async function noteLike(did: string, delta: 1 | -1): Promise<void> {
   if (!entry?.site) return;
   entry.likes = Math.max(0, entry.likes + delta);
   entry.likesAt = Date.now() - LIKES_TTL_MS + 30_000;
+  await writeIndex(index);
+}
+
+/**
+ * Re-check this site on the next directory read (this colo only), so changes
+ * like opting out of Discover show up without waiting for the TTL.
+ */
+export async function forgetSite(did: string): Promise<void> {
+  const index = await readIndex();
+  const entry = index[did];
+  if (!entry) return;
+  entry.checkedAt = 0;
   await writeIndex(index);
 }

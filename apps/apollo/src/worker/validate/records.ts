@@ -268,6 +268,7 @@ export function validateSite(input: unknown): SiteRecord {
       : undefined,
     lang,
     blogEnabled: o.blogEnabled === true ? true : undefined,
+    unlisted: o.unlisted === true ? true : undefined,
     commentsDefaults: commentsDefaults(o),
     labels: selfLabels(o, "labels"),
     ...timestamps(o),
